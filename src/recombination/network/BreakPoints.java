@@ -172,6 +172,16 @@ public class BreakPoints {
 			return false;
 		}
 		
+		public Range getOverlap(Range range) {
+			int newfrom = Math.max(from, range.from);
+			int newto = Math.min(to, range.to);
+			if (newto<newfrom)
+				return null;
+			
+			return new Range(newfrom, newto);
+						
+		}
+		
 		public String toString() {
 			return from +":"+to;
 			
@@ -197,18 +207,73 @@ public class BreakPoints {
 
 	}
 
+	/**
+	 * compute the intersection between this.breakpoonts and breakpoints
+	 * @param breakPoints
+	 */
 	public void and(BreakPoints breakPoints) {
-		// TODO Auto-generated method stub
+		List<Range> newBreaks = new ArrayList<>();
+		int j = 0;
 		
+
+		for (int i = 0; i < this.breakPoints.size(); i++) {
+			while (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).from) {
+				j++;
+				if (j==breakPoints.breakPoints.size()) {
+					this.breakPoints = new ArrayList<>(newBreaks);
+					return;
+				}
+
+			}
+
+			while (breakPoints.breakPoints.get(j).from <= this.breakPoints.get(i).to) {
+				Range newR = this.breakPoints.get(i).getOverlap(breakPoints.breakPoints.get(j));
+				if (newR!=null)
+					newBreaks.add(newR);
+				 
+				if (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).to)
+					j++;
+				else
+					break;
+				
+				if (j==breakPoints.breakPoints.size()) {
+					this.breakPoints = new ArrayList<>(newBreaks);
+					return;
+				}				
+			}	
+		}
+		this.breakPoints = new ArrayList<>(newBreaks);
+		return;
 	}
 
-
+	/**
+	 * remove breakpoints from this.breakpoints
+	 * @param breakPoints
+	 */
 	public void andNot(BreakPoints breakPoints) {
-		// TODO Auto-generated method stub
+		int j = 0;
+		List<Range> newBreaks = new ArrayList<>();
 		
+		for (int i = 0; i < this.breakPoints.size(); i++) {
+			// got to the next potential overlap
+			while (breakPoints.breakPoints.get(j).from < this.breakPoints.get(i).from) {
+				j++;
+				if (j==breakPoints.breakPoints.size())
+					break;
+
+			}
+				
+				
+				
+		}
+			
+		this.breakPoints = new ArrayList<>(newBreaks);		
 	}
 
-
+	/**
+	 * combine two lists of breakpoints
+	 * @param breakPoints
+	 */
 	public void or(BreakPoints breakPoints) {
 		// make a new list containing all breakpoints
 		List<Range> newBreaks = new ArrayList<>();
@@ -227,9 +292,7 @@ public class BreakPoints {
 			}
 				
 		}
-		newBreaks.add(new Range(lastfrom, nextto));
-
-						
+		newBreaks.add(new Range(lastfrom, nextto));				
 					
 		this.breakPoints = new ArrayList<>(newBreaks);		
 	}
