@@ -153,7 +153,7 @@ public class RecombinationNetwork extends StateNode {
         boolean traverse = true;
         int hybridID = -1;
         boolean printMetaData = true;
-        if (currentEdge.childNode.isReassortment()) {
+        if (currentEdge.childNode.isRecombination()) {
         	
             hybridID = seenReassortmentNodes.indexOf(currentEdge.childNode);
             if (hybridID<0) {
@@ -167,16 +167,7 @@ public class RecombinationNetwork extends StateNode {
 	        		otherEdge = parentEdges.get(0);
 	        	
 	        	// check which edge is the main edge
-	        	if (otherEdge.hasSegments.get(followSegment)){
-	                traverse = false;
-	                seenReassortmentNodes.add(currentEdge.childNode);
-	                isTraverseEdge.add(true);
-	                hybridID = seenReassortmentNodes.size()-1;
-	        	}else if(currentEdge.hasSegments.get(followSegment)){
-	                seenReassortmentNodes.add(otherEdge.childNode);
-	                isTraverseEdge.add(false);
-	                hybridID = seenReassortmentNodes.size()-1;	        		
-	        	}else if (currentEdge.hasSegments.cardinality() < otherEdge.hasSegments.cardinality()){
+	        	if (currentEdge.breakPoints.getGeneticLength() < otherEdge.breakPoints.getGeneticLength()){
 	                traverse = false;
 	                seenReassortmentNodes.add(currentEdge.childNode);
 	                isTraverseEdge.add(true);
@@ -215,14 +206,19 @@ public class RecombinationNetwork extends StateNode {
         }
 
         result.append("[&");
-        result.append("segments=").append(currentEdge.hasSegments);
-        if (verbose) {
-            for (int segIdx=0; segIdx<getSegmentCount(); segIdx++) {
-                result.append(",seg").append(segIdx).append("=")
-                        .append(currentEdge.hasSegments.get(segIdx));
-            }
-        }
-        result.append(",segsCarried=").append(currentEdge.hasSegments.cardinality());
+        if (currentEdge.childNode.isRecombination())
+        	result.append("bp=").append(currentEdge.childNode.breakpoint).append(",");
+        	
+        result.append("loci={").append(currentEdge.breakPoints);
+        result.append("}");
+//        if (verbose) {
+//            for (int segIdx=0; segIdx<getSegmentCount(); segIdx++) {
+//                result.append(",seg").append(segIdx).append("=")
+//                        .append(currentEdge.hasSegments.get(segIdx));
+//            }
+//        }
+        result.append(",length=").append(currentEdge.breakPoints.getGeneticLength());
+        
         if (currentEdge.childNode.getTypeLabel() != null) 
         		result.append(",state=").append(currentEdge.childNode.getTypeLabel());
         
@@ -358,150 +354,150 @@ public class RecombinationNetwork extends StateNode {
     }
 
 
-//    /**
-//     * Visitor class used to build recombinationNetwork from parser-generated AST.
-//     */
-//    class RecombinationNetworkBuilderVisitor extends RecombinationNetworkBaseVisitor<RecombinationNetworkEdge> {
-//
-//        Map<Integer, RecombinationNetworkNode> seenHybrids;
-//        Map<RecombinationNetworkEdge, Double> edgeLengths;
-//
-//        private void convertEdgeLengthsToNodeHeights() {
-//
-//        }
-//
-//        double getMaxRootToLeafTime(RecombinationNetworkNode node, Set<RecombinationNetworkNode> seenNodes) {
-//
-//            if (seenNodes.contains(node))
-//                return 0.0;
-//
-//            seenNodes.add(node);
-//
-//            double maxTime = 0.0;
-//            for (RecombinationNetworkEdge childEdge : node.getChildEdges()) {
-//                RecombinationNetworkNode childNode = childEdge.childNode;
-//                childNode.setHeight(node.getHeight()-edgeLengths.get(childEdge));
-//
-//                double thisTime = edgeLengths.get(childEdge) +
-//                        getMaxRootToLeafTime(childNode, seenNodes);
-//                if (thisTime > maxTime)
-//                    maxTime = thisTime;
-//            }
-//
-//            return maxTime;
-//        }
-//
-//        void shiftNodeHeights(double maxRTLT, RecombinationNetworkNode node, Set<RecombinationNetworkNode> seenNodes) {
-//            if (seenNodes.contains(node))
-//                return;
-//
-//            seenNodes.add(node);
-//
-//            node.setHeight(node.getHeight() + maxRTLT);
-//
-//            for (RecombinationNetworkEdge childEdge : node.getChildEdges())
-//                shiftNodeHeights(maxRTLT, childEdge.childNode, seenNodes);
-//        }
-//
-//        @Override
-//        public RecombinationNetworkEdge visitRecombinationNetwork(RecombinationNetworkParser.RecombinationNetworkContext ctx) {
-//            seenHybrids = new HashMap<>();
-//            edgeLengths = new HashMap<>();
-//
-//            RecombinationNetworkEdge rootEdge = visit(ctx.node());
-//
-//            Set<RecombinationNetworkNode> seenNodes = new HashSet<>();
-//            RecombinationNetworkNode rootNode = rootEdge.childNode;
-//            rootNode.setHeight(0.0);
-//            double maxRTLT = getMaxRootToLeafTime(rootNode, seenNodes);
-//
-//            seenNodes.clear();
-//            shiftNodeHeights(maxRTLT, rootEdge.childNode, seenNodes);
-//
-//            return rootEdge;
-//        }
-//
-//        private String removeQuotes(String str) {
-//
-//            String[] quoteChars = {"\"", "'"};
-//
-//            for (String quoteChar : quoteChars) {
-//                if (str.startsWith(quoteChar) && str.endsWith(quoteChar) && str.length() >= 2)
-//                    str = str.substring(1, str.length() - 1);
-//            }
-//
-//            return str;
-//        }
-//
-//        @Override
-//        public RecombinationNetworkEdge visitNode(RecombinationNetworkParser.NodeContext ctx) {
-//
-//            visit(ctx.post());
-//
-//            RecombinationNetworkNode node;
-//
-//            if (ctx.post().hybrid() != null) {
-//                int hybridID = Integer.valueOf(ctx.post().hybrid().id.getText());
-//
-//                if (seenHybrids.containsKey(hybridID)) {
-//                    node = seenHybrids.get(hybridID);
-//                } else {
-//                    node = new RecombinationNetworkNode();
-//                    seenHybrids.put(hybridID, node);
-//                }
-//            } else {
-//                node = new RecombinationNetworkNode();
-//            }
-//
-//            if (ctx.post().label() != null)
-//                node.setTaxonLabel(removeQuotes(ctx.post().label().getText()));
-//
-//            for (RecombinationNetworkParser.NodeContext childNodeCtx : ctx.node()) {
-//                RecombinationNetworkEdge childEdge = visit(childNodeCtx);
-//                childEdge.parentNode = node;
-//                node.addChildEdge(childEdge);
-//            }
-//
-//            boolean segmentsProcessed = false;
-//            BitSet hasSegments = new BitSet();
-//            if (ctx.post().meta() != null
-//                    && ctx.post().meta().attrib() != null) {
-//
-//                for (RecombinationNetworkParser.AttribContext attribCtx : ctx.post().meta().attrib()) {
-//                    if (!removeQuotes(attribCtx.attribKey.getText()).equals("segments"))
-//                        continue;
-//
-//                    if (attribCtx.attribValue().vector() == null)
-//                        continue;
-//
-//                    for (RecombinationNetworkParser.AttribValueContext attribValueCtx : attribCtx.attribValue().vector().attribValue())
-//                        hasSegments.set(Integer.valueOf(attribValueCtx.getText()));
-//
-//                    segmentsProcessed = true;
-//                    break;
-//                }
-//
-//            }
-//
-//            if (!segmentsProcessed) {
-//                throw new RuntimeException("Segment attribute missing/malformed " +
-//                        "for edge in input recombinationNetwork string.");
-//            }
-//
-//            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, hasSegments);
-//            node.addParentEdge(edge);
-//
-//            if (ctx.post().length == null) {
-//                throw new RuntimeException("Edge missing length in input " +
-//                        "recombinationNetwork string.");
-//            }
-//
-//            edgeLengths.put(edge, Double.valueOf(ctx.post().length.getText()));
-//
-//            return edge;
-//        }
-//    }
-//
+    /**
+     * Visitor class used to build recombinationNetwork from parser-generated AST.
+     */
+    class RecombinationNetworkBuilderVisitor extends NetworkBaseVisitor<RecombinationNetworkEdge> {
+
+        Map<Integer, RecombinationNetworkNode> seenHybrids;
+        Map<RecombinationNetworkEdge, Double> edgeLengths;
+
+        private void convertEdgeLengthsToNodeHeights() {
+
+        }
+
+        double getMaxRootToLeafTime(RecombinationNetworkNode node, Set<RecombinationNetworkNode> seenNodes) {
+
+            if (seenNodes.contains(node))
+                return 0.0;
+
+            seenNodes.add(node);
+
+            double maxTime = 0.0;
+            for (RecombinationNetworkEdge childEdge : node.getChildEdges()) {
+                RecombinationNetworkNode childNode = childEdge.childNode;
+                childNode.setHeight(node.getHeight()-edgeLengths.get(childEdge));
+
+                double thisTime = edgeLengths.get(childEdge) +
+                        getMaxRootToLeafTime(childNode, seenNodes);
+                if (thisTime > maxTime)
+                    maxTime = thisTime;
+            }
+
+            return maxTime;
+        }
+
+        void shiftNodeHeights(double maxRTLT, RecombinationNetworkNode node, Set<RecombinationNetworkNode> seenNodes) {
+            if (seenNodes.contains(node))
+                return;
+
+            seenNodes.add(node);
+
+            node.setHeight(node.getHeight() + maxRTLT);
+
+            for (RecombinationNetworkEdge childEdge : node.getChildEdges())
+                shiftNodeHeights(maxRTLT, childEdge.childNode, seenNodes);
+        }
+
+        @Override
+        public RecombinationNetworkEdge visitNetwork(NetworkParser.NetworkContext ctx) {
+            seenHybrids = new HashMap<>();
+            edgeLengths = new HashMap<>();
+
+            RecombinationNetworkEdge rootEdge = visit(ctx.node());
+
+            Set<RecombinationNetworkNode> seenNodes = new HashSet<>();
+            RecombinationNetworkNode rootNode = rootEdge.childNode;
+            rootNode.setHeight(0.0);
+            double maxRTLT = getMaxRootToLeafTime(rootNode, seenNodes);
+
+            seenNodes.clear();
+            shiftNodeHeights(maxRTLT, rootEdge.childNode, seenNodes);
+
+            return rootEdge;
+        }
+
+        private String removeQuotes(String str) {
+
+            String[] quoteChars = {"\"", "'"};
+
+            for (String quoteChar : quoteChars) {
+                if (str.startsWith(quoteChar) && str.endsWith(quoteChar) && str.length() >= 2)
+                    str = str.substring(1, str.length() - 1);
+            }
+
+            return str;
+        }
+
+        @Override
+        public RecombinationNetworkEdge visitNode(NetworkParser.NodeContext ctx) {
+
+            visit(ctx.post());
+
+            RecombinationNetworkNode node;
+
+            if (ctx.post().hybrid() != null) {
+                int hybridID = Integer.valueOf(ctx.post().hybrid().id.getText());
+
+                if (seenHybrids.containsKey(hybridID)) {
+                    node = seenHybrids.get(hybridID);
+                } else {
+                    node = new RecombinationNetworkNode();
+                    seenHybrids.put(hybridID, node);
+                }
+            } else {
+                node = new RecombinationNetworkNode();
+            }
+
+            if (ctx.post().label() != null)
+                node.setTaxonLabel(removeQuotes(ctx.post().label().getText()));
+
+            for (NetworkParser.NodeContext childNodeCtx : ctx.node()) {
+                RecombinationNetworkEdge childEdge = visit(childNodeCtx);
+                childEdge.parentNode = node;
+                node.addChildEdge(childEdge);
+            }
+
+            boolean segmentsProcessed = false;
+            List<Integer> breakPoints = new ArrayList<Integer>();
+            if (ctx.post().meta() != null
+                    && ctx.post().meta().attrib() != null) {
+
+                for (NetworkParser.AttribContext attribCtx : ctx.post().meta().attrib()) {
+                    if (!removeQuotes(attribCtx.attribKey.getText()).equals("segments"))
+                        continue;
+
+                    if (attribCtx.attribValue().vector() == null)
+                        continue;
+
+                    for (NetworkParser.AttribValueContext attribValueCtx : attribCtx.attribValue().vector().attribValue())
+                    	breakPoints.add(Integer.valueOf(attribValueCtx.getText()));
+
+                    segmentsProcessed = true;
+                    break;
+                }
+
+            }
+
+            if (!segmentsProcessed) {
+                throw new RuntimeException("Segment attribute missing/malformed " +
+                        "for edge in input recombinationNetwork string.");
+            }
+
+            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, breakPoints);
+            node.addParentEdge(edge);
+
+            if (ctx.post().length == null) {
+                throw new RuntimeException("Edge missing length in input " +
+                        "recombinationNetwork string.");
+            }
+
+            edgeLengths.put(edge, Double.valueOf(ctx.post().length.getText()));
+
+            return edge;
+        }
+    }
+
     /**
      * Will be used in the next version of BEAST to prevent date trait cloning
      * from breaking the BEAuti model.

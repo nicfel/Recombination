@@ -36,6 +36,16 @@ public class RecombinationNetworkNode {
      */
     protected double height = Double.MAX_VALUE;
     
+    /**
+     * breakpoint for recombination
+     */
+    protected int breakpoint;
+    
+    /**
+     * describes in which direction the breakpoint is pointing
+     */
+    protected boolean isRight;
+
     
     /**
      * Arbitrarily labeled metadata on this node. Needed for network summary only
@@ -102,7 +112,7 @@ public class RecombinationNetworkNode {
     /**
      * @return true iff current node is a reassortment node.
      */
-    public boolean isReassortment() {
+    public boolean isRecombination() {
         return parents.size()>1;
     }
 
@@ -200,5 +210,18 @@ public class RecombinationNetworkNode {
         return metaDataString;
     }
 
-
+    public void setBreakPoint(int breakpoint, boolean isRight) {
+    	this.breakpoint = breakpoint;
+    	this.isRight = isRight;
+    }
+    
+    public int getBreakPoint() {
+    	return breakpoint;
+    }
+    
+    public boolean getIsRight() {
+    	return isRight;
+    }
+    
+    
 }

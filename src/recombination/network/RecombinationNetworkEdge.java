@@ -20,8 +20,17 @@ public class RecombinationNetworkEdge {
     		int totalLength) {
         this.parentNode = parentNode;
         this.childNode = childNode;
-        this.breakPoints = breakPoints;
+        this.breakPoints = new BreakPoints(totalLength);
     }
+    
+    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
+    		List<Integer> breakPointsList) {
+        this.parentNode = parentNode;
+        this.childNode = childNode;
+        this.breakPoints = new BreakPoints();
+        this.breakPoints.init(breakPointsList);
+    }
+
 
 
     public double getRecombinationObsProb(double p) {

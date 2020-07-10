@@ -57,6 +57,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         populationFunction = populationFunctionInput.get();
         recombinationRate = recombinationRateInput.get();
         binomialProb = binomialProbInput.get();
+        totalLength = totalLengthInput.get();
 
         if (totalLength < 2) {
             throw new IllegalArgumentException("the length of the alignment has to be at least 2");
@@ -154,10 +155,11 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
             if (timeUntilNextEvent < timeUntilNextSample) {
                 currentTime += timeUntilNextEvent;
-                if (timeUntilNextEvent == timeToNextCoal)
+                if (timeUntilNextEvent == timeToNextCoal) {
                     coalesce(currentTime, extantLineages);
-                else
-                    reassort(currentTime, extantLineages);
+                }else {
+                    recombine(currentTime, extantLineages);
+                }
             } else {
                 currentTime += timeUntilNextSample;
                 sample(remainingSampleNodes, extantLineages);
@@ -177,6 +179,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         BreakPoints breakPoints = new BreakPoints(totalLength);        
         
         RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, n, breakPoints);
+        
         extantLineages.add(lineage);
         n.addParentEdge(lineage);
 
@@ -198,53 +201,56 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
                 .addChildEdge(lineage2);
         lineage1.parentNode = coalescentNode;
         lineage2.parentNode = coalescentNode;
+        
 
+        
         // Merge segment flags:
-        BitSet hasSegments = new BitSet();
-        hasSegments.or(lineage1.hasSegments);
-        hasSegments.or(lineage2.hasSegments);
+        BreakPoints breakPoints = lineage1.breakPoints.copy();
+        breakPoints.or(lineage2.breakPoints);
+
 
         // Create new lineage
-        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, hasSegments);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints);
         coalescentNode.addParentEdge(lineage);
 
         extantLineages.remove(lineage1);
         extantLineages.remove(lineage2);
         extantLineages.add(lineage);
+        
+        
+
     }
 
-    private void reassort(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages) {
+    private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages) {
     	RecombinationNetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
-
-        BitSet hasSegs_left = new BitSet();
-        BitSet hasSegs_right = new BitSet();
-
-        for (int segIdx = lineage.hasSegments.nextSetBit(0);
-             segIdx != -1; segIdx = lineage.hasSegments.nextSetBit(segIdx+1)) {
-            if (Randomizer.nextDouble() < getBinomialProb()) {
-                hasSegs_left.set(segIdx);
-            } else {
-                hasSegs_right.set(segIdx);
-            }
-        }
-
-        // Stop here if reassortment event is unobservable
-        if (hasSegs_left.cardinality() == 0 || hasSegs_right.cardinality() == 0)
-            return;
-
+    	    	
+    	int breakpoint = Randomizer.nextInt(totalLength-1);
+    	
+    	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
+    	if (!lineage.breakPoints.withinLimits(breakpoint))
+    		return;
+    	
+    	
+    	lineage.breakPoints.computeLeftAndRight(breakpoint);
+    	
         // Create reassortment node
         RecombinationNetworkNode node = new RecombinationNetworkNode();
         node.setHeight(reassortmentTime).addChildEdge(lineage);
+        node.setBreakPoint(breakpoint, true);
 
         // Create reassortment lineages
-        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, hasSegs_left);
-        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, hasSegs_right);
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft());
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight());
+                
         node.addParentEdge(leftLineage);
         node.addParentEdge(rightLineage);
 
         extantLineages.remove(lineage);
         extantLineages.add(leftLineage);
         extantLineages.add(rightLineage);
+        
+        
+        
     }
 
 }
