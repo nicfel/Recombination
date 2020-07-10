@@ -236,12 +236,15 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         // Create reassortment node
         RecombinationNetworkNode node = new RecombinationNetworkNode();
         node.setHeight(reassortmentTime).addChildEdge(lineage);
-        node.setBreakPoint(breakpoint, true);
 
         // Create reassortment lineages
         RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft());
         RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight());
-                
+            
+        // add the breakPoints to the edges
+        leftLineage.setPassingRange(0, breakpoint);
+        rightLineage.setPassingRange(breakpoint+1, totalLength-1);
+        
         node.addParentEdge(leftLineage);
         node.addParentEdge(rightLineage);
 

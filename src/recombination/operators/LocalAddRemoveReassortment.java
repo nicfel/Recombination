@@ -161,13 +161,13 @@ public class LocalAddRemoveReassortment extends DivertSegmentOperator {
         // Choose segments to divert to new edge
         BitSet segsToDivert = getRandomConditionedSubset(sourceEdge.hasSegments);
         logHR -= getLogConditionedSubsetProb(sourceEdge.hasSegments);
-        logHR -= addSegmentsToAncestors(reassortmentEdge, segsToDivert);
-        logHR += removeSegmentsFromAncestors(newEdge1, segsToDivert);
+        logHR -= addLociToAncestors(reassortmentEdge, segsToDivert);
+        logHR += removeLociFromAncestors(newEdge1, segsToDivert);
 
         return logHR;
     }
 
-    double removeReassortment() {
+    double removeRecombinations() {
         double logHR = 0.0;
 
         List<NetworkEdge> removableEdges = network.getEdges().stream()

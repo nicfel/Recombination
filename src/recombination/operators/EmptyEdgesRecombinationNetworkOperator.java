@@ -46,7 +46,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         
         // Adds empty network edges
         if (addRemoveEmptyEdgesInput.get()){
-        	logHR += addEmptyNetworkSegments();
+        	logHR += addEmptyNetworkEdges();
         	
             if (logHR == Double.NEGATIVE_INFINITY)
             	return Double.NEGATIVE_INFINITY;
@@ -71,7 +71,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         return logHR;
     }
     
-    private double addEmptyNetworkSegments(){
+    private double addEmptyNetworkEdges(){
     	double logHR = 0.0;
     	
     	// randomly sample the number of edges to add

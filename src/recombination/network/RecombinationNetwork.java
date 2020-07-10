@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.fest.swing.util.Range;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -207,16 +208,10 @@ public class RecombinationNetwork extends StateNode {
 
         result.append("[&");
         if (currentEdge.childNode.isRecombination())
-        	result.append("bp=").append(currentEdge.childNode.breakpoint).append(",");
-        	
+        	result.append("split={").append(currentEdge.passingRange).append("},");
+        
         result.append("loci={").append(currentEdge.breakPoints);
         result.append("}");
-//        if (verbose) {
-//            for (int segIdx=0; segIdx<getSegmentCount(); segIdx++) {
-//                result.append(",seg").append(segIdx).append("=")
-//                        .append(currentEdge.hasSegments.get(segIdx));
-//            }
-//        }
         result.append(",length=").append(currentEdge.breakPoints.getGeneticLength());
         
         if (currentEdge.childNode.getTypeLabel() != null) 
@@ -458,33 +453,58 @@ public class RecombinationNetwork extends StateNode {
                 node.addChildEdge(childEdge);
             }
 
-            boolean segmentsProcessed = false;
+            boolean lociProcessed = false;
+            boolean splitProcessed = false;
+           
             List<Integer> breakPoints = new ArrayList<Integer>();
+            List<Integer> splitPoints = new ArrayList<Integer>();
             if (ctx.post().meta() != null
                     && ctx.post().meta().attrib() != null) {
 
                 for (NetworkParser.AttribContext attribCtx : ctx.post().meta().attrib()) {
-                    if (!removeQuotes(attribCtx.attribKey.getText()).equals("segments"))
+                    if (!removeQuotes(attribCtx.attribKey.getText()).equals("loci"))
                         continue;
 
                     if (attribCtx.attribValue().vector() == null)
                         continue;
 
-                    for (NetworkParser.AttribValueContext attribValueCtx : attribCtx.attribValue().vector().attribValue())
-                    	breakPoints.add(Integer.valueOf(attribValueCtx.getText()));
+                    for (NetworkParser.AttribValueContext attribValueCtx : attribCtx.attribValue().vector().attribValue()) {
+                    	String[] attr = attribValueCtx.getText().split("-");
+                    	breakPoints.add(Integer.valueOf(attr[0]));
+                    	breakPoints.add(Integer.valueOf(attr[1]));
+                    }
 
-                    segmentsProcessed = true;
+                    lociProcessed = true;
+                    break;
+                }
+                for (NetworkParser.AttribContext attribCtx : ctx.post().meta().attrib()) {
+                    if (!removeQuotes(attribCtx.attribKey.getText()).equals("split"))
+                        continue;
+
+                    if (attribCtx.attribValue().vector() == null)
+                        continue;
+
+                    for (NetworkParser.AttribValueContext attribValueCtx : attribCtx.attribValue().vector().attribValue()) {
+                    	String[] attr = attribValueCtx.getText().split("-");
+                    	splitPoints.add(Integer.valueOf(attr[0]));
+                    	splitPoints.add(Integer.valueOf(attr[1]));
+                    }
+
                     break;
                 }
 
             }
 
-            if (!segmentsProcessed) {
-                throw new RuntimeException("Segment attribute missing/malformed " +
+            if (!lociProcessed) {
+                throw new RuntimeException("Loci attribute missing/malformed " +
                         "for edge in input recombinationNetwork string.");
             }
-
-            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, breakPoints);
+            
+            BreakPoints bp = new BreakPoints();
+            bp.init(breakPoints);
+            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, bp);
+            if (splitPoints.size()>0)
+            	edge.setPassingRange(splitPoints.get(0), splitPoints.get(1));
             node.addParentEdge(edge);
 
             if (ctx.post().length == null) {

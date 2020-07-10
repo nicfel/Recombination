@@ -42,6 +42,7 @@ public class SimulatedCoalescentRecombinationNetworkTest extends CoalReTestClass
             reassortmentNodeCounts[i] = RecombinationNetworkStatsLogger.getRecombinationCount(network);
             networkHeights[i] = RecombinationNetworkStatsLogger.getTotalHeight(network);
             networkLengths[i] = RecombinationNetworkStatsLogger.getTotalEdgeLength(network);
+            
         }
 
         double meanCount = DiscreteStatistics.mean(reassortmentNodeCounts);

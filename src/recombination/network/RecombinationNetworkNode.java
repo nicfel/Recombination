@@ -8,6 +8,7 @@ import java.util.TreeMap;
 
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
+import recombination.network.BreakPoints.Range;
 
 public class RecombinationNetworkNode {
 
@@ -35,18 +36,7 @@ public class RecombinationNetworkNode {
      * height of this node.
      */
     protected double height = Double.MAX_VALUE;
-    
-    /**
-     * breakpoint for recombination
-     */
-    protected int breakpoint;
-    
-    /**
-     * describes in which direction the breakpoint is pointing
-     */
-    protected boolean isRight;
-
-    
+        
     /**
      * Arbitrarily labeled metadata on this node. Needed for network summary only
      */
@@ -208,20 +198,5 @@ public class RecombinationNetworkNode {
     
     public String getMetaData() {
         return metaDataString;
-    }
-
-    public void setBreakPoint(int breakpoint, boolean isRight) {
-    	this.breakpoint = breakpoint;
-    	this.isRight = isRight;
-    }
-    
-    public int getBreakPoint() {
-    	return breakpoint;
-    }
-    
-    public boolean getIsRight() {
-    	return isRight;
-    }
-    
-    
+    }        
 }

@@ -2,10 +2,13 @@ package recombination.network;
 
 import java.util.*;
 
+import recombination.network.BreakPoints.Range;
+
 public class RecombinationNetworkEdge {
 
     public RecombinationNetworkNode parentNode, childNode;
     public BreakPoints breakPoints;
+    public BreakPoints passingRange;
 
     public RecombinationNetworkEdge() { }
 
@@ -85,5 +88,19 @@ public class RecombinationNetworkEdge {
 
         return edgeCopy;
     }
+    
+    /**
+     * set the range of loci that goes left a this recombination node, only if 
+     * @param from
+     * @param to
+     */
+    public void setPassingRange(int from, int to) {
+    	passingRange = new BreakPoints(from, to);
+    }
+    
+    public BreakPoints getPassingRange() {
+    	return passingRange;
+    }
+
 
 }

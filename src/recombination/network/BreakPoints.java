@@ -143,75 +143,6 @@ public class BreakPoints {
 	
 	
 	
-	public class Range{
-		int from,to;
-	
-		public Range(int from, int to) {
-			this.from = from;
-			this.to = to;
-		}
-				
-		public void combine(Range range) {
-			this.from = Math.min(from, range.from);
-			this.to = Math.max(to, range.to);
-		}
-		
-		public int size() {
-			return to-from+1;
-		}
-		
-		public boolean isSmaller(Range range) {
-			if (to < range.from)
-				return true;
-			return false;
-		}
-		
-		public boolean isLarger(Range range) {
-			if (from > range.to)
-				return true;
-			return false;
-		}
-		
-		public Range getOverlap(Range range) {
-			int newfrom = Math.max(from, range.from);
-			int newto = Math.min(to, range.to);
-			if (newto<newfrom)
-				return null;
-			
-			return new Range(newfrom, newto);			
-		}
-		
-		public List<Range> getRemoved(Range range) {
-			// get the overlap between the two
-			Range overlap = getOverlap(range);
-			if (overlap==null)
-				return null;
-			
-			List<Range> removed = new ArrayList<>();
-			
-			// remove the overlap from this.range
-			if (from < overlap.from) {
-				removed.add(new Range(from, overlap.from-1));
-			}
-			
-			if (to > overlap.to) {
-				removed.add(new Range(overlap.to+1, from));
-			}
-				
-			return removed;
-		}
-
-		
-		public String toString() {
-			return from +":"+to;
-			
-		}
-
-
-		
-	}
-	
-	
 	public static class RangeComparator implements Comparator<Range> {
 	    final int lessThan = -1;
 	    final int greaterThan = 1;
@@ -265,6 +196,7 @@ public class BreakPoints {
 		this.breakPoints = new ArrayList<>(newBreaks);
 	}
 
+	
 	/**
 	 * remove breakpoints from this.breakpoints
 	 * @param breakPoints
@@ -274,10 +206,14 @@ public class BreakPoints {
 		int j = 0;
 		
 
+		
 		for (int i = 0; i < this.breakPoints.size(); i++) {
+			boolean rangeAdded = false;
 			while (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).from) {
 				j++;
 				if (j==breakPoints.breakPoints.size()) {
+					if (!rangeAdded)
+						newBreaks.add(this.breakPoints.get(i));
 					this.breakPoints = new ArrayList<>(newBreaks);
 					return;
 				}
@@ -286,8 +222,10 @@ public class BreakPoints {
 
 			while (breakPoints.breakPoints.get(j).from <= this.breakPoints.get(i).to) {
 				List<Range> newR = this.breakPoints.get(i).getRemoved(breakPoints.breakPoints.get(j));
-				if (newR!=null)
+				if (newR!=null) {
 					newBreaks.addAll(newR);
+					rangeAdded = true;
+				}
 				 
 				if (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).to)
 					j++;
@@ -295,10 +233,16 @@ public class BreakPoints {
 					break;
 				
 				if (j==breakPoints.breakPoints.size()) {
+					if (!rangeAdded)
+						newBreaks.add(this.breakPoints.get(i));
 					this.breakPoints = new ArrayList<>(newBreaks);
 					return;
-				}				
+				}	
 			}	
+			
+			if (!rangeAdded)
+				newBreaks.add(this.breakPoints.get(i));
+				
 		}
 		this.breakPoints = new ArrayList<>(newBreaks);
 	}
@@ -329,7 +273,76 @@ public class BreakPoints {
 					
 		this.breakPoints = new ArrayList<>(newBreaks);		
 	}
+	
+	
+	public Range getNewRange(int from, int to) {
+		return new Range(from, to);
+	}
 
+	public class Range{
+		int from,to;
+	
+		public Range(int from, int to) {
+			this.from = from;
+			this.to = to;
+		}
+				
+		public void combine(Range range) {
+			this.from = Math.min(from, range.from);
+			this.to = Math.max(to, range.to);
+		}
+		
+		public int size() {
+			return to-from+1;
+		}
+		
+		public boolean isSmaller(Range range) {
+			if (to < range.from)
+				return true;
+			return false;
+		}
+		
+		public boolean isLarger(Range range) {
+			if (from > range.to)
+				return true;
+			return false;
+		}
+		
+		public Range getOverlap(Range range) {
+			int newfrom = Math.max(from, range.from);
+			int newto = Math.min(to, range.to);
+			if (newto<newfrom)
+				return null;
+			
+			return new Range(newfrom, newto);			
+		}
+		
+		public List<Range> getRemoved(Range range) {
+			// get the overlap between the two
+			Range overlap = getOverlap(range);
+			if (overlap==null)
+				return null;
+			
+			List<Range> removed = new ArrayList<>();
+			
+			// remove the overlap from this.range
+			if (from < overlap.from) {
+				removed.add(new Range(from, overlap.from-1));
+			}
+			
+			if (to > overlap.to) {
+				removed.add(new Range(overlap.to+1, to));
+			}
+				
+			return removed;
+		}
+
+		
+		public String toString() {
+			return from +"-"+to;
+			
+		}
+	}
 
 	
 }
