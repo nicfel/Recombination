@@ -178,9 +178,29 @@ public class BreakPoints {
 			if (newto<newfrom)
 				return null;
 			
-			return new Range(newfrom, newto);
-						
+			return new Range(newfrom, newto);			
 		}
+		
+		public List<Range> getRemoved(Range range) {
+			// get the overlap between the two
+			Range overlap = getOverlap(range);
+			if (overlap==null)
+				return null;
+			
+			List<Range> removed = new ArrayList<>();
+			
+			// remove the overlap from this.range
+			if (from < overlap.from) {
+				removed.add(new Range(from, overlap.from-1));
+			}
+			
+			if (to > overlap.to) {
+				removed.add(new Range(overlap.to+1, from));
+			}
+				
+			return removed;
+		}
+
 		
 		public String toString() {
 			return from +":"+to;
@@ -243,7 +263,6 @@ public class BreakPoints {
 			}	
 		}
 		this.breakPoints = new ArrayList<>(newBreaks);
-		return;
 	}
 
 	/**
@@ -251,23 +270,37 @@ public class BreakPoints {
 	 * @param breakPoints
 	 */
 	public void andNot(BreakPoints breakPoints) {
-		int j = 0;
 		List<Range> newBreaks = new ArrayList<>();
+		int j = 0;
 		
+
 		for (int i = 0; i < this.breakPoints.size(); i++) {
-			// got to the next potential overlap
-			while (breakPoints.breakPoints.get(j).from < this.breakPoints.get(i).from) {
+			while (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).from) {
 				j++;
-				if (j==breakPoints.breakPoints.size())
-					break;
+				if (j==breakPoints.breakPoints.size()) {
+					this.breakPoints = new ArrayList<>(newBreaks);
+					return;
+				}
 
 			}
+
+			while (breakPoints.breakPoints.get(j).from <= this.breakPoints.get(i).to) {
+				List<Range> newR = this.breakPoints.get(i).getRemoved(breakPoints.breakPoints.get(j));
+				if (newR!=null)
+					newBreaks.addAll(newR);
+				 
+				if (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).to)
+					j++;
+				else
+					break;
 				
-				
-				
+				if (j==breakPoints.breakPoints.size()) {
+					this.breakPoints = new ArrayList<>(newBreaks);
+					return;
+				}				
+			}	
 		}
-			
-		this.breakPoints = new ArrayList<>(newBreaks);		
+		this.breakPoints = new ArrayList<>(newBreaks);
 	}
 
 	/**

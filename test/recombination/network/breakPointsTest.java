@@ -86,7 +86,26 @@ public class breakPointsTest {
     	bp2 = new BreakPoints();
     	bp2.init(bp2_list);
     	bp.and(bp2);
-    	Assert.assertEquals(bp.toString(), "90:95,120:125,351:400,450:550");    	    	
+    	Assert.assertEquals(bp.toString(), "90:95,120:125,351:400,450:550");    	
+    	
+    	
+    	bp2_list = new ArrayList<>();
+    	bp2_list.add(91);
+    	bp2_list.add(91);
+    	
+    	bp2_list.add(120);
+    	bp2_list.add(400);
+    	
+    	bp2_list.add(450);
+    	bp2_list.add(500);
+
+    	    	
+    	bp2 = new BreakPoints();
+    	bp2.init(bp2_list);
+    	
+    	bp.andNot(bp2);
+    	Assert.assertEquals(bp.toString(), "90:90,92:90,501:450");    	
+
     }
     
 
