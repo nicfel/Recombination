@@ -214,6 +214,11 @@ public class BreakPoints {
 				if (j==breakPoints.breakPoints.size()) {
 					if (!rangeAdded)
 						newBreaks.add(this.breakPoints.get(i));
+					i++;
+					while (i < this.breakPoints.size()) {
+						newBreaks.add(this.breakPoints.get(i));
+						i++;
+					}
 					this.breakPoints = new ArrayList<>(newBreaks);
 					return;
 				}
@@ -235,6 +240,11 @@ public class BreakPoints {
 				if (j==breakPoints.breakPoints.size()) {
 					if (!rangeAdded)
 						newBreaks.add(this.breakPoints.get(i));
+					i++;
+					while (i < this.breakPoints.size()) {
+						newBreaks.add(this.breakPoints.get(i));
+						i++;
+					}
 					this.breakPoints = new ArrayList<>(newBreaks);
 					return;
 				}	

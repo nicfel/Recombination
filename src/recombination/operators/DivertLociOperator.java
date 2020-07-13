@@ -28,7 +28,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         RecombinationNetworkEdge sourceEdge = sourceEdges.get(Randomizer.nextInt(sourceEdges.size()));
         RecombinationNetworkEdge destEdge = getSpouseEdge(sourceEdge);
         
-        BreakPoints lociToDivert = getLociToDivert(sourceEdge.breakPoints);
+        BreakPoints lociToDivert = getLociToDivert(sourceEdge);
 //        BreakPoints lociToDivert = getRandomUnconditionedSubset(sourceEdge.breakPoints);
 //        logHR -= getLogUnconditionedSubsetProb(sourceEdge.breakPoints);
         
@@ -62,15 +62,23 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
      */
     public double removeLociFromAncestors(RecombinationNetworkEdge edge, BreakPoints rangeToRemove) {
         double logP = 0.0;
+        
+
 
         rangeToRemove = rangeToRemove.copy();
         
         rangeToRemove.and(edge.breakPoints);
-
+        
         if (rangeToRemove.isEmpty())
             return logP;
 
+
+        System.out.println("lll");
+        System.out.println(rangeToRemove);
+        System.out.println(edge.breakPoints);
+
         edge.breakPoints.andNot(rangeToRemove);
+        System.out.println(edge.breakPoints);
 
         if (edge.isRootEdge())
             return logP;
@@ -135,21 +143,27 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         return logP;
     }
     
-    protected BitSet getRandomUnconditionedSubset(BreakPoints sourceLoci) {
+    protected BreakPoints getLociToDivert(RecombinationNetworkEdge sourceLoci) {
     	
     	
-	    BitSet destSegments = new BitSet();
-	
-	    destSegments.clear();
-	
-	    for (int segIdx = sourceSegments.nextSetBit(0); segIdx != -1;
-	         segIdx = sourceSegments.nextSetBit(segIdx + 1)) {
-	
-	        if (Randomizer.nextBoolean())
-	            destSegments.set(segIdx);
-	    }
-	
-	    return destSegments;
+    	System.out.println(sourceLoci.getPassingRange());
+    	
+    	return null;
+    	
+    	
+    	
+//	    BitSet destSegments = new BitSet();
+//	
+//	    destSegments.clear();
+//	
+//	    for (int segIdx = sourceSegments.nextSetBit(0); segIdx != -1;
+//	         segIdx = sourceSegments.nextSetBit(segIdx + 1)) {
+//	
+//	        if (Randomizer.nextBoolean())
+//	            destSegments.set(segIdx);
+//	    }
+//	
+//	    return destSegments;
     }
 
     
