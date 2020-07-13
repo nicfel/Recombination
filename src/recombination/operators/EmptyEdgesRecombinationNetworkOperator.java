@@ -42,18 +42,19 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     public double proposal() {
        
         double logHR = 0.0;   
-        
-        
+                
         // Adds empty network edges
         if (addRemoveEmptyEdgesInput.get()){
         	logHR += addEmptyNetworkEdges();
         	
             if (logHR == Double.NEGATIVE_INFINITY)
             	return Double.NEGATIVE_INFINITY;
-        }        
-         
+        }     
+                 
         // calls the operator
         logHR += networkProposal();
+
+        
 
         // removes all the empty network edges in the network again
         if (addRemoveEmptyEdgesInput.get()){
@@ -62,6 +63,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
             
         	logHR += RemoveAllEmptyNetworkSegments();
         }
+        
         
         // case there are empty edges, which can happen when addRemoveEmptyEdges is false
 		if (!allEdgesAncestral()){
@@ -135,7 +137,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 
         if (logHR == Double.NEGATIVE_INFINITY)
             return Double.NEGATIVE_INFINITY;
-        
+                
         
         // HR contribution for reverse move
         int nRemovableEdges = (int) network.getEdges().stream()
@@ -155,7 +157,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         return logHR;
     }
     
-    // Only adds the reassortment edge, but does not diverge segments
+    // Only adds the recombination edge, but does not diverge segments
     double addEmptyRecombinationEdge(RecombinationNetworkEdge sourceEdge, double sourceTime,
     		RecombinationNetworkEdge destEdge, double destTime) {
 
@@ -175,6 +177,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		oldSourceEdgeParent.addChildEdge(newEdge1);
 		
 		newEdge1.breakPoints = sourceEdge.breakPoints.copy();
+		
+		newEdge1.setPassingRange(0, network.totalLength-1);
 		
 		if (destEdge == sourceEdge)
 			destEdge = newEdge1;

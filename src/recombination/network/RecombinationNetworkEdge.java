@@ -117,5 +117,9 @@ public class RecombinationNetworkEdge {
     	return passingRange;
     }
 
+	public void setPassingRange(BreakPoints lociToDivert) {
+		passingRange = lociToDivert;
+	}
+
 
 }

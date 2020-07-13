@@ -48,9 +48,6 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     private PopulationFunction populationFunction;
     private RealParameter recombinationRate;
     private Function binomialProb;
-    
-
-    private int totalLength;
 
     public void initAndValidate() {
 
@@ -169,6 +166,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         while (extantLineages.size() > 1 || !remainingSampleNodes.isEmpty());
 
         setRootEdge(extantLineages.get(0));
+        this.totalLength = totalLengthInput.get();
     }
 
     private void sample(List<RecombinationNetworkNode> remainingSampleNodes, List<RecombinationNetworkEdge> extantLineages) {

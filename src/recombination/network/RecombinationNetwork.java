@@ -24,7 +24,7 @@ public class RecombinationNetwork extends StateNode {
 
     protected RecombinationNetworkEdge storedRootEdge;
 
-    protected Integer segmentCount = null;
+    public Integer totalLength = null;
     
     public RecombinationNetwork() {
     }
@@ -267,7 +267,7 @@ public class RecombinationNetwork extends StateNode {
 
         otherRecombinationNetwork.rootEdge = rootEdge;
         otherRecombinationNetwork.storedRootEdge = null;
-        otherRecombinationNetwork.segmentCount = null;
+        otherRecombinationNetwork.totalLength = totalLength;
     }
 
     @Override
@@ -286,7 +286,7 @@ public class RecombinationNetwork extends StateNode {
 
         rootEdge = otherRecombinationNetwork.rootEdge;
         storedRootEdge = null;
-        segmentCount = null;
+        totalLength = otherRecombinationNetwork.totalLength;
 
         // Restore taxon indices
         getLeafNodes().forEach(n -> n.setTaxonIndex(taxonToIndexMap.get(n.getTaxonLabel())));

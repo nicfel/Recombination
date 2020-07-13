@@ -41,7 +41,8 @@ public class BreakPoints {
 	}
 	
 	public BreakPoints(List<Range> breakPoints) { 
-		this.breakPoints = new ArrayList<>(breakPoints);
+		if (breakPoints!=null)
+			this.breakPoints = new ArrayList<>(breakPoints);
 	}
 
 		
@@ -98,7 +99,10 @@ public class BreakPoints {
 	 * @return
 	 */
 	public double getLength() {
-		return breakPoints.get(breakPoints.size()-1).to-breakPoints.get(0).from;
+		if (!isEmpty())
+			return breakPoints.get(breakPoints.size()-1).to-breakPoints.get(0).from;
+		
+		return -1;
 	}
 	
 	/**
@@ -107,6 +111,9 @@ public class BreakPoints {
 	 * @return
 	 */
 	public double getGeneticLength() {
+		if (isEmpty())
+			return 0;
+
 		int l = 0;
 		for (int i = 0; i < breakPoints.size(); i++)
 			l += breakPoints.get(i).size();
@@ -114,6 +121,9 @@ public class BreakPoints {
 	}
 	
 	public boolean isEmpty() {
+		if (breakPoints==null)
+			return true;
+		
 		return breakPoints.size()==0;
 	}
 	
@@ -132,6 +142,9 @@ public class BreakPoints {
 	}
 		
 	public String toString() {
+		if (isEmpty())
+			return "";
+		
 		String val="";
 		for (int i = 0; i < this.breakPoints.size(); i++) {
 			val = val + "," + this.breakPoints.get(i).toString();
@@ -164,6 +177,12 @@ public class BreakPoints {
 	 */
 	public void and(BreakPoints breakPoints) {
 		List<Range> newBreaks = new ArrayList<>();
+		if (breakPoints==null || breakPoints.isEmpty()) {
+			this.breakPoints = null;
+			return;
+		}
+
+		
 		int j = 0;
 		
 
@@ -202,6 +221,9 @@ public class BreakPoints {
 	 * @param breakPoints
 	 */
 	public void andNot(BreakPoints breakPoints) {
+		if (breakPoints.isEmpty())
+			return;
+		
 		List<Range> newBreaks = new ArrayList<>();
 		int j = 0;
 		
@@ -262,6 +284,11 @@ public class BreakPoints {
 	 * @param breakPoints
 	 */
 	public void or(BreakPoints breakPoints) {
+		if (this.breakPoints==null) {
+			this.breakPoints = new ArrayList<>(breakPoints.breakPoints);
+			return;
+		}
+			
 		// make a new list containing all breakpoints
 		List<Range> newBreaks = new ArrayList<>();
 		this.breakPoints.addAll(breakPoints.breakPoints);

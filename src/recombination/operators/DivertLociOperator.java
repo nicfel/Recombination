@@ -29,9 +29,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         RecombinationNetworkEdge sourceEdge = sourceEdges.get(Randomizer.nextInt(sourceEdges.size()));
         RecombinationNetworkEdge destEdge = getSpouseEdge(sourceEdge);
-        
 
-        
         BreakPoints lociToDivert = getLociToDivert(sourceEdge, destEdge);
         // TODO account for HR contribution
         
@@ -57,7 +55,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         logHR += Math.log(1.0/reverseSourceEdgeCount);
         
-        System.out.println(network);
         return logHR;
     }
 
@@ -82,7 +79,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         edge.breakPoints.andNot(rangeToRemove);
         
-
         if (edge.isRootEdge())
             return logP;
 
@@ -127,7 +123,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
             BreakPoints rangeToAddLeft = rangeToAdd.copy();
             BreakPoints rangeToAddRight = rangeToAdd.copy();
-            
+                        
             rangeToAddLeft.and(edge.parentNode.getParentEdges().get(0).passingRange);
             rangeToAddRight.and(edge.parentNode.getParentEdges().get(1).passingRange);
 
@@ -147,8 +143,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     	BreakPoints range = sourceEdge.getPassingRange();    	
     	    	
     	// get the new breakpoint (TODO shift things differently)
-    	System.out.println(sourceEdge.childNode.getHeight());
-    	System.out.println(range);
     	int diff = range.breakPoints.get(0).to-range.breakPoints.get(0).from+1;
     	int newBreakPoint = Randomizer.nextInt(diff)+range.breakPoints.get(0).from;
     	
@@ -161,7 +155,10 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     	    	
     	// change the passing Range that goes through the different edges
     	sourceEdge.getPassingRange().andNot(lociToDivert);
-    	destEdge.getPassingRange().or(lociToDivert);
+    	if (destEdge.getPassingRange()!=null)
+    		destEdge.getPassingRange().or(lociToDivert);
+    	else
+    		destEdge.setPassingRange(lociToDivert.copy());
     	
     	lociToDivert.and(sourceEdge.breakPoints);
     	

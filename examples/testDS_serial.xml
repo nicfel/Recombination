@@ -53,9 +53,9 @@
 
         <!-- <operator spec="AddRemoveReassortment" network="@network" alpha="1.0" weight="1.0"/> -->
 
-        <operator spec="DivertLociOperator" network="@network" weight="1.0" addRemoveEmptyEdges="false"/>
+        <operator spec="DivertLociOperator" network="@network" weight="1.0"/>
 
-        <logger spec="Logger" logEvery="1000" mode="tree" fileName="$(filebase).trees">
+        <logger spec="Logger" logEvery="1" mode="tree" fileName="$(filebase).trees">
             <log idref="network"/>
         </logger>
 
@@ -63,7 +63,7 @@
             <log spec="RecombinationNetworkStatsLogger" recombinationNetwork="@network"/>
         </logger>
 
-        <logger spec="Logger" logEvery="10000">
+        <logger spec="Logger" logEvery="1">
             <log spec="RecombinationNetworkStatsLogger" recombinationNetwork="@network"/>
         </logger>
     </run>
