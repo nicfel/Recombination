@@ -3,6 +3,7 @@ package recombination.operators;
 import beast.util.Randomizer;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
+import recombination.network.RecombinationNetworkNode;
 
 import java.util.BitSet;
 import java.util.List;
@@ -28,9 +29,12 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         RecombinationNetworkEdge sourceEdge = sourceEdges.get(Randomizer.nextInt(sourceEdges.size()));
         RecombinationNetworkEdge destEdge = getSpouseEdge(sourceEdge);
         
-        BreakPoints lociToDivert = getLociToDivert(sourceEdge);
-//        BreakPoints lociToDivert = getRandomUnconditionedSubset(sourceEdge.breakPoints);
-//        logHR -= getLogUnconditionedSubsetProb(sourceEdge.breakPoints);
+
+        
+        BreakPoints lociToDivert = getLociToDivert(sourceEdge, destEdge);
+        // TODO account for HR contribution
+        
+        
         
         if (lociToDivert.isEmpty())
         	return Double.NEGATIVE_INFINITY;
@@ -40,11 +44,13 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         logHR -= addLociToAncestors(destEdge, lociToDivert);
         logHR += removeLociFromAncestors(sourceEdge, lociToDivert);
+        
+        
 
 //        logHR += getLogUnconditionedSubsetProb(destEdge.breakPoints);
 
         int reverseSourceEdgeCount = (int)(network.getEdges().stream()
-                .filter(e -> e.childNode.isRecombination())
+                .filter(e -> e.parentNode.isRecombination())
                 .filter(e -> !e.breakPoints.isEmpty())
                 .count());
 
@@ -64,7 +70,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         double logP = 0.0;
         
 
-
         rangeToRemove = rangeToRemove.copy();
         
         rangeToRemove.and(edge.breakPoints);
@@ -72,26 +77,17 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (rangeToRemove.isEmpty())
             return logP;
 
-
-        System.out.println("lll");
-        System.out.println(rangeToRemove);
-        System.out.println(edge.breakPoints);
-
         edge.breakPoints.andNot(rangeToRemove);
-        System.out.println(edge.breakPoints);
+        
 
         if (edge.isRootEdge())
             return logP;
 
         if (edge.parentNode.isRecombination()) {
-
-//            logP += Math.log(0.5)*rangeToRemove.cardinality();
-
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(1), rangeToRemove);
 
         } else {
-
         	rangeToRemove.andNot(getSisterEdge(edge).breakPoints);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
 
@@ -142,29 +138,31 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         return logP;
     }
-    
-    protected BreakPoints getLociToDivert(RecombinationNetworkEdge sourceLoci) {
+        
+    public BreakPoints getLociToDivert(RecombinationNetworkEdge sourceEdge, RecombinationNetworkEdge destEdge) {
     	
+    	BreakPoints range = sourceEdge.getPassingRange();    	
+    	    	
+    	// get the new breakpoint (TODO shift things differently)
+    	int diff = range.breakPoints.get(0).to-range.breakPoints.get(0).from+1;
+    	int newBreakPoint = Randomizer.nextInt(diff)+range.breakPoints.get(0).from;
     	
-    	System.out.println(sourceLoci.getPassingRange());
+    	BreakPoints lociToDivert;
     	
-    	return null;
+    	if (range.breakPoints.get(0).from!=0)
+    		lociToDivert = new BreakPoints(range.breakPoints.get(0).from, newBreakPoint);
+		else
+			lociToDivert = new BreakPoints(newBreakPoint, range.breakPoints.get(0).to);
+    	    	
+    	// change the passing Range that goes through the different edges
+    	sourceEdge.getPassingRange().andNot(lociToDivert);
+    	destEdge.getPassingRange().or(lociToDivert);
     	
+    	lociToDivert.and(sourceEdge.breakPoints);
     	
-    	
-//	    BitSet destSegments = new BitSet();
-//	
-//	    destSegments.clear();
-//	
-//	    for (int segIdx = sourceSegments.nextSetBit(0); segIdx != -1;
-//	         segIdx = sourceSegments.nextSetBit(segIdx + 1)) {
-//	
-//	        if (Randomizer.nextBoolean())
-//	            destSegments.set(segIdx);
-//	    }
-//	
-//	    return destSegments;
+    	return lociToDivert;
     }
+
 
     
 //    protected BitSet getRandomUnconditionedSubset(BreakPoints sourceSegments) {

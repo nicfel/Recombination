@@ -290,7 +290,8 @@ public class BreakPoints {
 	}
 
 	public class Range{
-		int from,to;
+		public int from;
+		public int to;
 	
 		public Range(int from, int to) {
 			this.from = from;
