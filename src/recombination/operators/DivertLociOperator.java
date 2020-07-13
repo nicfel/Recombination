@@ -14,6 +14,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
     @Override
     public double networkProposal() {
+    	
         double logHR = 0.0;
 
         List<RecombinationNetworkEdge> sourceEdges = network.getEdges().stream()
@@ -50,11 +51,13 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 //        logHR += getLogUnconditionedSubsetProb(destEdge.breakPoints);
 
         int reverseSourceEdgeCount = (int)(network.getEdges().stream()
-                .filter(e -> e.parentNode.isRecombination())
+                .filter(e -> e.childNode.isRecombination())
                 .filter(e -> !e.breakPoints.isEmpty())
                 .count());
 
         logHR += Math.log(1.0/reverseSourceEdgeCount);
+        
+        System.out.println(network);
         return logHR;
     }
 
@@ -144,6 +147,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     	BreakPoints range = sourceEdge.getPassingRange();    	
     	    	
     	// get the new breakpoint (TODO shift things differently)
+    	System.out.println(sourceEdge.childNode.getHeight());
+    	System.out.println(range);
     	int diff = range.breakPoints.get(0).to-range.breakPoints.get(0).from+1;
     	int newBreakPoint = Randomizer.nextInt(diff)+range.breakPoints.get(0).from;
     	

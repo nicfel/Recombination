@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class RecombinationNetworkStatsLogger extends BEASTObject implements Loggable {
 
 
-    public Input<RecombinationNetwork> networkInput = new Input<>("network",
+    public Input<RecombinationNetwork> networkInput = new Input<>("recombinationNetwork",
             "Network for which to log statistics.",
             Input.Validate.REQUIRED);
 

@@ -75,11 +75,8 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
     }
     
 	private double recombination(RecombinationNetworkEvent event) {
-
-        return Math.log(recombinationRate.getArrayValue())
-                + event.segsSortedLeft * Math.log(intervals.getBinomialProb())
-                + (event.segsToSort-event.segsSortedLeft)*Math.log(1-intervals.getBinomialProb())
-                + Math.log(2.0);
+		//TODO actually compute probs
+        return Math.log(recombinationRate.getArrayValue()) + event.segsToSort;
 	}
 
 	private double coalesce(RecombinationNetworkEvent event) {

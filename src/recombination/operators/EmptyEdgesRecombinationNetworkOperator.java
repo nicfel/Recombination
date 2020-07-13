@@ -136,6 +136,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         if (logHR == Double.NEGATIVE_INFINITY)
             return Double.NEGATIVE_INFINITY;
         
+        
         // HR contribution for reverse move
         int nRemovableEdges = (int) network.getEdges().stream()
                 .filter(e -> !e.isRootEdge())

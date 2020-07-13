@@ -20,6 +20,15 @@ public class RecombinationNetworkEdge {
     }
     
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
+    		BreakPoints breakPoints, BreakPoints passingRange) {
+        this.parentNode = parentNode;
+        this.childNode = childNode;
+        this.breakPoints = breakPoints;
+        this.passingRange = passingRange;
+    }
+
+    
+    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
     		int totalLength) {
         this.parentNode = parentNode;
         this.childNode = childNode;
@@ -61,7 +70,13 @@ public class RecombinationNetworkEdge {
 
     public RecombinationNetworkEdge getCopy(Map<RecombinationNetworkNode,RecombinationNetworkNode> seenNodes) {
 
-        RecombinationNetworkEdge edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy());
+    	
+        RecombinationNetworkEdge edgeCopy;
+        if (passingRange!=null)
+        	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), passingRange.copy());
+        else
+        	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy());
+        
         RecombinationNetworkNode childNodeCopy;
         boolean traverse = true;
         if (seenNodes.containsKey(childNode)) {

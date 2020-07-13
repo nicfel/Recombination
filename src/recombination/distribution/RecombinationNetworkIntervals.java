@@ -89,8 +89,8 @@ public class RecombinationNetworkIntervals extends CalculationNode {
                 case RECOMBINATION:
                     lineages += 1;
                     totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationObsProb(getBinomialProb());
-                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationObsProb(getBinomialProb());
-                    totalReassortmentObsProb += event.node.getParentEdges().get(1).getRecombinationObsProb(getBinomialProb());
+//                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationObsProb(getBinomialProb());
+//                    totalReassortmentObsProb += event.node.getParentEdges().get(1).getRecombinationObsProb(getBinomialProb());
 
 //                    event.segsToSort = event.node.getChildEdges().get(0).hasSegments.cardinality();
 //                    event.segsSortedLeft = event.node.getParentEdges().get(0).hasSegments.cardinality();
