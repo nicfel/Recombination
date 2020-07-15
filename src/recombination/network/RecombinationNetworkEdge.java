@@ -45,11 +45,11 @@ public class RecombinationNetworkEdge {
 
 
 
-    public double getRecombinationObsProb(double p) {
+    public double getRecombinationLength() {
         // There are always two reassortment configurations that
         // produce an unobserved reassortment: 1111 and 0000
         // (assuming 4 segs on lineage)
-        return 1.0 - breakPoints.getLength();
+        return breakPoints.getLength();
     }
 
     public double getLength() {

@@ -212,7 +212,7 @@ public class RecombinationNetwork extends StateNode {
         
         result.append("loci={").append(currentEdge.breakPoints);
         result.append("}");
-        result.append(",length=").append(currentEdge.breakPoints.getGeneticLength());
+        result.append(",length=").append(currentEdge.breakPoints.getGeneticLengthInt());
         
         if (currentEdge.childNode.getTypeLabel() != null) 
         		result.append(",state=").append(currentEdge.childNode.getTypeLabel());

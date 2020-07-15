@@ -126,6 +126,19 @@ public class breakPointsTest {
     	
     	bp2.andNot(bp);
     	Assert.assertEquals(bp2.toString(), "450-500");    	
+    	
+    	
+    	
+    	bp2_list = new ArrayList<>();
+    	bp2_list.add(550);
+    	bp2_list.add(550);
+    	    	
+    	bp2 = new BreakPoints();
+    	bp2.init(bp2_list);
+    	
+    	bp2.andNot(bp2.copy());
+    	Assert.assertEquals(bp2.toString(), "");    	
+
   	
 
     }

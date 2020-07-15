@@ -22,7 +22,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     
     public Input<Double> lambdaInput = new Input<>("lambda",
             "lambda of the poisson distribution for how many empty edges to add.",
-            0.1);
+            10.0);
     
     public Input<Boolean> addRemoveEmptyEdgesInput = new Input<>("addRemoveEmptyEdges",
             "adds empty edges before calling the networkproposal and then removes all empty edges at the end again",
@@ -42,6 +42,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     public double proposal() {
        
         double logHR = 0.0;   
+        
                 
         // Adds empty network edges
         if (addRemoveEmptyEdgesInput.get()){
@@ -54,7 +55,6 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         // calls the operator
         logHR += networkProposal();
 
-        
 
         // removes all the empty network edges in the network again
         if (addRemoveEmptyEdgesInput.get()){
@@ -63,7 +63,6 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
             
         	logHR += RemoveAllEmptyNetworkSegments();
         }
-        
         
         // case there are empty edges, which can happen when addRemoveEmptyEdges is false
 		if (!allEdgesAncestral()){
@@ -177,9 +176,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		oldSourceEdgeParent.addChildEdge(newEdge1);
 		
 		newEdge1.breakPoints = sourceEdge.breakPoints.copy();
-		
-		newEdge1.setPassingRange(0, network.totalLength-1);
-		
+			
 		if (destEdge == sourceEdge)
 			destEdge = newEdge1;
 		
@@ -207,7 +204,47 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		RecombinationNetworkEdge reassortmentEdge = new RecombinationNetworkEdge();
 		sourceNode.addParentEdge(reassortmentEdge);
 		destNode.addChildEdge(reassortmentEdge);
-		reassortmentEdge.breakPoints = new BreakPoints();		
+		reassortmentEdge.breakPoints = new BreakPoints();	
+		
+	
+		
+		// choose random passing Range based on the segments that are already on the edge
+		int min = newEdge1.breakPoints.getMin();
+		int max = newEdge1.breakPoints.getMax();
+		
+		if (min==-1) {
+			if (Randomizer.nextBoolean()) {
+				int start = Randomizer.nextInt(network.totalLength-1);
+				newEdge1.setPassingRange(start+1, network.totalLength-1);
+				reassortmentEdge.setPassingRange(0,start);
+			}else {
+				int start = Randomizer.nextInt(network.totalLength-1);
+				newEdge1.setPassingRange(0, start);
+				reassortmentEdge.setPassingRange(start+1, network.totalLength-1);
+			}	
+		}else if (min==0 && max==network.totalLength-1) {
+			newEdge1.setPassingRange(0, network.totalLength-1);
+		}else if (min>0 && max<network.totalLength-1) {
+			if (Randomizer.nextBoolean()) {
+				int start = Randomizer.nextInt(min)+1;
+				newEdge1.setPassingRange(start, network.totalLength-1);
+				reassortmentEdge.setPassingRange(0,start);
+			}else {
+				int end = Randomizer.nextInt(max+1);
+				newEdge1.setPassingRange(0, end);
+				reassortmentEdge.setPassingRange(end+1,network.totalLength-1);
+			}			
+		}else if (min>0){
+			int start = Randomizer.nextInt(min)+1;
+			newEdge1.setPassingRange(start, network.totalLength-1);
+			reassortmentEdge.setPassingRange(0,start);
+		}else {
+			int end = Randomizer.nextInt(network.totalLength-max-1)+max;
+			newEdge1.setPassingRange(0, end);
+			reassortmentEdge.setPassingRange(end+1,network.totalLength-1);
+		}
+		
+
 		
 		return logHR;
 	}
@@ -283,9 +320,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         logHR += Math.log(Math.pow(lambda, nrRemoved)) -lambda -  Math.log(factorial(nrRemoved));
         
         if (!allEdgesAncestral()){
-        	//TODO change to Exception
-        	System.err.println("still has empty segments, should not happen ever!");
-        	return Double.NEGATIVE_INFINITY;
+        	System.out.println(network);
+        	throw new IllegalArgumentException("still has empty segments, should not happen ever!");        	
         }
         
         if(!networkTerminatesAtMRCA())
@@ -435,8 +471,9 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         Set<RecombinationNetworkNode> nodeList = networkInput.get().getNodes();
         for (RecombinationNetworkNode node : nodeList) {
             for (RecombinationNetworkEdge parentEdge : node.getParentEdges()) {
-                if (parentEdge.breakPoints.isEmpty())
+                if (parentEdge.breakPoints.isEmpty()) {
                     return false;
+                }
             }
         }
 

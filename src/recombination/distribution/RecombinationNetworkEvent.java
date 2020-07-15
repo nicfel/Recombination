@@ -13,7 +13,7 @@ public class RecombinationNetworkEvent {
     /**
      * Number of segments on a reassorting lineage.
      */
-    int segsToSort;
+    double lociToSort;
 
     /**
      * Number of segments sent to the first parent.
@@ -21,7 +21,7 @@ public class RecombinationNetworkEvent {
     int segsSortedLeft;
 
     public int lineages;
-    public double totalReassortmentObsProb;
+    public double totalRecombinationObsProb;
 
     /**
      * Only used when setting up event list.

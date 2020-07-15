@@ -120,6 +120,17 @@ public class BreakPoints {
 		return l;
 	}
 	
+	public int getGeneticLengthInt() {
+		if (isEmpty())
+			return 0;
+
+		int l = 0;
+		for (int i = 0; i < breakPoints.size(); i++)
+			l += breakPoints.get(i).size();
+		return l;
+	}
+
+	
 	public boolean isEmpty() {
 		if (breakPoints==null)
 			return true;
@@ -143,7 +154,7 @@ public class BreakPoints {
 		
 	public String toString() {
 		if (isEmpty())
-			return "";
+			return "null";
 		
 		String val="";
 		for (int i = 0; i < this.breakPoints.size(); i++) {
@@ -187,7 +198,7 @@ public class BreakPoints {
 		
 
 		for (int i = 0; i < this.breakPoints.size(); i++) {
-			while (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).from) {
+			while (breakPoints.breakPoints.get(j).to < this.breakPoints.get(i).from) {
 				j++;
 				if (j==breakPoints.breakPoints.size()) {
 					this.breakPoints = new ArrayList<>(newBreaks);
@@ -231,7 +242,7 @@ public class BreakPoints {
 		
 		for (int i = 0; i < this.breakPoints.size(); i++) {
 			boolean rangeAdded = false;
-			while (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).from) {
+			while (breakPoints.breakPoints.get(j).to < this.breakPoints.get(i).from) {
 				j++;
 				if (j==breakPoints.breakPoints.size()) {
 					if (!rangeAdded)
@@ -311,6 +322,20 @@ public class BreakPoints {
 		this.breakPoints = new ArrayList<>(newBreaks);		
 	}
 	
+	public int getMin() {
+		if (isEmpty())
+			return -1;
+		
+		return breakPoints.get(0).from;
+	}
+	
+	public int getMax() {
+		if (isEmpty())
+			return -1;
+		
+		return breakPoints.get(breakPoints.size()-1).to;
+	}
+
 	
 	public Range getNewRange(int from, int to) {
 		return new Range(from, to);

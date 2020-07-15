@@ -32,6 +32,7 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
     private PopulationFunction populationFunction;
     private Function recombinationRate;
     private RecombinationNetworkIntervals intervals;
+    
 
     @Override
     public void initAndValidate(){
@@ -70,13 +71,13 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 
         	prevEvent = event;
         }
-        
+    	
 		return logP;
     }
     
 	private double recombination(RecombinationNetworkEvent event) {
 		//TODO actually compute probs
-        return Math.log(recombinationRate.getArrayValue()) + event.segsToSort;
+        return Math.log(recombinationRate.getArrayValue()*event.lociToSort);
 	}
 
 	private double coalesce(RecombinationNetworkEvent event) {
@@ -87,10 +88,9 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 	private double intervalContribution(RecombinationNetworkEvent prevEvent, RecombinationNetworkEvent event) {
 
         double result = 0.0;
-
-        result += -recombinationRate.getArrayValue() * prevEvent.totalReassortmentObsProb
+        result += -recombinationRate.getArrayValue() * prevEvent.totalRecombinationObsProb
                 * (event.time - prevEvent.time);
-
+        
 		result += -0.5*prevEvent.lineages*(prevEvent.lineages-1)
                 * populationFunction.getIntegral(prevEvent.time, event.time);
 		

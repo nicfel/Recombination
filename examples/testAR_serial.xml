@@ -17,7 +17,7 @@
                  :recombination.operators
                  :recombination.distribution">
 
-    <run spec="MCMC" chainLength="200000">
+    <run spec="MCMC" chainLength="1000000">
 
         <state>
             <stateNode id="network" spec="SimulatedCoalescentRecombinationNetwork" totalLength="100000">
@@ -48,12 +48,12 @@
                 <popSize spec="RealParameter" value="1.0"/>
             </populationModel>
 
-            <recombinationRate spec="RealParameter" value="0.00001"/>
+            <recombinationRate spec="RealParameter" value="0.0001"/>
         </distribution>
 
         <!-- <operator spec="AddRemoveReassortment" network="@network" alpha="1.0" weight="1.0"/> -->
 
-        <operator spec="DivertLociOperator" network="@network" weight="1.0"/>
+        <operator spec="AddRemoveRecombination" network="@network" weight="1.0" alpha="1" addRemoveEmptyEdges="false"/>
 
         <logger spec="Logger" logEvery="1000" mode="tree" fileName="$(filebase).trees">
             <log idref="network"/>
