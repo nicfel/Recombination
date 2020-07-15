@@ -34,7 +34,7 @@ public class SimulatedCoalescentRecombinationNetworkTest extends CoalReTestClass
 
             SimulatedCoalescentRecombinationNetwork network = new SimulatedCoalescentRecombinationNetwork();
             network.initByName(
-                    "recombinationRate", new RealParameter("1.0"),
+                    "recombinationRate", new RealParameter("0.0001"),
                     "populationModel", populationFunction,
                     "traitSet", dateTrait,
                     "totalLength", 10000);

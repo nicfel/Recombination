@@ -17,15 +17,15 @@
                  :recombination.operators
                  :recombination.distribution">
 
-    <run spec="MCMC" chainLength="1000000">
+    <run spec="MCMC" chainLength="10000000">
 
         <state>
-            <stateNode id="network" spec="SimulatedCoalescentRecombinationNetwork" totalLength="100000">
+            <stateNode id="network" spec="SimulatedCoalescentRecombinationNetwork" totalLength="10000">
                 <populationModel spec="ConstantPopulation">
                     <popSize spec="RealParameter" value="1.0"/>
                 </populationModel>
 
-                <recombinationRate spec="RealParameter" value="1.0"/>
+                <recombinationRate spec="RealParameter" value="0.0001"/>
 
                 <traitSet spec="TraitSet" traitname="date-backward" id="traitSet">
                     <taxa spec="TaxonSet" id="taxonSet">

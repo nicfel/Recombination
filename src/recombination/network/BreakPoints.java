@@ -201,7 +201,7 @@ public class BreakPoints {
 			while (breakPoints.breakPoints.get(j).to < this.breakPoints.get(i).from) {
 				j++;
 				if (j==breakPoints.breakPoints.size()) {
-					this.breakPoints = new ArrayList<>(newBreaks);
+					setBreakPointsAnd(newBreaks);
 					return;
 				}
 
@@ -218,12 +218,12 @@ public class BreakPoints {
 					break;
 				
 				if (j==breakPoints.breakPoints.size()) {
-					this.breakPoints = new ArrayList<>(newBreaks);
+					setBreakPointsAnd(newBreaks);
 					return;
 				}				
 			}	
 		}
-		this.breakPoints = new ArrayList<>(newBreaks);
+		setBreakPointsAnd(newBreaks);
 	}
 
 	
@@ -252,7 +252,7 @@ public class BreakPoints {
 						newBreaks.add(this.breakPoints.get(i));
 						i++;
 					}
-					this.breakPoints = new ArrayList<>(newBreaks);
+					setBreakPoints(newBreaks);
 					return;
 				}
 
@@ -278,7 +278,7 @@ public class BreakPoints {
 						newBreaks.add(this.breakPoints.get(i));
 						i++;
 					}
-					this.breakPoints = new ArrayList<>(newBreaks);
+					setBreakPoints(newBreaks);
 					return;
 				}	
 			}	
@@ -287,8 +287,38 @@ public class BreakPoints {
 				newBreaks.add(this.breakPoints.get(i));
 				
 		}
+		setBreakPoints(newBreaks);
+	}
+	
+	/**
+	 * newly sets the BreakPoints after checking that the overlaps are correct
+	 * @param newBreaks
+	 */
+	public void setBreakPoints(List<Range> newBreaks) {
+		for (int i = newBreaks.size()-1; i > 0 ; i--) {
+			if (newBreaks.get(i-1).from > newBreaks.get(i).from) {
+				newBreaks.get(i-1).to = newBreaks.get(i).to;
+				newBreaks.remove(i);
+			}
+		}
 		this.breakPoints = new ArrayList<>(newBreaks);
 	}
+	
+	/**
+	 * newly sets the BreakPoints after and operation checking that the overlaps are correct
+	 * @param newBreaks
+	 */
+	public void setBreakPointsAnd(List<Range> newBreaks) {
+		for (int i = newBreaks.size()-1; i > 0 ; i--) {
+			if (newBreaks.get(i-1).to > newBreaks.get(i).from) {
+				newBreaks.get(i-1).to = newBreaks.get(i).to;
+				newBreaks.remove(i);
+			}
+		}
+		this.breakPoints = new ArrayList<>(newBreaks);
+	}
+
+
 
 	/**
 	 * combine two lists of breakpoints

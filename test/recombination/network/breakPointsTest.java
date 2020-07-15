@@ -137,10 +137,58 @@ public class breakPointsTest {
     	bp2.init(bp2_list);
     	
     	bp2.andNot(bp2.copy());
-    	Assert.assertEquals(bp2.toString(), "");    	
+    	
+    	Assert.assertEquals(bp2.toString(), "null");   
+    	
+    	
 
-  	
+   	
+    	bp2_list = new ArrayList<>();    	
+    	bp2_list.add(4382);
+    	bp2_list.add(7204);
+    	bp2_list.add(8778);
+    	bp2_list.add(9999);
+    	
+    	bp = new BreakPoints();
+    	bp.init(bp2_list);
+    	
+    	bp2_list = new ArrayList<>();    	
+    	bp2_list.add(4933);
+    	bp2_list.add(9999);
+    	
+    	bp2 = new BreakPoints();
+    	bp2.init(bp2_list);
+    	    	
+    	bp2.andNot(bp);
+    	
+    	Assert.assertEquals(bp2.toString(), "7205-8777");   
 
+    
+    	bp2_list = new ArrayList<>();    	
+    	bp2_list.add(0);
+    	bp2_list.add(9850);
+    	
+    	bp = new BreakPoints();
+    	bp.init(bp2_list);
+    	
+    	bp2_list = new ArrayList<>();
+    	bp2_list.add(1175);
+    	bp2_list.add(9114);
+
+    	bp2_list.add(9467);
+    	bp2_list.add(9999);
+    	
+    	bp2 = new BreakPoints();
+    	bp2.init(bp2_list);
+
+    	
+    	System.out.println(bp);
+    	System.out.println(bp2);
+    	bp.andNot(bp2);
+    	System.out.println(bp);
+
+
+    
     }
     
 

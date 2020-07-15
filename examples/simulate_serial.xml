@@ -1,0 +1,63 @@
+<beast version="2.0"
+       namespace="beast.core
+                 :beast.core.util
+                 :beast.core.parameter
+                 :beast.evolution.alignment
+                 :beast.evolution.likelihood
+                 :beast.evolution.tree
+                 :beast.evolution.tree.coalescent
+                 :beast.evolution.sitemodel
+                 :beast.evolution.substitutionmodel
+                 :beast.evolution.operators
+                 :beast.math.distributions
+                 :feast.simulation
+                 :recombination.network
+                 :recombination.statistics
+                 :recombination.simulator
+                 :recombination.operators
+                 :recombination.distribution">
+
+    <network id="network" spec="SimulatedCoalescentRecombinationNetwork" totalLength="10000">
+        <populationModel spec="ConstantPopulation">
+            <popSize spec="RealParameter" value="1.0"/>
+        </populationModel>
+
+        <recombinationRate spec="RealParameter" value="0.0001"/>
+
+        <taxonSet spec="TaxonSet" id="taxonSet">
+            <taxon spec="Taxon" id="t1"/>
+            <taxon spec="Taxon" id="t2"/>
+            <taxon spec="Taxon" id="t3"/>
+            <taxon spec="Taxon" id="t4"/>
+            <taxon spec="Taxon" id="t5"/>
+        </taxonSet>
+
+        <traitSet spec="TraitSet" traitname="date-backward" id="traitSet" taxa="@taxonSet">
+            t1=0, t2=0.1, t3=0.2, t4=0.3, t5=0.4
+        </traitSet>
+    </network>
+
+    <distribution id="coalDensity" spec="CoalescentWithRecombination">
+        <networkIntervals spec="RecombinationNetworkIntervals" recombinationNetwork="@network"/>
+
+        <populationModel spec="ConstantPopulation">
+            <popSize spec="RealParameter" value="1.0"/>
+        </populationModel>
+
+        <recombinationRate spec="RealParameter" value="0.0001"/>
+    </distribution>
+
+
+    <run spec="GPSimulator" nSims="10000">
+
+        <simulationObject idref="network"/>
+
+        <logger spec="Logger" logEvery="100" mode="tree" fileName="$(filebase).trees">
+            <log idref="network"/>
+        </logger>
+
+        <logger spec="Logger" logEvery="1" fileName="$(filebase).log">
+            <log spec="RecombinationNetworkStatsLogger" recombinationNetwork="@network"/>
+        </logger>
+    </run>
+</beast>

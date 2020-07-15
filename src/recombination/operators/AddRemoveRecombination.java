@@ -1,15 +1,11 @@
 package recombination.operators;
 
 import beast.core.Input;
-import beast.util.Package;
 import beast.util.Randomizer;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,7 +33,6 @@ public class AddRemoveRecombination extends DivertLociOperator {
         }else {
             logHR = removeReassortment();
         }
-
         return logHR;
     }
 
@@ -77,14 +72,14 @@ public class AddRemoveRecombination extends DivertLociOperator {
             logHR -= Math.log(1.0/(destEdge.parentNode.getHeight()-minDestTime));
 
         }
+        
 
         // Create new reassortment edge
 
         logHR += addRecombinationEdge(sourceEdge, sourceTime, destEdge, destTime);
-
+       
         if (logHR == Double.NEGATIVE_INFINITY)
-            return Double.NEGATIVE_INFINITY;
-        
+            return Double.NEGATIVE_INFINITY;        
 
 
         // HR contribution for reverse move
@@ -102,9 +97,20 @@ public class AddRemoveRecombination extends DivertLociOperator {
     double addRecombinationEdge(RecombinationNetworkEdge sourceEdge, double sourceTime,
     		RecombinationNetworkEdge destEdge, double destTime) {
 
-		double logHR = 0.0;
-		
+		double logHR = 0.0;		
+
 		network.startEditing(this);
+		
+        BreakPoints rangeToDivert = getNewRangeToDivert(sourceEdge);
+                
+        // TODO account for HR contribution
+        BreakPoints lociToDivert = rangeToDivert.copy();
+    	
+    	lociToDivert.and(sourceEdge.breakPoints);
+    	
+        if (lociToDivert.isEmpty())
+        	return Double.NEGATIVE_INFINITY;
+
 		
 		RecombinationNetworkNode sourceNode = new RecombinationNetworkNode();
 		sourceNode.setHeight(sourceTime);
@@ -145,32 +151,22 @@ public class AddRemoveRecombination extends DivertLociOperator {
 		
 		newEdge2.breakPoints = destEdge.breakPoints.copy();
 		
+		
 		RecombinationNetworkEdge reassortmentEdge = new RecombinationNetworkEdge();
 		sourceNode.addParentEdge(reassortmentEdge);
 		destNode.addChildEdge(reassortmentEdge);
 		reassortmentEdge.breakPoints = new BreakPoints();	
-		
-		
-        BreakPoints rangeToDivert = getNewRangeToDivert(sourceEdge, destEdge);
         reassortmentEdge.passingRange = rangeToDivert.copy();
-                
-        // TODO account for HR contribution
-        BreakPoints lociToDivert = rangeToDivert.copy();
-    	
-    	lociToDivert.and(sourceEdge.breakPoints);
-    	
-
-
-        if (lociToDivert.isEmpty())
-        	return Double.NEGATIVE_INFINITY;
-
-        logHR -= addLociToAncestors(reassortmentEdge, lociToDivert);
-        logHR += removeLociFromAncestors(newEdge1, lociToDivert);
+        
+        addLociToAncestors(reassortmentEdge, lociToDivert);
+        removeLociFromAncestors(newEdge1, lociToDivert);
         
         newEdge1.passingRange = new BreakPoints(0,network.totalLength-1);
         
         newEdge1.passingRange.andNot(rangeToDivert);
     	
+        logHR -= Math.log(1/(double) network.totalLength);
+        
 
 
         return logHR;
@@ -226,6 +222,9 @@ public class AddRemoveRecombination extends DivertLociOperator {
         } else {
             logHR += Math.log(1.0/(destEdge.parentNode.getHeight()-minDestTime));
         }
+        
+//        logHR += Math.log(1/network.totalLength);
+
 
         return logHR;
     }
@@ -242,8 +241,11 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
         // Divert segments away from chosen edge
         BreakPoints lociToDivert = edgeToRemove.breakPoints.copy();
+                
+        
         logHR -= addLociToAncestors(edgeToRemoveSpouse, lociToDivert);
         logHR += removeLociFromAncestors(edgeToRemove, lociToDivert);
+
 //        logHR += getLogConditionedSubsetProb(edgeToRemoveSpouse.hasSegments);
 
         // Remove edge and associated nodes
@@ -271,6 +273,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
             secondNodeToRemoveParent.addChildEdge(secondEdgeToExtend);
         }
+        
 
         if (!networkTerminatesAtMRCA())
             return Double.NEGATIVE_INFINITY;

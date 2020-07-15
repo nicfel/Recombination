@@ -81,13 +81,13 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 	}
 
 	private double coalesce(RecombinationNetworkEvent event) {
-
 		return Math.log(1.0/populationFunction.getPopSize(event.time));
 	}
 
 	private double intervalContribution(RecombinationNetworkEvent prevEvent, RecombinationNetworkEvent event) {
 
         double result = 0.0;
+        
         result += -recombinationRate.getArrayValue() * prevEvent.totalRecombinationObsProb
                 * (event.time - prevEvent.time);
         

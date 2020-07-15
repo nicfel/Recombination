@@ -52,9 +52,10 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     public void initAndValidate() {
 
         populationFunction = populationFunctionInput.get();
-        recombinationRate = recombinationRateInput.get();
         binomialProb = binomialProbInput.get();
         totalLength = totalLengthInput.get();
+        
+        recombinationRate = recombinationRateInput.get();
 
         if (totalLength < 2) {
             throw new IllegalArgumentException("the length of the alignment has to be at least 2");
@@ -146,8 +147,8 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
             double timeToNextCoal = populationFunction.getInverseIntensity(
                     transformedTimeToNextCoal + currentTransformedTime) - currentTime;
 
-            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()) : Double.POSITIVE_INFINITY;
-
+            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*totalLength) : Double.POSITIVE_INFINITY;
+            
             // next event time
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
             if (timeUntilNextEvent < timeUntilNextSample) {
