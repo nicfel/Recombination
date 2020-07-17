@@ -30,17 +30,11 @@ public class RecombinationNetworkIntervals extends CalculationNode {
 
     public boolean eventListDirty = true;
     
-    // total length of the data
-    private int totalLength;
-
-
     @Override
     public void initAndValidate() {
         recombinationNetwork = recombinationNetworkInput.get();
 
         storedRecombinationNetworkEventList = new ArrayList<>();
-        
-        totalLength = recombinationNetworkInput.get().totalLength;        
 
     }
 

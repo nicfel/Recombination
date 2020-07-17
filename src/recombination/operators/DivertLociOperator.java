@@ -27,7 +27,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 	
     @Override
     public double networkProposal() {
-    	
+    	    	
         double logHR = 0.0;
         
         List<RecombinationNetworkEdge> sourceEdges = network.getEdges().stream()
@@ -42,30 +42,65 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         RecombinationNetworkEdge sourceEdge = sourceEdges.get(Randomizer.nextInt(sourceEdges.size()));
         RecombinationNetworkEdge destEdge = getSpouseEdge(sourceEdge);
+        
+        
+//        System.out.println(sourceEdge.childNode.getHeight() + " " + sourceEdge.parentNode.getHeight());
 
         network.startEditing(this);
                 
-        BreakPoints rangeToDivert = getRangeToDivert(sourceEdge, destEdge);
-        
-        if (rangeToDivert==null)
-        	return Double.NEGATIVE_INFINITY;
-        
-        // TODO account for HR contribution
-        BreakPoints lociToDivert = rangeToDivert.copy();
-        
-    	lociToDivert.and(sourceEdge.breakPoints);
+        BreakPoints newRange = getUniformRange(sourceEdge);
+        if (newRange.getLength()>sourceEdge.passingRange.getLength()) {
+            BreakPoints lociToDivert = destEdge.breakPoints.copy();
+            BreakPoints rangeToDivert = destEdge.passingRange.copy();
+            
+	        if (lociToDivert.isEmpty()) {
+		        destEdge.passingRange.andNot(rangeToDivert);
+		    	sourceEdge.passingRange.or(rangeToDivert);
+		    	return logHR;
+	        }
+            
+        	rangeToDivert.and(newRange);
+	    	lociToDivert.and(rangeToDivert);
 
-        if (lociToDivert.isEmpty())
-        	return Double.NEGATIVE_INFINITY;
+	        if (lociToDivert.isEmpty()) {
+		        destEdge.passingRange.andNot(rangeToDivert);
+		    	sourceEdge.passingRange.or(rangeToDivert);
+		    	return logHR;
+	        }else {			
+		        logHR -= addLociToAncestors(sourceEdge, lociToDivert);
+		        logHR += removeLociFromAncestors(destEdge, lociToDivert);
+		        
+		        destEdge.passingRange.andNot(rangeToDivert);
+		    	sourceEdge.passingRange.or(rangeToDivert);
+	        }
 
+        }else {
+            BreakPoints lociToDivert = sourceEdge.breakPoints.copy();
+        	BreakPoints rangeToDivert = sourceEdge.passingRange.copy();
+        	rangeToDivert.andNot(newRange);
+	    	lociToDivert.and(rangeToDivert);
+	    	
+	    	
+	        if (lociToDivert.isEmpty()) {
+		    	sourceEdge.passingRange.andNot(rangeToDivert);
+		    	if (destEdge.passingRange==null)
+		    		destEdge.passingRange = rangeToDivert;
+		    	else
+		    		destEdge.passingRange.or(rangeToDivert);
+	        }else {		
+		        logHR -= addLociToAncestors(destEdge, lociToDivert);
+		        logHR += removeLociFromAncestors(sourceEdge, lociToDivert);
+		        
+		    	sourceEdge.passingRange.andNot(rangeToDivert);
+		    	if (destEdge.passingRange==null)
+		    		destEdge.passingRange = rangeToDivert;
+		    	else
+		    		destEdge.passingRange.or(rangeToDivert);
+	        }
+
+        }
         
 
-        logHR -= addLociToAncestors(destEdge, lociToDivert);
-        logHR += removeLociFromAncestors(sourceEdge, lociToDivert);
-        
-    	sourceEdge.passingRange.andNot(rangeToDivert);
-    	
-//        logHR += getLogUnconditionedSubsetProb(destEdge.breakPoints);
 
         int reverseSourceEdgeCount = (int)(network.getEdges().stream()
                 .filter(e -> e.childNode.isRecombination())
@@ -198,7 +233,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     	
     	BreakPoints rangeToDivert = new BreakPoints();
     	
-    	int newBreakPoint = Randomizer.nextInt(network.totalLength);
+    	
+    	int newBreakPoint = Randomizer.nextInt((int) sourceEdge.breakPoints.getLength()) + sourceEdge.breakPoints.getMin();
 
     	
     	if (Randomizer.nextBoolean()) {
@@ -208,9 +244,24 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     	}    	    	    	    	    	
     	return rangeToDivert;
     }
+    
+    public BreakPoints getUniformRange(RecombinationNetworkEdge sourceEdge) {
+    	
+    	BreakPoints newRange = new BreakPoints();
+    	
+ 
+    	int newBreakPoint = Randomizer.nextInt(network.totalLength);
 
+    	
+    	if (sourceEdge.passingRange.getMin()==0) {
+    		newRange = new BreakPoints(0,newBreakPoint);
+    	}else {
+    		newRange = new BreakPoints(newBreakPoint, network.totalLength-1);
+    	}    	    	    	    	    	
+    	return newRange;
+    }
 
-
+    
     
 //    protected BitSet getRandomUnconditionedSubset(BreakPoints sourceSegments) {
 //    	

@@ -22,7 +22,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     
     public Input<Double> lambdaInput = new Input<>("lambda",
             "lambda of the poisson distribution for how many empty edges to add.",
-            10.0);
+            1.0);
     
     public Input<Boolean> addRemoveEmptyEdgesInput = new Input<>("addRemoveEmptyEdges",
             "adds empty edges before calling the networkproposal and then removes all empty edges at the end again",
@@ -40,6 +40,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 
     @Override
     public double proposal() {
+    	
        
         double logHR = 0.0;
         // Adds empty network edges
@@ -49,10 +50,11 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
             if (logHR == Double.NEGATIVE_INFINITY)
             	return Double.NEGATIVE_INFINITY;
         }     
+                
         
         // calls the operator
         logHR += networkProposal();
-        
+                
         if (logHR == Double.NEGATIVE_INFINITY)
         	return Double.NEGATIVE_INFINITY;
 
@@ -83,9 +85,16 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		if (!allBreaksDiffer()){
 			System.out.println(network);
 			throw new IllegalArgumentException("Break error");
-
 //            return Double.NEGATIVE_INFINITY;
 		}
+		
+        // case there are empty edges, which can happen when addRemoveEmptyEdges is false
+		if (!splitsMakeSense()){
+			System.out.println(network);
+			throw new IllegalArgumentException("Split error");
+//            return Double.NEGATIVE_INFINITY;
+		}
+
 
                 		
         return logHR;
@@ -152,8 +161,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         // Create new reassortment edge
         logHR += addEmptyRecombinationEdge(sourceEdge, sourceTime, destEdge, destTime);
 
-        if (logHR == Double.NaN)
-            return Double.NaN;
+        if (logHR == Double.NEGATIVE_INFINITY)
+            return Double.NEGATIVE_INFINITY;
                 
         
         // HR contribution for reverse move
@@ -229,7 +238,6 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		// choose random passing Range based on the segments that are already on the edge
 		int min = newEdge1.breakPoints.getMin();
 		int max = newEdge1.breakPoints.getMax();
-		
 		if (min==-1) {
 			if (Randomizer.nextBoolean()) {
 				int start = Randomizer.nextInt(network.totalLength-1);
@@ -243,23 +251,24 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		}else if (min==0 && max==network.totalLength-1) {
 			newEdge1.setPassingRange(0, network.totalLength-1);
 		}else if (min>0 && max<network.totalLength-1) {
-			if (Randomizer.nextBoolean()) {
-				int start = Randomizer.nextInt(min)+1;
-				newEdge1.setPassingRange(start, network.totalLength-1);
-				reassortmentEdge.setPassingRange(0,start);
+			if (Randomizer.nextBoolean()) {		
+				int start = Randomizer.nextInt(network.totalLength-max)+max;
+				reassortmentEdge.setPassingRange(start+1, network.totalLength-1);
+				newEdge1.setPassingRange(0,start);
 			}else {
-				int end = Randomizer.nextInt(max+1);
-				newEdge1.setPassingRange(0, end);
-				reassortmentEdge.setPassingRange(end+1,network.totalLength-1);
+				int end = Randomizer.nextInt(min);
+				reassortmentEdge.setPassingRange(0, end);
+				newEdge1.setPassingRange(end+1,network.totalLength-1);
 			}			
 		}else if (min>0){
-			int start = Randomizer.nextInt(min)+1;
-			newEdge1.setPassingRange(start, network.totalLength-1);
-			reassortmentEdge.setPassingRange(0,start);
+			int end = Randomizer.nextInt(min);
+			reassortmentEdge.setPassingRange(0, end);
+			newEdge1.setPassingRange(end+1,network.totalLength-1);
+
 		}else {
-			int end = Randomizer.nextInt(network.totalLength-max-1)+max;
-			newEdge1.setPassingRange(0, end);
-			reassortmentEdge.setPassingRange(end+1,network.totalLength-1);
+			int start = Randomizer.nextInt(network.totalLength-max)+max;
+			reassortmentEdge.setPassingRange(start+1, network.totalLength-1);
+			newEdge1.setPassingRange(0,start);
 		}
 		
 
@@ -510,10 +519,10 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
                     BreakPoints lc = parentEdge.breakPoints.copy();
                     lc.andNot(parentEdge.passingRange);
                     if (!lc.isEmpty()) {
-                    	System.out.println(parentEdge.breakPoints);
-                    	System.out.println(parentEdge.passingRange);
-                    	System.out.println(lc);
-                    	System.out.println(parentEdge.childNode.getHeight());
+//                    	System.out.println(parentEdge.breakPoints);
+//                    	System.out.println(parentEdge.passingRange);
+//                    	System.out.println(lc);
+//                    	System.out.println(parentEdge.childNode.getHeight());
                     	return false;
                     }
                 }
@@ -534,7 +543,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
             for (RecombinationNetworkEdge parentEdge : node.getParentEdges()) {
             	for (int i = 0; i < parentEdge.breakPoints.breakPoints.size()-1;i++) {
             		if (parentEdge.breakPoints.breakPoints.get(i).getOverlap(parentEdge.breakPoints.breakPoints.get(i+1))!=null) {
-            			System.out.println(parentEdge.childNode.getHeight());
+//            			System.out.println(parentEdge.childNode.getHeight());
             			return false;
             		}
             	}
@@ -544,6 +553,23 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         return true;
 
     }
+    
+    public boolean splitsMakeSense() {
+        Set<RecombinationNetworkNode> nodeList = networkInput.get().getNodes();
+        for (RecombinationNetworkNode node : nodeList) {
+            for (RecombinationNetworkEdge parentEdge : node.getParentEdges()) {
+            	if (parentEdge.childNode.isRecombination()) {
+            		if (parentEdge.passingRange.getMin()!=0 && parentEdge.passingRange.getMax()!=network.totalLength-1) {
+            			return false;
+            		}
+            	}
+
+            }
+        }
+        return true;
+
+    }
+
 
 
 

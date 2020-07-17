@@ -3,15 +3,13 @@ package recombination.operators;
 import beast.core.Input;
 import beast.core.parameter.RealParameter;
 import beast.util.Randomizer;
-import coalre.network.Network;
-import coalre.network.NetworkEdge;
-import coalre.network.NetworkNode;
-import coalre.operators.NetworkOperator;
+import recombination.network.RecombinationNetworkEdge;
+import recombination.network.RecombinationNetworkNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class NetworkScaleOperator extends NetworkOperator {
+public class RecombinationNetworkScaleOperator extends RecombinationNetworkOperator {
 
     public Input<Double> scaleFactorInput = new Input<>(
             "scaleFactor",
@@ -60,14 +58,14 @@ public class NetworkScaleOperator extends NetworkOperator {
 
             // Scale root
 
-            NetworkNode rootNode = network.getRootEdge().childNode;
+        	RecombinationNetworkNode rootNode = network.getRootEdge().childNode;
 
             rootNode.setHeight(rootNode.getHeight() * f);
             count += 1;
 
             if (f<1.0) {
 
-                for (NetworkEdge childEdge : rootNode.getChildEdges())
+                for (RecombinationNetworkEdge childEdge : rootNode.getChildEdges())
                     if (rootNode.getHeight() < childEdge.childNode.getHeight())
                         return Double.NEGATIVE_INFINITY;
 
@@ -77,13 +75,13 @@ public class NetworkScaleOperator extends NetworkOperator {
 
             // Scale network nodes
 
-            for (NetworkNode node : network.getInternalNodes()) {
+            for (RecombinationNetworkNode node : network.getInternalNodes()) {
                 node.setHeight(node.getHeight() * f);
                 count += 1;
             }
 
             if (f < 1.0) {
-                for (NetworkNode leaf : network.getLeafNodes()) {
+                for (RecombinationNetworkNode leaf : network.getLeafNodes()) {
                     if (leaf.getParentEdges().get(0).parentNode.getHeight() < leaf.getHeight())
                         return Double.NEGATIVE_INFINITY;
                 }
