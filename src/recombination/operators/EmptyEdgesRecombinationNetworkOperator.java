@@ -54,7 +54,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         
         // calls the operator
         logHR += networkProposal();
-                
+        
+        
         if (logHR == Double.NEGATIVE_INFINITY)
         	return Double.NEGATIVE_INFINITY;
 
@@ -235,41 +236,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		
 	
 		
-		// choose random passing Range based on the segments that are already on the edge
-		int min = newEdge1.breakPoints.getMin();
-		int max = newEdge1.breakPoints.getMax();
-		if (min==-1) {
-			if (Randomizer.nextBoolean()) {
-				int start = Randomizer.nextInt(network.totalLength-1);
-				newEdge1.setPassingRange(start+1, network.totalLength-1);
-				reassortmentEdge.setPassingRange(0,start);
-			}else {
-				int start = Randomizer.nextInt(network.totalLength-1);
-				newEdge1.setPassingRange(0, start);
-				reassortmentEdge.setPassingRange(start+1, network.totalLength-1);
-			}	
-		}else if (min==0 && max==network.totalLength-1) {
-			newEdge1.setPassingRange(0, network.totalLength-1);
-		}else if (min>0 && max<network.totalLength-1) {
-			if (Randomizer.nextBoolean()) {		
-				int start = Randomizer.nextInt(network.totalLength-max)+max;
-				reassortmentEdge.setPassingRange(start+1, network.totalLength-1);
-				newEdge1.setPassingRange(0,start);
-			}else {
-				int end = Randomizer.nextInt(min);
-				reassortmentEdge.setPassingRange(0, end);
-				newEdge1.setPassingRange(end+1,network.totalLength-1);
-			}			
-		}else if (min>0){
-			int end = Randomizer.nextInt(min);
-			reassortmentEdge.setPassingRange(0, end);
-			newEdge1.setPassingRange(end+1,network.totalLength-1);
 
-		}else {
-			int start = Randomizer.nextInt(network.totalLength-max)+max;
-			reassortmentEdge.setPassingRange(start+1, network.totalLength-1);
-			newEdge1.setPassingRange(0,start);
-		}
 		
 
 		
@@ -519,10 +486,10 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
                     BreakPoints lc = parentEdge.breakPoints.copy();
                     lc.andNot(parentEdge.passingRange);
                     if (!lc.isEmpty()) {
-//                    	System.out.println(parentEdge.breakPoints);
-//                    	System.out.println(parentEdge.passingRange);
-//                    	System.out.println(lc);
-//                    	System.out.println(parentEdge.childNode.getHeight());
+                    	System.out.println(parentEdge.breakPoints);
+                    	System.out.println(parentEdge.passingRange);
+                    	System.out.println(lc);
+                    	System.out.println(parentEdge.childNode.getHeight());
                     	return false;
                     }
                 }

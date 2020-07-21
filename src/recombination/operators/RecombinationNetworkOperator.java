@@ -20,7 +20,7 @@ public abstract class RecombinationNetworkOperator extends Operator {
             "Network on which to operate",
             Input.Validate.REQUIRED);
 
-    protected RecombinationNetwork network;
+    public RecombinationNetwork network;
     List<Tree> segmentTrees;
 
     @Override

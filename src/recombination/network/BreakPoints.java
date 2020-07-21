@@ -100,7 +100,7 @@ public class BreakPoints {
 	 */
 	public double getLength() {
 		if (!isEmpty())
-			return breakPoints.get(breakPoints.size()-1).to-breakPoints.get(0).from;
+			return breakPoints.get(breakPoints.size()-1).to-breakPoints.get(0).from+1;
 		
 		return -1;
 	}

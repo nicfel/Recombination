@@ -14,27 +14,35 @@ public class CoalescentWithRecombinationTest extends CoalReTestClass {
     @Test
     public void testDensity() {
         RecombinationNetwork network = new RecombinationNetwork(
-                "((((t0[&loci={0-9999},length=10000]:0.5045351708916129)#H0[&split={4867-9999},loci={4867-9999},length=5133]"+
-                		":0.2890189030749166,#H0[&split={0-4866},loci={0-4866},length=4867]:0.2890189030749166)[&loci={0-9999},length=10000]"+
-                		":0.6475481073244761,((t2[&loci={0-9999},length=10000]:0.903539606702267,t1[&loci={0-9999},length=10000]:0.903539606702267)"+
-                		"[&loci={0-9999},length=10000]:0.29229242390613575)#H1[&split={0-5630},loci={0-5630},length=5631]:0.24527015068260294)"+
-                		"[&loci={0-9999},length=10000]:1.2362149206344832,((#H1[&split={5631-9999},loci={5631-9999},length=4369]"+
-                		":0.05103233536942797)#H2[&split={7546-9999},loci={7546-9999},length=2454]:0.3230648558859137"+
-                		",#H2[&split={0-7545},loci={5631-7545},length=1915]:0.3230648558859137)[&loci={5631-9999},length=4369]:"+
-                		"1.1073878800617445)[&loci={0-9999},length=10000]:0.0;");
+        		"((#H0[&split={0-929},loci={0-929},length=930]:0.4860702162314561,((#H2[&split={7633-9999},loci={7633-9999},length=2367]:0.036380107508342974,(t1[&loci={0-9999},length=10000]:0.29041085418573037,t0[&loci={0-9999},length=10000]:0.29041085418573037)[&loci={0-9999},length=10000]:0.1528435079144485)[&loci={0-9999},length=10000]:0.47005038739308824)#H1[&split={0-5172},loci={0-5172},length=5173]:1.5817575814045295)[&loci={0-5172},length=5173]:0.35688825595463936,(((t2[&loci={0-9999},length=10000]:0.4068742545918359)#H2[&split={0-7632},loci={0-7632},length=7633]:0.604218532359179,#H1[&split={5173-9999},loci={5173-9999},length=4827]:0.09778803745774778)[&loci={0-9999},length=10000]:0.9978993277153256)#H0[&split={930-9999},loci={930-9999},length=9070]:0.8429584721860954)[&loci={0-9999},length=10000]:0.0;");
+
+
 
         RecombinationNetworkIntervals networkIntervals = new RecombinationNetworkIntervals();
         networkIntervals.initByName("recombinationNetwork", network);
 
         ConstantPopulation populationFunction = new ConstantPopulation();
         populationFunction.initByName("popSize", new RealParameter("1.0"));
+        
 
         CoalescentWithRecombination coalWR = new CoalescentWithRecombination();
         coalWR.initByName("networkIntervals", networkIntervals,
                 "recombinationRate", new RealParameter("0.0001"),
                 "populationModel", populationFunction);
+
+        Assert.assertEquals(-9.610719567492293, coalWR.calculateLogP(), 1e-10);
         
-        
-        Assert.assertEquals(-13.072190353529038, coalWR.calculateLogP(), 1e-10);
+        //matlab code for control
+//        intervals = [0.0,0.0,0.2904108541857302,0.11646340040610559,0.036380107508342974,0.47005038739308835,0.09778803745774778,0.9978993277153256,0.4860702162314561,0.35688825595463936];
+//        lins = [1,2,3,2,3,2,3,2,3,2];
+//        rec = [9999.0,19998.0,29997.0,19998.0,19997.0,17631.0,17630.0,15171.0,15170.0,14241.0];
+//
+//        prob = 5*log(1);
+//        prob = prob + 3*log(0.0001*9999);
+//
+//        for i  = 1 : length(lins)
+//            prob = prob - 0.0001 *rec(i)*intervals(i);
+//            prob = prob - lins(i)*(lins(i)-1)/(2)*intervals(i)
+//        end
     }
 }
