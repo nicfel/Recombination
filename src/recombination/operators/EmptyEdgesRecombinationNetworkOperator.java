@@ -96,7 +96,6 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 //            return Double.NEGATIVE_INFINITY;
 		}
 
-
                 		
         return logHR;
     }
@@ -204,6 +203,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		oldSourceEdgeParent.addChildEdge(newEdge1);
 		
 		newEdge1.breakPoints = sourceEdge.breakPoints.copy();
+		newEdge1.setPassingRange(0,network.totalLength-1);
+
 			
 		if (destEdge == sourceEdge)
 			destEdge = newEdge1;

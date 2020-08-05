@@ -147,7 +147,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
             double timeToNextCoal = populationFunction.getInverseIntensity(
                     transformedTimeToNextCoal + currentTransformedTime) - currentTime;
 
-            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*totalLength) : Double.POSITIVE_INFINITY;
+            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*(totalLength-1)) : Double.POSITIVE_INFINITY;
             
             // next event time
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
@@ -249,10 +249,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
         extantLineages.remove(lineage);
         extantLineages.add(leftLineage);
-        extantLineages.add(rightLineage);
-        
-        
-        
+        extantLineages.add(rightLineage);        
     }
 
 }

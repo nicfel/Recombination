@@ -46,8 +46,11 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         RecombinationNetworkEdge destEdge = getSpouseEdge(sourceEdge);
 
         network.startEditing(this);
-                
+        
+        System.out.println(network);
+        System.out.println(sourceEdge.childNode.getHeight());
         BreakPoints newRange = getUniformRange(sourceEdge);
+        
         
         if (newRange.getLength()>sourceEdge.passingRange.getLength()) {
             BreakPoints lociToDivert = destEdge.breakPoints.copy();
@@ -122,7 +125,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
      */
     public double removeLociFromAncestors(RecombinationNetworkEdge edge, BreakPoints rangeToRemove) {
         double logP = 0.0;
-        
 
         rangeToRemove = rangeToRemove.copy();
         
@@ -141,7 +143,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         	// get the breakpoints before the operation
         	int old_pr1 = edge.parentNode.getParentEdges().get(0).passingRange.getMax();
         	int old_pr2 = edge.parentNode.getParentEdges().get(1).passingRange.getMax();
-
+        	
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(1), rangeToRemove);
                       
@@ -194,7 +196,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         	rangeToRemove.andNot(getSisterEdge(edge).breakPoints);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
         }
-        
         return logP;
     }
 
@@ -222,12 +223,11 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         if (edge.isRootEdge())
             return logP;        
-
+        
         if (edge.parentNode.isRecombination()) {        	
         	// resample the passing Range between the boundries given by the left and right breakpoints
         	logP += resamplePassingRange(edge.parentNode.getParentEdges().get(0),
         			edge.parentNode.getParentEdges().get(1));  
-        	
         	
             BreakPoints rangeToAddLeft = rangeToAdd.copy();
             BreakPoints rangeToAddRight = rangeToAdd.copy();
@@ -237,10 +237,10 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
                         
             logP += addLociToAncestors(edge.parentNode.getParentEdges().get(0), rangeToAddLeft);
             logP += addLociToAncestors(edge.parentNode.getParentEdges().get(1), rangeToAddRight);
-
         } else {
             logP += addLociToAncestors(edge.parentNode.getParentEdges().get(0), rangeToAdd);
         }
+
         return logP;
     }
         
@@ -284,13 +284,12 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 			RecombinationNetworkEdge edge2) {
     	
     	double logHR = 0.0;
-    	    	
+
 		int min1 = edge1.breakPoints.getMin();
 		int max1 = edge1.breakPoints.getMax();
 		
 		int min2 = edge2.breakPoints.getMin();
 		int max2 = edge2.breakPoints.getMax();
-		
     	
 		if (min1==-1 && min2==-1) {
 			// both passing ranges are null
@@ -367,39 +366,4 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
     	return logHR;
     }
-    
-//    
-//	public BreakPoints getRangeToDivert(RecombinationNetworkEdge sourceEdge, RecombinationNetworkEdge destEdge) {
-//    	
-//    	BreakPoints rangeToDivert = new BreakPoints();
-//    	BreakPoints range = sourceEdge.getPassingRange();  
-//    	    	    	
-//    	int step = (int) Randomizer.nextPoisson(lambdaDiversion);
-//    	
-//    	if (range.breakPoints.get(0).from!=0) {
-//    		if ((range.breakPoints.get(0).from+step)>range.breakPoints.get(0).to)
-//    			return null;
-//    		
-//    		rangeToDivert = new BreakPoints(range.breakPoints.get(0).from, range.breakPoints.get(0).from+step);
-//    	}else {
-//    		if ((range.breakPoints.get(0).to-step)<0)
-//    			return null;
-//    		
-//			rangeToDivert = new BreakPoints(range.breakPoints.get(0).to-step , range.breakPoints.get(0).to);
-//    	}
-//    	    	
-//    	
-//    	// change the passing Range that goes through the different edges
-//    	if (destEdge.getPassingRange()!=null) {
-//    		destEdge.passingRange.or(rangeToDivert);
-//    	}else {
-//    		destEdge.setPassingRange(rangeToDivert.copy());
-//    	}
-//    	
-//
-//    	return rangeToDivert;
-//    }
-//
-
-
 }

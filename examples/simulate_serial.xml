@@ -22,7 +22,7 @@
             <popSize spec="RealParameter" value="1.0"/>
         </populationModel>
 
-        <recombinationRate spec="RealParameter" value="0.5"/>
+        <recombinationRate spec="RealParameter" value="1"/>
 
         <taxonSet spec="TaxonSet" id="taxonSet">
             <taxon spec="Taxon" id="t1"/>
@@ -48,7 +48,7 @@
     </distribution>
 
 
-    <run spec="GPSimulator" nSims="10000">
+    <run spec="GPSimulator" nSims="100000">
 
         <simulationObject idref="network"/>
 

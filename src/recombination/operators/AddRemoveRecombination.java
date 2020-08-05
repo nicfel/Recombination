@@ -26,14 +26,21 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
     @Override
     public double networkProposal() {
+//    	System.out.println();
+//    	System.out.println(network);
         double logHR;
         if (Randomizer.nextBoolean()) {
             logHR = addRecombination();
-//            System.out.println("a "+logHR);
+//        	System.out.println(network);
+//        	System.out.println("a "+logHR);
         }else {
             logHR = removeRecombination();
-//            System.out.println("r "+logHR);
+//        	System.out.println(network);
+//        	System.out.println("r "+logHR);
         }
+//        System.out.println(logHR);
+
+
         return logHR;
     }
 
@@ -150,9 +157,10 @@ public class AddRemoveRecombination extends DivertLociOperator {
         
         logHR -= addLociToAncestors(reassortmentEdge, lociToDivert);
         logHR += removeLociFromAncestors(newEdge1, lociToDivert);
-
+        
         newEdge1.passingRange = new BreakPoints(0,network.totalLength-1);        
         newEdge1.passingRange.andNot(rangeToDivert);        
+        
 
         return logHR;
     }
@@ -171,7 +179,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
             return Double.NEGATIVE_INFINITY;
 
         RecombinationNetworkEdge edgeToRemove = removableEdges.get(Randomizer.nextInt(removableEdges.size()));
-        logHR -= Math.log(1.0/(removableEdges.size()));
+        logHR -=Math.log(1.0/(removableEdges.size()));
         
 
         double sourceTime = edgeToRemove.childNode.getHeight();
@@ -230,7 +238,6 @@ public class AddRemoveRecombination extends DivertLociOperator {
         logHR -= addLociToAncestors(edgeToRemoveSpouse, lociToDivert);
         logHR += removeLociFromAncestors(edgeToRemove, lociToDivert);
         logHR += Math.log(0.5) + Math.log(1/(edgeToRemoveSpouse.breakPoints.getLength()-1));
-
         
         // Remove edge and associated nodes
         RecombinationNetworkEdge edgeToExtend = nodeToRemove.getChildEdges().get(0);
