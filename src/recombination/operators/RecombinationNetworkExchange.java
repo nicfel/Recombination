@@ -197,7 +197,6 @@ public class RecombinationNetworkExchange extends DivertLociOperator {
 		// After the exchange we want to add segments to the new ancestors
 		// and remove from the old. Have to be careful not to remove segments
 		// of siblings.
-
 		final BreakPoints iSegs = iEdge.breakPoints;
 		final BreakPoints jSegs = jEdge.breakPoints;
 		

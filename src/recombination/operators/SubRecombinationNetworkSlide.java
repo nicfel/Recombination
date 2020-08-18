@@ -3,10 +3,10 @@ package recombination.operators;
 import beast.core.Description;
 import beast.core.Input;
 import beast.util.Randomizer;
-import coalre.network.Network;
-import coalre.network.NetworkEdge;
-import coalre.network.NetworkNode;
-import coalre.operators.DivertSegmentOperator;
+import recombination.network.BreakPoints;
+import recombination.network.RecombinationNetwork;
+import recombination.network.RecombinationNetworkEdge;
+import recombination.network.RecombinationNetworkNode;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
         "If it moves up, it can exceed the root and become a new root. " +
         "If it moves down, it may need to make a choice which branch to " +
         "slide down into.")
-public class SubNetworkSlide extends DivertSegmentOperator {
+public class SubRecombinationNetworkSlide extends DivertLociOperator {
 
     final public Input<Double> sizeInput = new Input<>("size", "size of the slide, default 1.0", 1.0);
     final public Input<Boolean> gaussianInput = new Input<>("gaussian", "Gaussian (=true=default) or uniform delta", true);
@@ -53,11 +53,11 @@ public class SubNetworkSlide extends DivertSegmentOperator {
 		double logHR = 0.0;
 		network.startEditing(this);
 		// 1. Choose a random edge, avoiding root
-		List<NetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
+		List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
 		
-		final List<NetworkEdge> possibleEdges = networkEdges.stream()
+		final List<RecombinationNetworkEdge> possibleEdges = networkEdges.stream()
 				.filter(e -> !e.isRootEdge())
-				.filter(e -> !e.parentNode.isReassortment())
+				.filter(e -> !e.parentNode.isRecombination())
 				.collect(Collectors.toList());
 		
 		final int possibleNodes = possibleEdges.size();
@@ -66,14 +66,14 @@ public class SubNetworkSlide extends DivertSegmentOperator {
         }
         logHR -= Math.log(1.0/possibleNodes);        
 
-		final NetworkEdge iEdge = possibleEdges.get(Randomizer.nextInt(possibleNodes));
-		final NetworkNode i = iEdge.childNode;
-		final NetworkNode ip = iEdge.parentNode;
-		final NetworkEdge ipEdge = ip.getParentEdges().get(0); //ip not a reassortment, has only one parent
-		final NetworkEdge jEdge = getSisterEdge(iEdge);
-		final NetworkNode j = jEdge.childNode;
-		final NetworkNode pip = ipEdge.parentNode; 
-		NetworkEdge newChildEdge = null;
+		final RecombinationNetworkEdge iEdge = possibleEdges.get(Randomizer.nextInt(possibleNodes));
+		final RecombinationNetworkNode i = iEdge.childNode;
+		final RecombinationNetworkNode ip = iEdge.parentNode;
+		final RecombinationNetworkEdge ipEdge = ip.getParentEdges().get(0); //ip not a reassortment, has only one parent
+		final RecombinationNetworkEdge jEdge = getSisterEdge(iEdge);
+		final RecombinationNetworkNode j = jEdge.childNode;
+		final RecombinationNetworkNode pip = ipEdge.parentNode; 
+		RecombinationNetworkEdge newChildEdge = null;
 		
 		
         // 2. choose a delta to move
@@ -89,11 +89,11 @@ public class SubNetworkSlide extends DivertSegmentOperator {
         	// 3.1 if the topology will change
             if (pip != null &&  pip.getHeight() < newHeight) {
 
-                NetworkNode newParent = pip;
+            	RecombinationNetworkNode newParent = pip;
                 newChildEdge = ipEdge;
                 while (newParent.getHeight() < newHeight) {
                 	
-                    if (newParent.isReassortment()) {
+                    if (newParent.isRecombination()) {
                     	if (Randomizer.nextBoolean()) {
                     		newChildEdge = newParent.getParentEdges().get(0);
                     		newParent = newChildEdge.parentNode;
@@ -116,27 +116,27 @@ public class SubNetworkSlide extends DivertSegmentOperator {
                 // 3.1.1 if creating a new root
                 if (newChildEdge.isRootEdge()) {
 
-                	NetworkNode destNode = new NetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
                 	destNode.setHeight(newHeight);
                 	
-                	NetworkEdge newIpEdge = new NetworkEdge();
-                	newIpEdge.hasSegments = (BitSet)newChildEdge.hasSegments.clone();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	
-                	NetworkEdge iEdgeCopy = new NetworkEdge();
-                	iEdgeCopy.hasSegments = (BitSet)iEdge.hasSegments.clone();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
                 	
                 	
-                	BitSet segsToAdd = (BitSet)iEdgeCopy.hasSegments.clone();
-                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).hasSegments);
-                	logHR -= addSegmentsToAncestors(newIpEdge, segsToAdd);
+                	BreakPoints segsToAdd = iEdgeCopy.breakPoints.copy();
+                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).breakPoints);
+                	logHR -= addLociToAncestors(newIpEdge, segsToAdd);
                 	
-                	BitSet segsToRemove = (BitSet)iEdge.hasSegments.clone();
-                	segsToRemove.andNot(getSisterEdge(iEdge).hasSegments);
-                	logHR += removeSegmentsFromAncestors(ipEdge, segsToRemove);
+                	BreakPoints segsToRemove = iEdge.breakPoints.copy();
+                	segsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
+                	logHR += removeLociFromAncestors(ipEdge, segsToRemove);
                 	
                 	
                 	pip.removeChildEdge(ipEdge);
@@ -156,30 +156,30 @@ public class SubNetworkSlide extends DivertSegmentOperator {
                 }
                 // 3.1.2 no new root
                 else {
-                	NetworkNode destNode = new NetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
                 	destNode.setHeight(newHeight);
                 	
-                	NetworkEdge newIpEdge = new NetworkEdge();
-                	newIpEdge.hasSegments = (BitSet)newChildEdge.hasSegments.clone();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	newParent.removeChildEdge(newChildEdge);
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	
-                	NetworkEdge iEdgeCopy = new NetworkEdge();
-                	iEdgeCopy.hasSegments = (BitSet)iEdge.hasSegments.clone();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
                 	
           	
-                	BitSet segsToAdd = (BitSet)iEdgeCopy.hasSegments.clone();
-                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).hasSegments);
-                	logHR -= addSegmentsToAncestors(newIpEdge, segsToAdd);
+                	BreakPoints segsToAdd = iEdgeCopy.breakPoints.copy();
+                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).breakPoints);
+                	logHR -= addLociToAncestors(newIpEdge, segsToAdd);
 
                 	
-                	BitSet segsToRemove = (BitSet)iEdge.hasSegments.clone();
-                	segsToRemove.andNot(getSisterEdge(iEdge).hasSegments);
-                	logHR += removeSegmentsFromAncestors(ipEdge, segsToRemove);
+                	BreakPoints segsToRemove = iEdge.breakPoints.copy();
+                	segsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
+                	logHR += removeLociFromAncestors(ipEdge, segsToRemove);
                 	
                 	pip.removeChildEdge(ipEdge);
                 	ip.removeChildEdge(jEdge);
@@ -211,7 +211,7 @@ public class SubNetworkSlide extends DivertSegmentOperator {
             // 4.1 will the move change the topology
             if (j.getHeight() > newHeight) {	
 
-            	final List<NetworkEdge> possibleChildEdges = new ArrayList<>();
+            	final List<RecombinationNetworkEdge> possibleChildEdges = new ArrayList<>();
             	final int possibleDestinations = intersectingEdges(jEdge, newHeight, possibleChildEdges);
             	
                 // if no valid destinations then return a failure
@@ -224,34 +224,34 @@ public class SubNetworkSlide extends DivertSegmentOperator {
                 // pick a random parent/child destination edge uniformly from options
                 final int childEdgeIndex = Randomizer.nextInt(possibleChildEdges.size());
                 newChildEdge = possibleChildEdges.get(childEdgeIndex);
-                NetworkNode newParent = newChildEdge.parentNode;
+                RecombinationNetworkNode newParent = newChildEdge.parentNode;
             	
                 
                 // 4.1.1 if p was root
                 if (ipEdge.isRootEdge()) {
-                	NetworkNode destNode = new NetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
                 	destNode.setHeight(newHeight);
                 	
-                   	NetworkEdge newIpEdge = new NetworkEdge();
-                	newIpEdge.hasSegments = (BitSet)newChildEdge.hasSegments.clone();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	newParent.removeChildEdge(newChildEdge);
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	
                 	
-                	NetworkEdge iEdgeCopy = new NetworkEdge();
-                	iEdgeCopy.hasSegments = (BitSet)iEdge.hasSegments.clone();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
                 	
-                	BitSet segsToAdd = (BitSet)iEdgeCopy.hasSegments.clone();
-                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).hasSegments);
-                	logHR -= addSegmentsToAncestors(newIpEdge, segsToAdd);
+                	BreakPoints segsToAdd = iEdgeCopy.breakPoints.copy();
+                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).breakPoints);
+                	logHR -= addLociToAncestors(newIpEdge, segsToAdd);
                 	
-                	BitSet segsToRemove = (BitSet)iEdge.hasSegments.clone();
-                	segsToRemove.andNot(getSisterEdge(iEdge).hasSegments);
-                	logHR += removeSegmentsFromAncestors(ipEdge, segsToRemove);
+                	BreakPoints segsToRemove = iEdge.breakPoints.copy();
+                	segsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
+                	logHR += removeLociFromAncestors(ipEdge, segsToRemove);
                 	
                 	ip.removeChildEdge(jEdge);
                 	
@@ -263,28 +263,28 @@ public class SubNetworkSlide extends DivertSegmentOperator {
                 	network.setRootEdge(jEdge);
 
                 } else {
-                	NetworkNode destNode = new NetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
                 	destNode.setHeight(newHeight);
                 	
-                	NetworkEdge newIpEdge = new NetworkEdge();
-                	newIpEdge.hasSegments = (BitSet)newChildEdge.hasSegments.clone();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	newParent.removeChildEdge(newChildEdge);
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
 
-                	NetworkEdge iEdgeCopy = new NetworkEdge();
-                	iEdgeCopy.hasSegments = (BitSet)iEdge.hasSegments.clone();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
                 	
-                	BitSet segsToAdd = (BitSet)iEdgeCopy.hasSegments.clone();
-                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).hasSegments);
-                	logHR -= addSegmentsToAncestors(newIpEdge, segsToAdd);
+                	BreakPoints segsToAdd = iEdgeCopy.breakPoints.copy();
+                	segsToAdd.andNot(getSisterEdge(iEdgeCopy).breakPoints);
+                	logHR -= addLociToAncestors(newIpEdge, segsToAdd);
                 	
-                	BitSet segsToRemove = (BitSet)iEdge.hasSegments.clone();
-                	segsToRemove.andNot(getSisterEdge(iEdge).hasSegments);
-                	logHR += removeSegmentsFromAncestors(ipEdge, segsToRemove);
+                	BreakPoints segsToRemove = iEdge.breakPoints.copy();
+                	segsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
+                	logHR += removeLociFromAncestors(ipEdge, segsToRemove);
                 	
                 	pip.removeChildEdge(ipEdge);
                 	ip.removeChildEdge(jEdge);
@@ -309,11 +309,11 @@ public class SubNetworkSlide extends DivertSegmentOperator {
         
 
         
-		List<NetworkEdge> networkEdgesAfter = new ArrayList<>(network.getEdges());
+		List<RecombinationNetworkEdge> networkEdgesAfter = new ArrayList<>(network.getEdges());
 		
-		final List<NetworkEdge> possibleEdgesAfter = networkEdgesAfter.stream()
+		final List<RecombinationNetworkEdge> possibleEdgesAfter = networkEdgesAfter.stream()
 				.filter(e -> !e.isRootEdge())
-				.filter(e -> !e.parentNode.isReassortment())
+				.filter(e -> !e.parentNode.isRecombination())
 				.collect(Collectors.toList());
 		
 		final int possibleNodesAfter = possibleEdgesAfter.size();
@@ -327,55 +327,55 @@ public class SubNetworkSlide extends DivertSegmentOperator {
 	}
 	
 	 
-    public double checkAncestralSegments(NetworkEdge edge) {
+    public double checkAncestralSegments(RecombinationNetworkEdge edge) {
     	double logHR = 0.0;
     	
-    	NetworkNode parentNode = edge.parentNode;
+    	RecombinationNetworkNode parentNode = edge.parentNode;
     	if (parentNode == null) {
     		return logHR;
     	}
     	
     	if (parentNode.getParentCount() > 1) {
-    		NetworkEdge parentEdge = parentNode.getParentEdges().get(0);
-    		NetworkEdge spouseEdge = parentNode.getParentEdges().get(1);
+    		RecombinationNetworkEdge parentEdge = parentNode.getParentEdges().get(0);
+    		RecombinationNetworkEdge spouseEdge = parentNode.getParentEdges().get(1);
     		
-    		BitSet segsToAdd = (BitSet)edge.hasSegments.clone();
-    		segsToAdd.andNot(parentEdge.hasSegments);
-    		segsToAdd.andNot(spouseEdge.hasSegments);
+    		BreakPoints segsToAdd = edge.breakPoints.copy();
+    		segsToAdd.andNot(parentEdge.breakPoints);
+    		segsToAdd.andNot(spouseEdge.breakPoints);
     		
     		if (!segsToAdd.isEmpty()) {
     			if (Randomizer.nextBoolean()) {
-    				logHR -= addSegmentsToAncestors(parentEdge, segsToAdd);
+    				logHR -= addLociToAncestors(parentEdge, segsToAdd);
     			} else {
-    				logHR -= addSegmentsToAncestors(spouseEdge, segsToAdd);
+    				logHR -= addLociToAncestors(spouseEdge, segsToAdd);
     			}
     		}
     		
-    		BitSet segsToRemoveParent = (BitSet)parentEdge.hasSegments.clone();
-    		segsToRemoveParent.andNot(edge.hasSegments);
+    		BreakPoints segsToRemoveParent = parentEdge.breakPoints.copy();
+    		segsToRemoveParent.andNot(edge.breakPoints);
     		if (!segsToRemoveParent.isEmpty()) {
-    			logHR += removeSegmentsFromAncestors(parentEdge, segsToRemoveParent);
+    			logHR += removeLociFromAncestors(parentEdge, segsToRemoveParent);
     		}
     		
-    		BitSet segsToRemoveSpouse= (BitSet)spouseEdge.hasSegments.clone();
-    		segsToRemoveSpouse.andNot(edge.hasSegments);
+    		BreakPoints segsToRemoveSpouse= spouseEdge.breakPoints.copy();
+    		segsToRemoveSpouse.andNot(edge.breakPoints);
     		if (!segsToRemoveSpouse.isEmpty()) {
-    			logHR += removeSegmentsFromAncestors(spouseEdge, segsToRemoveSpouse);
+    			logHR += removeLociFromAncestors(spouseEdge, segsToRemoveSpouse);
     		}
 	
     	} else {
-    		NetworkEdge parentEdge = parentNode.getParentEdges().get(0);
-    		BitSet segsToAdd = (BitSet)edge.hasSegments.clone();
-    		segsToAdd.andNot(parentEdge.hasSegments);
+    		RecombinationNetworkEdge parentEdge = parentNode.getParentEdges().get(0);
+    		BreakPoints segsToAdd = edge.breakPoints.copy();
+    		segsToAdd.andNot(parentEdge.breakPoints);
     		
     		if (!segsToAdd.isEmpty()) {
-    			logHR -= addSegmentsToAncestors(parentEdge, segsToAdd);
+    			logHR -= addLociToAncestors(parentEdge, segsToAdd);
     		}
     		
-    		BitSet segsToRemoveParent = (BitSet)parentEdge.hasSegments.clone();
-    		segsToRemoveParent.andNot(edge.hasSegments);
+    		BreakPoints segsToRemoveParent = parentEdge.breakPoints.copy();
+    		segsToRemoveParent.andNot(edge.breakPoints);
     		if (!segsToRemoveParent.isEmpty()) {
-    			logHR += removeSegmentsFromAncestors(parentEdge, segsToRemoveParent);
+    			logHR += removeLociFromAncestors(parentEdge, segsToRemoveParent);
     		}
     	}
     	return logHR;
@@ -393,9 +393,9 @@ public class SubNetworkSlide extends DivertSegmentOperator {
         }
     }
     
-    private int intersectingEdges(NetworkEdge edge, double height, List<NetworkEdge> directChildEdges) {
-        final NetworkNode node = edge.childNode;
-    	final NetworkNode parent = edge.parentNode;
+    private int intersectingEdges(RecombinationNetworkEdge edge, double height, List<RecombinationNetworkEdge> directChildEdges) {
+        final RecombinationNetworkNode node = edge.childNode;
+    	final RecombinationNetworkNode parent = edge.parentNode;
     	
         if (parent.getHeight() < height) return 0;
 
@@ -438,13 +438,13 @@ public class SubNetworkSlide extends DivertSegmentOperator {
      * @return true if the network terminates at the true MRCA. (I.e. is valid.)
      */
     protected boolean networkTerminatesAtMRCA() {
-        List<NetworkNode> sortedNodes = new ArrayList<>(network.getNodes());
-        sortedNodes.sort(Comparator.comparingDouble(NetworkNode::getHeight));
-        List<NetworkNode> sampleNodes = sortedNodes.stream().filter(NetworkNode::isLeaf).collect(Collectors.toList());
+        List<RecombinationNetworkNode> sortedNodes = new ArrayList<>(network.getNodes());
+        sortedNodes.sort(Comparator.comparingDouble(RecombinationNetworkNode::getHeight));
+        List<RecombinationNetworkNode> sampleNodes = sortedNodes.stream().filter(RecombinationNetworkNode::isLeaf).collect(Collectors.toList());
         double maxSampleHeight = sampleNodes.get(sampleNodes.size()-1).getHeight();
 
         int lineages = 0;
-        for (NetworkNode node : sortedNodes) {
+        for (RecombinationNetworkNode node : sortedNodes) {
             switch(node.getChildEdges().size()) {
                 case 2:
                     // Coalescence
@@ -482,7 +482,7 @@ public class SubNetworkSlide extends DivertSegmentOperator {
             delta += Math.log(size);
             final double f = Math.exp(delta);
             if( limit > 0 ) {
-                final Network network = networkInput.get();
+                final RecombinationNetwork network = networkInput.get();
                 final double h = network.getRootEdge().childNode.getHeight();
                 final double k = Math.log(network.getLeafNodes().size()) / Math.log(2);
                 final double lim = (h / k) * limit;
