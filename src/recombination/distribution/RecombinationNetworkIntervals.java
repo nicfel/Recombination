@@ -44,16 +44,10 @@ public class RecombinationNetworkIntervals extends CalculationNode {
         return recombinationNetworkEventList;
     }
 
-    public double getBinomialProb() {
-        return binomialProbInput.get() != null
-                ? binomialProbInput.get().getArrayValue()
-                : 0.5;
-    }
-
     void update() {
         if (!eventListDirty)
             return;
-
+        
         recombinationNetworkEventList = recombinationNetwork.getNodes().stream().map(n -> {
             RecombinationNetworkEvent event = new RecombinationNetworkEvent();
             event.time = n.getHeight();
@@ -93,7 +87,7 @@ public class RecombinationNetworkIntervals extends CalculationNode {
                     totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength()-1;
                     totalReassortmentObsProb += event.node.getParentEdges().get(1).getRecombinationLength()-1;
 
-                    event.lociToSort = event.node.getChildEdges().get(0).getRecombinationLength();
+                    event.lociToSort = event.node.getChildEdges().get(0).getRecombinationLength()-1;
                     break;
 
                 case COALESCENCE:
@@ -103,7 +97,6 @@ public class RecombinationNetworkIntervals extends CalculationNode {
                     totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength()-1;
                     break;
             }
-            
             event.lineages = lineages;
             event.totalRecombinationObsProb = totalReassortmentObsProb;
         }

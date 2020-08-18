@@ -112,12 +112,6 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         super.initAndValidate();
     }
 
-    private double getBinomialProb() {
-        return binomialProb != null
-                ? binomialProb.getArrayValue()
-                : 0.5;
-    }
-
     /**
      * Simulate network under coalescent with reassortment model.
      * @param sampleNodes network nodes corresponding to samples.
@@ -147,6 +141,10 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
             double timeToNextCoal = populationFunction.getInverseIntensity(
                     transformedTimeToNextCoal + currentTransformedTime) - currentTime;
 
+//            double totObsProb = 0;
+//    		for (int i = 0; i < extantLineages.size(); i++)
+//    			totObsProb += extantLineages.get(i).breakPoints.getLength()-1;
+    			
             double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*(totalLength-1)) : Double.POSITIVE_INFINITY;
             
             // next event time
@@ -199,8 +197,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
                 .addChildEdge(lineage1)
                 .addChildEdge(lineage2);
         lineage1.parentNode = coalescentNode;
-        lineage2.parentNode = coalescentNode;
-        
+        lineage2.parentNode = coalescentNode;       
 
         
         // Merge segment flags:
@@ -226,9 +223,9 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     	int breakpoint = Randomizer.nextInt(totalLength-1);
     	
     	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
-    	if (!lineage.breakPoints.withinLimits(breakpoint))
+    	if (!lineage.breakPoints.withinLimits(breakpoint)) {
     		return;
-    	
+    	}    	
     	
     	lineage.breakPoints.computeLeftAndRight(breakpoint);
     	

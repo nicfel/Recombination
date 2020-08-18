@@ -69,6 +69,9 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         }
         // case there are empty edges, which can happen when addRemoveEmptyEdges is false
 		if (!allEdgesAncestral()){
+//			System.out.println("/////////////////");
+//			System.out.println(network);
+//			System.out.println(logHR);
 //			throw new IllegalArgumentException("ancestral issues");
             return Double.NEGATIVE_INFINITY;
 		}

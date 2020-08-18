@@ -4,6 +4,9 @@ import beast.core.parameter.RealParameter;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.coalescent.ConstantPopulation;
 import coalre.CoalReTestClass;
+import coalre.distribution.CoalescentWithReassortment;
+import coalre.distribution.NetworkIntervals;
+import coalre.network.Network;
 import junit.framework.Assert;
 import recombination.network.RecombinationNetwork;
 
@@ -30,7 +33,7 @@ public class CoalescentWithRecombinationTest extends CoalReTestClass {
                 "recombinationRate", new RealParameter("0.0001"),
                 "populationModel", populationFunction);
 
-        Assert.assertEquals(-9.610719567492293, coalWR.calculateLogP(), 1e-10);
+        Assert.assertEquals(-9.611019582493, coalWR.calculateLogP(), 1e-10);
         
         //matlab code for control
 //        intervals = [0.0,0.0,0.2904108541857302,0.11646340040610559,0.036380107508342974,0.47005038739308835,0.09778803745774778,0.9978993277153256,0.4860702162314561,0.35688825595463936];
@@ -44,5 +47,36 @@ public class CoalescentWithRecombinationTest extends CoalReTestClass {
 //            prob = prob - 0.0001 *rec(i)*intervals(i);
 //            prob = prob - lins(i)*(lins(i)-1)/(2)*intervals(i)
 //        end
+        
+        
+        
+        RecombinationNetwork network2 = new RecombinationNetwork(
+                "(t1[&loci={0-2},length=3]:2.940457397943351,(t4[&loci={0-2},length=3]:0.4837103008790285,(t2[&loci={0-2},length=3]:0.46866995123588273,(t5[&loci={0-2},length=3]:0.09369026202003683,t3[&loci={0-2},length=3]:0.29369026202003684)[&loci={0-2},length=3]:0.07497968921584586)[&loci={0-2},length=3]:0.21504034964314578)[&loci={0-2},length=3]:2.1567470970643225)[&loci={0-2},length=3]:0.0;");
+        
+        
+        RecombinationNetwork network3 = new RecombinationNetwork(
+                "(t1[&loci={0-1},length=2]:2.940457397943351,(t4[&loci={0-1},length=2]:0.4837103008790285,(t2[&loci={0-1},length=2]:0.46866995123588273,(t5[&loci={0-1},length=2]:0.09369026202003683,t3[&loci={0-1},length=2]:0.29369026202003684)[&loci={0-1},length=2]:0.07497968921584586)[&loci={0-1},length=2]:0.21504034964314578)[&loci={0-1},length=2]:2.1567470970643225)[&loci={0-1},length=2]:0.0;");
+
+        
+        RecombinationNetworkIntervals networkIntervals2 = new RecombinationNetworkIntervals();
+        networkIntervals2.initByName("recombinationNetwork", network2);
+
+        RecombinationNetworkIntervals networkIntervals3 = new RecombinationNetworkIntervals();
+        networkIntervals3.initByName("recombinationNetwork", network3);
+        
+        CoalescentWithRecombination coalWR2 = new CoalescentWithRecombination();
+        coalWR2.initByName("networkIntervals", networkIntervals2,
+                "recombinationRate", new RealParameter("0.5"),
+                "populationModel", populationFunction);
+        
+        CoalescentWithRecombination coalWR3 = new CoalescentWithRecombination();
+        coalWR3.initByName("networkIntervals", networkIntervals3,
+                "recombinationRate", new RealParameter("1.0"),
+                "populationModel", populationFunction);
+        
+        Assert.assertEquals(coalWR2.calculateLogP(), coalWR3.calculateLogP(), 1e-10);
+
+
+
     }
 }

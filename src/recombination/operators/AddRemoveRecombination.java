@@ -20,7 +20,6 @@ public class AddRemoveRecombination extends DivertLociOperator {
     @Override
     public void initAndValidate() {
         super.initAndValidate();
-
         alpha = alphaInput.get();
     }
 
@@ -38,8 +37,11 @@ public class AddRemoveRecombination extends DivertLociOperator {
 //        	System.out.println(network);
 //        	System.out.println("r "+logHR);
         }
+//        System.out.println(network);
+//
 //        System.out.println(logHR);
-
+//        if (stop)
+//        	System.exit(0);
 
         return logHR;
     }
@@ -107,9 +109,9 @@ public class AddRemoveRecombination extends DivertLociOperator {
         BreakPoints rangeToDivert = getNewRangeToDivert(sourceEdge);
         BreakPoints lociToDivert = rangeToDivert.copy();
     	lociToDivert.and(sourceEdge.breakPoints);
-
+    	
     	logHR -= Math.log(0.5) + Math.log(1/(sourceEdge.breakPoints.getLength()-1));
-    	    	    	
+    	    	    	    	    	
 		RecombinationNetworkNode sourceNode = new RecombinationNetworkNode();
 		sourceNode.setHeight(sourceTime);		
 		
@@ -154,7 +156,6 @@ public class AddRemoveRecombination extends DivertLociOperator {
 		reassortmentEdge.breakPoints = new BreakPoints();	
         reassortmentEdge.passingRange = rangeToDivert.copy();        
         
-        
         logHR -= addLociToAncestors(reassortmentEdge, lociToDivert);
         logHR += removeLociFromAncestors(newEdge1, lociToDivert);
         
@@ -179,7 +180,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
             return Double.NEGATIVE_INFINITY;
 
         RecombinationNetworkEdge edgeToRemove = removableEdges.get(Randomizer.nextInt(removableEdges.size()));
-        logHR -=Math.log(1.0/(removableEdges.size()));
+        logHR -= Math.log(1.0/(removableEdges.size()));
         
 
         double sourceTime = edgeToRemove.childNode.getHeight();
@@ -266,7 +267,22 @@ public class AddRemoveRecombination extends DivertLociOperator {
         
         if (!networkTerminatesAtMRCA())
             return Double.NEGATIVE_INFINITY;
-               
+
         return logHR;
+    }
+    
+    
+    public BreakPoints getNewRangeToDivert(RecombinationNetworkEdge sourceEdge) {
+    	
+    	BreakPoints rangeToDivert = new BreakPoints();
+    	
+    	int newBreakPoint = Randomizer.nextInt((int) sourceEdge.breakPoints.getLength()-1) + sourceEdge.breakPoints.getMin();
+    	
+    	if (Randomizer.nextBoolean()) {
+    		rangeToDivert = new BreakPoints(0,newBreakPoint);
+    	}else {
+    		rangeToDivert = new BreakPoints(newBreakPoint+1, totalLength-1);
+    	}    
+    	return rangeToDivert;
     }
 }

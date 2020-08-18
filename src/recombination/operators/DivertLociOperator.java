@@ -21,6 +21,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     double lambdaDiversion;
     public int totalLength;
     
+    boolean stop = false;
+    
     public void initAndValidate() {
     	lambdaDiversion = scaleFactorInput.get();    	
     	super.initAndValidate();
@@ -47,8 +49,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         network.startEditing(this);
         
-        System.out.println(network);
-        System.out.println(sourceEdge.childNode.getHeight());
         BreakPoints newRange = getUniformRange(sourceEdge);
         
         
@@ -154,8 +154,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     		int max2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMax();
     		
             if (min1==-1 && min2==-1) {
-    			// both passing ranges are null
-            	logP += Math.log(0.5) + Math.log(1.0/(totalLength-1));
+            	// both passing ranges are null
+            	logP += Math.log(0.5) + Math.log(1.0/(totalLength));
             }else if (min1==-1){
             	if (max2==totalLength-1) {
                 	logP += Math.log(1.0/(min2));
@@ -188,14 +188,16 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
             	}
             }else {
             	double diff = Math.max(min2-max1, min1-max2); 
-        		logP += Math.log(1.0/(diff));        		
-            }
-            
-            
+        		logP += Math.log(1.0/(diff));  
+            }  
+
         } else {
         	rangeToRemove.andNot(getSisterEdge(edge).breakPoints);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
         }
+    	if (logP<-7)
+    		stop=true;
+
         return logP;
     }
 
@@ -226,9 +228,10 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         
         if (edge.parentNode.isRecombination()) {        	
         	// resample the passing Range between the boundries given by the left and right breakpoints
+        	double lp=logP;
         	logP += resamplePassingRange(edge.parentNode.getParentEdges().get(0),
-        			edge.parentNode.getParentEdges().get(1));  
-        	
+        			edge.parentNode.getParentEdges().get(1), rangeToAdd);  
+
             BreakPoints rangeToAddLeft = rangeToAdd.copy();
             BreakPoints rangeToAddRight = rangeToAdd.copy();
                         
@@ -240,29 +243,9 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         } else {
             logP += addLociToAncestors(edge.parentNode.getParentEdges().get(0), rangeToAdd);
         }
-
         return logP;
     }
-        
-
-    
-    public BreakPoints getNewRangeToDivert(RecombinationNetworkEdge sourceEdge) {
-    	
-    	BreakPoints rangeToDivert = new BreakPoints();
-    	
-    	
-    	int newBreakPoint = Randomizer.nextInt((int) sourceEdge.breakPoints.getLength()) + sourceEdge.breakPoints.getMin();
-
-    	
-    	if (Randomizer.nextBoolean()) {
-    		rangeToDivert = new BreakPoints(0,newBreakPoint);
-    	}else {
-    		rangeToDivert = new BreakPoints(newBreakPoint, totalLength-1);
-    	}    	    	    	    	    	
-    	return rangeToDivert;
-    }
-    
-    
+       
     public BreakPoints getUniformRange(RecombinationNetworkEdge sourceEdge) {
     	
     	BreakPoints newRange = new BreakPoints();
@@ -278,10 +261,9 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     	}    	    	    	    	    	
     	return newRange;
     }
-    
-   
+       
     private double resamplePassingRange(RecombinationNetworkEdge edge1,
-			RecombinationNetworkEdge edge2) {
+			RecombinationNetworkEdge edge2, BreakPoints rangeToAdd) {
     	
     	double logHR = 0.0;
 
@@ -289,47 +271,55 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 		int max1 = edge1.breakPoints.getMax();
 		
 		int min2 = edge2.breakPoints.getMin();
-		int max2 = edge2.breakPoints.getMax();
-    	
-		if (min1==-1 && min2==-1) {
+		int max2 = edge2.breakPoints.getMax();		
+		
+		if (min1==-1 && min2==-1) { 
 			// both passing ranges are null
-			logHR += Math.log(0.5) + Math.log(1.0/(totalLength-1));
 			if (Randomizer.nextBoolean()) {
-				int start = Randomizer.nextInt(totalLength-1);
-				edge1.setPassingRange(start+1, totalLength-1);
-				edge2.setPassingRange(0,start);
+				sampleNullRange(edge1, edge2);
 			}else {
-				int start = Randomizer.nextInt(totalLength-1);
-				edge1.setPassingRange(0, start);
-				edge2.setPassingRange(start+1, totalLength-1);
+				sampleNullRange(edge2, edge1);
 			}	
+			logHR += Math.log(0.5) + Math.log(1.0/(totalLength));
 		}else if(min1==-1) {
 			// 1 is null
 			logHR += sampleNewPassingRange(edge2,edge1,min2,max2);
 		}else if(min2==-1) {
 			// 2 is null
 			logHR += sampleNewPassingRange(edge1,edge2,min1,max1);
-		}else {
+		}else {			
 			// resample between the two edges
-			if (max1>max2) {
-				int newBreakPoint = Randomizer.nextInt(min1-max2)+max2;
-				edge1.setPassingRange(newBreakPoint+1, totalLength-1);
-				edge2.setPassingRange(0, newBreakPoint);
-				logHR += Math.log(1.0/(min1-max2));
+			if (max1 > max2) {
+				logHR += sampleBetweenRange(edge1, edge2, min1, max2);
 			}else {
-				int newBreakPoint = Randomizer.nextInt(min2-max1)+max1;
-				edge2.setPassingRange(newBreakPoint+1, totalLength-1);
-				edge1.setPassingRange(0, newBreakPoint);
-				logHR += Math.log(1.0/(min2-max1));
+				logHR += sampleBetweenRange(edge2, edge1, min2, max1);
 			}
-		}   	
+		}   
 		return logHR;
 	}
     
-    
+    private void sampleNullRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2) {
+		int start = Randomizer.nextInt(totalLength);
+		if (start==0) {
+			edge1.setPassingRange(start, totalLength-1);
+			edge2.setPassingRange(null);
+		}else {
+			edge1.setPassingRange(start, totalLength-1);
+			edge2.setPassingRange(0,start-1);
+		}    	
+    }
+    private double sampleBetweenRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, int min1, int max2) {
+    	int diff = min1-max2;
+		int newBreakPoint = Randomizer.nextInt(diff)+max2;
+		edge1.setPassingRange(newBreakPoint+1, totalLength-1);
+		edge2.setPassingRange(0, newBreakPoint);
+		return Math.log(1.0/(diff));
+    }
+        
     private double sampleNewPassingRange(RecombinationNetworkEdge edge1,
 			RecombinationNetworkEdge edge2, int min, int max) {
     	double logHR = 0.0;
+    	
     	if (min==0 && max==totalLength-1) {
 			// passing range 2 is null
 			edge1.setPassingRange(0, totalLength-1);
@@ -349,13 +339,20 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 				edge1.setPassingRange(end+1,totalLength-1);
 			}			
 		}else if (min>0){
-			logHR += Math.log(1.0/min);
+			logHR += Math.log(1.0/(min-1));
 
-			int end = Randomizer.nextInt(min);
-			edge2.setPassingRange(0, end);
-			edge1.setPassingRange(end+1,totalLength-1);
+			int end = Randomizer.nextInt(min+1);
+			end--;
+			if (end<0) {
+				edge2.setPassingRange(null);
+				edge1.setPassingRange(end+1,totalLength-1);
+			}else {
+				edge2.setPassingRange(0, end);
+				edge1.setPassingRange(end+1,totalLength-1);
+			}
 
 		}else {
+			
 			int diff = totalLength-max-1;
 			logHR += Math.log(1.0/diff);
 

@@ -133,16 +133,28 @@ public class DivertLociTest extends CoalReTestClass {
         
         listToAdd.add(0);
         listToAdd.add(9999);
-        lociToAdd.init(listToAdd);        
-
+        lociToAdd.init(listToAdd); 
+        
+        System.out.println("..............");
+        System.out.println("..............");
+        System.out.println("..............");
+        System.out.println("..............");
+        System.out.println("..............");
         logPremove = operator.removeLociFromAncestors(
                 leafNode.getParentEdges().get(0), lociToAdd);
+        System.out.println(network);
+        Assert.assertEquals(logPremove,Math.log(0.5)+Math.log(1/10000.0)+Math.log(1/5173.0), 1e-10);     
+        
+        Randomizer.setSeed(10);
+
+        System.out.println(lociToAdd);
         logPadd = operator.addLociToAncestors(
                 leafNode.getParentEdges().get(0), lociToAdd);
+        System.out.println(network);
 
-        
-        Assert.assertEquals(logPadd,-9.903387547535795, 1e-10); 
-        Assert.assertEquals(logPremove,-18.454595617539, 1e-10); 
+        System.out.println(logPadd);
+        System.out.println(Math.log(0.5)+Math.log(1/9999.0)+Math.log(1/5173.0));
+        Assert.assertEquals(logPadd,Math.log(0.5)+Math.log(1/9999.0)+Math.log(1/5173.0), 1e-10); 
 
 
         
