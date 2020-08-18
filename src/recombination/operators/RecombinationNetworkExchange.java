@@ -18,7 +18,7 @@ import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
 
-public class NetworkExchange extends DivertLociOperator {
+public class RecombinationNetworkExchange extends DivertLociOperator {
 	final public Input<Boolean> isNarrowInput = new Input<>("isNarrow",
 			"if true (default) a narrow exchange is performed, "
 					+ "otherwise a wide exchange", true);
@@ -200,7 +200,7 @@ public class NetworkExchange extends DivertLociOperator {
 
 		final BreakPoints iSegs = iEdge.breakPoints;
 		final BreakPoints jSegs = jEdge.breakPoints;
-
+		
 		final BreakPoints iSegsToRemove = iSegs.copy();
 		iSegsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
 		iSegsToRemove.andNot(jSegs);
