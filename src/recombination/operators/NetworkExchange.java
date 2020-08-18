@@ -13,8 +13,12 @@ import coalre.network.Network;
 import coalre.network.NetworkEdge;
 import coalre.network.NetworkNode;
 import coalre.operators.DivertSegmentOperator;
+import recombination.network.BreakPoints;
+import recombination.network.RecombinationNetwork;
+import recombination.network.RecombinationNetworkEdge;
+import recombination.network.RecombinationNetworkNode;
 
-public class NetworkExchange extends DivertSegmentOperator {
+public class NetworkExchange extends DivertLociOperator {
 	final public Input<Boolean> isNarrowInput = new Input<>("isNarrow",
 			"if true (default) a narrow exchange is performed, "
 					+ "otherwise a wide exchange", true);
@@ -43,7 +47,7 @@ public class NetworkExchange extends DivertSegmentOperator {
 		return logHR;
 	}
 	
-	private boolean hasCoalescenceKid(final NetworkNode n) {
+	private boolean hasCoalescenceKid(final RecombinationNetworkNode n) {
 		return (n.getChildEdges().get(0).childNode.isCoalescence() ||
 				n.getChildEdges().get(1).childNode.isCoalescence());
 	}	
@@ -56,13 +60,13 @@ public class NetworkExchange extends DivertSegmentOperator {
 	 * @return	log of Hastings Ratio, or Double.NEGATIVE_INFINITY
 	 * 			if proposal should not be accepted
 	 */
-	public double narrow(final Network network) {
+	public double narrow(final RecombinationNetwork network) {
 		
 		double logHR = 0.0;
 
-		List<NetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
+		List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
 
-		final List<NetworkEdge> possibleGrandParentEdges = networkEdges.stream()
+		final List<RecombinationNetworkEdge> possibleGrandParentEdges = networkEdges.stream()
 				.filter(e -> e.childNode.isCoalescence())
 				.filter(e -> hasCoalescenceKid(e.childNode))
 				.collect(Collectors.toList());
@@ -74,16 +78,16 @@ public class NetworkExchange extends DivertSegmentOperator {
         }
         logHR -= Math.log(1.0/possibleGrandParents);        
 
-		final NetworkEdge grandParentEdge = possibleGrandParentEdges.
+		final RecombinationNetworkEdge grandParentEdge = possibleGrandParentEdges.
 				get(Randomizer.nextInt(possibleGrandParents));
-		final NetworkNode grandParent = grandParentEdge.childNode;
+		final RecombinationNetworkNode grandParent = grandParentEdge.childNode;
 
-		final List<NetworkEdge> possibleParentEdges = grandParent.getChildEdges();
-		NetworkEdge parentEdge = possibleParentEdges.get(0);
-		NetworkEdge auntEdge = possibleParentEdges.get(1);
+		final List<RecombinationNetworkEdge> possibleParentEdges = grandParent.getChildEdges();
+		RecombinationNetworkEdge parentEdge = possibleParentEdges.get(0);
+		RecombinationNetworkEdge auntEdge = possibleParentEdges.get(1);
 		
-		NetworkNode parent = parentEdge.childNode;
-		NetworkNode aunt = auntEdge.childNode;
+		RecombinationNetworkNode parent = parentEdge.childNode;
+		RecombinationNetworkNode aunt = auntEdge.childNode;
 		
 		
 		if (parent.getHeight() < aunt.getHeight()) {
@@ -100,14 +104,14 @@ public class NetworkExchange extends DivertSegmentOperator {
 
 		
 		final int childId = Randomizer.nextInt(parent.getChildEdges().size());
-		final NetworkEdge childEdge = parent.getChildEdges().get(childId);
+		final RecombinationNetworkEdge childEdge = parent.getChildEdges().get(childId);
 
 		
 		logHR += exchangeEdges(childEdge, auntEdge, parent, grandParent);
 		
 		networkEdges = new ArrayList<>(network.getEdges());
 		
-		final List<NetworkEdge> possibleGrandParentEdgesAfter = networkEdges.stream()
+		final List<RecombinationNetworkEdge> possibleGrandParentEdgesAfter = networkEdges.stream()
 				.filter(e -> e.childNode.isCoalescence())
 				.filter(e -> hasCoalescenceKid(e.childNode))
 				.collect(Collectors.toList());
@@ -127,33 +131,33 @@ public class NetworkExchange extends DivertSegmentOperator {
 	 * @return	log of Hastings Ratio, or Double.NEGATIVE_INFINITY
 	 * 			if proposal should not be accepted
 	 */
-	public double wide(final Network network) {
+	public double wide(final RecombinationNetwork network) {
 		double logHR = 0.0;
 
-		List<NetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
+		List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
 
-		final List<NetworkEdge> possibleEdges = networkEdges.stream()
+		final List<RecombinationNetworkEdge> possibleEdges = networkEdges.stream()
 				.filter(e -> !e.isRootEdge())
-				.filter(e -> !e.parentNode.isReassortment())
+				.filter(e -> !e.parentNode.isRecombination())
 				.collect(Collectors.toList());
 		
 		final int nPossibleEdges = possibleEdges.size();
 		logHR -= Math.log(1.0/(double)nPossibleEdges);
 
-		final NetworkEdge iEdge = possibleEdges.
+		final RecombinationNetworkEdge iEdge = possibleEdges.
 				get(Randomizer.nextInt(possibleEdges.size()));
-		final NetworkNode i = iEdge.childNode;
+		final RecombinationNetworkNode i = iEdge.childNode;
 
-		NetworkEdge jEdge = iEdge;
+		RecombinationNetworkEdge jEdge = iEdge;
 
 		while(jEdge == iEdge) {
 			jEdge = possibleEdges.
 					get(Randomizer.nextInt(possibleEdges.size()));
 		}
-		final NetworkNode j = jEdge.childNode;
+		final RecombinationNetworkNode j = jEdge.childNode;
 
-		final NetworkNode p = iEdge.parentNode;
-		final NetworkNode jP = jEdge.parentNode;
+		final RecombinationNetworkNode p = iEdge.parentNode;
+		final RecombinationNetworkNode jP = jEdge.parentNode;
 
 
 		if ((p != jP) && (i !=jP) && (j != p)
@@ -166,9 +170,9 @@ public class NetworkExchange extends DivertSegmentOperator {
 			
 			networkEdges = new ArrayList<>(network.getEdges());
 			
-			final List<NetworkEdge> possibleEdgesAfter = networkEdges.stream()
+			final List<RecombinationNetworkEdge> possibleEdgesAfter = networkEdges.stream()
 					.filter(e -> !e.isRootEdge())
-					.filter(e -> !e.parentNode.isReassortment())
+					.filter(e -> !e.parentNode.isRecombination())
 					.collect(Collectors.toList());
 			
 			final int nPossibleEdgesAfter = possibleEdgesAfter.size();
@@ -183,32 +187,32 @@ public class NetworkExchange extends DivertSegmentOperator {
 
 
 	/* exchange sub-nets whose root are i and j */
-	protected double exchangeEdges(NetworkEdge iEdge, NetworkEdge jEdge,
-			NetworkNode p, NetworkNode jP) {
+	protected double exchangeEdges(RecombinationNetworkEdge iEdge, RecombinationNetworkEdge jEdge,
+			RecombinationNetworkNode p, RecombinationNetworkNode jP) {
 		double logHR = 0.0;
 		
-		final NetworkEdge pEdge = p.getParentEdges().get(0);
-		final NetworkEdge jPEdge = jP.getParentEdges().get(0);
+		final RecombinationNetworkEdge pEdge = p.getParentEdges().get(0);
+		final RecombinationNetworkEdge jPEdge = jP.getParentEdges().get(0);
 		
 		// After the exchange we want to add segments to the new ancestors
 		// and remove from the old. Have to be careful not to remove segments
 		// of siblings.
 
-		final BitSet iSegs = iEdge.hasSegments;
-		final BitSet jSegs = jEdge.hasSegments;
+		final BreakPoints iSegs = iEdge.breakPoints;
+		final BreakPoints jSegs = jEdge.breakPoints;
 
-		final BitSet iSegsToRemove = (BitSet)iSegs.clone();
-		iSegsToRemove.andNot(getSisterEdge(iEdge).hasSegments);
+		final BreakPoints iSegsToRemove = iSegs.copy();
+		iSegsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
 		iSegsToRemove.andNot(jSegs);
 
-		final BitSet jSegsToRemove = (BitSet)jSegs.clone();
-		jSegsToRemove.andNot(getSisterEdge(jEdge).hasSegments);
+		final BreakPoints jSegsToRemove = jSegs.copy();
+		jSegsToRemove.andNot(getSisterEdge(jEdge).breakPoints);
 		jSegsToRemove.andNot(iSegs);
 		
-		final BitSet iSegsToAdd = (BitSet)iSegs.clone();
+		final BreakPoints iSegsToAdd = iSegs.copy();
 		iSegsToAdd.andNot(jSegs);
 		
-		final BitSet jSegsToAdd = (BitSet)jSegs.clone();
+		final BreakPoints jSegsToAdd = jSegs.copy();
 		jSegsToAdd.andNot(iSegs);
 		
 		p.removeChildEdge(iEdge);
@@ -216,11 +220,11 @@ public class NetworkExchange extends DivertSegmentOperator {
 		p.addChildEdge(jEdge);
 		jP.addChildEdge(iEdge);
 		
-		logHR += removeSegmentsFromAncestors(jPEdge, jSegsToRemove);
-		logHR += removeSegmentsFromAncestors(pEdge, iSegsToRemove);
+		logHR += removeLociFromAncestors(jPEdge, jSegsToRemove);
+		logHR += removeLociFromAncestors(pEdge, iSegsToRemove);
 		
-		logHR -= addSegmentsToAncestors(jPEdge, iSegsToAdd);
-		logHR -= addSegmentsToAncestors(pEdge, jSegsToAdd);
+		logHR -= addLociToAncestors(jPEdge, iSegsToAdd);
+		logHR -= addLociToAncestors(pEdge, jSegsToAdd);
 		
 		return logHR;
 	}
