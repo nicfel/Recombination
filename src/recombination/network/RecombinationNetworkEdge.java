@@ -9,6 +9,9 @@ public class RecombinationNetworkEdge {
     public RecombinationNetworkNode parentNode, childNode;
     public BreakPoints breakPoints;
     public BreakPoints passingRange;
+    
+    // keeps track of the matrices for the likelihood calculations
+    public double[] matrixList;
 
     public RecombinationNetworkEdge() { }
 
@@ -26,8 +29,7 @@ public class RecombinationNetworkEdge {
         this.breakPoints = breakPoints;
         this.passingRange = passingRange;
     }
-
-    
+   
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
     		int totalLength) {
         this.parentNode = parentNode;
@@ -42,8 +44,6 @@ public class RecombinationNetworkEdge {
         this.breakPoints = new BreakPoints();
         this.breakPoints.init(breakPointsList);
     }
-
-
 
     public double getRecombinationLength() {
         // There are always two reassortment configurations that
@@ -69,8 +69,6 @@ public class RecombinationNetworkEdge {
     }
 
     public RecombinationNetworkEdge getCopy(Map<RecombinationNetworkNode,RecombinationNetworkNode> seenNodes) {
-
-    	
         RecombinationNetworkEdge edgeCopy;
         if (passingRange!=null)
         	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), passingRange.copy());
@@ -121,5 +119,16 @@ public class RecombinationNetworkEdge {
 		passingRange = lociToDivert;
 	}
 
+	
+	public void setMatrix(double[] matrixList) {
+		this.matrixList = matrixList;
+	}
+	
+	
+	public double[] getMatrix() {
+		return matrixList;
+	}
 
+
+	
 }

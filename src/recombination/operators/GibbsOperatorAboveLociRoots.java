@@ -6,10 +6,6 @@ import beast.core.parameter.RealParameter;
 import beast.evolution.tree.coalescent.PopulationFunction;
 import beast.util.Package;
 import beast.util.Randomizer;
-import coalre.network.Network;
-import coalre.network.NetworkEdge;
-import coalre.network.NetworkNode;
-import coalre.operators.NetworkOperator;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -17,7 +13,7 @@ import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class GibbsOperatorAboveSegmentRoots extends NetworkOperator {
+public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
     public Input<RealParameter> reassortmentRateInput = new Input<>("reassortmentRate",
             "Rate of reassortment (per lineage per unit time)", Validate.REQUIRED);

@@ -41,6 +41,14 @@ public class RecombinationNetworkNode {
      * Arbitrarily labeled metadata on this node. Needed for network summary only
      */
     protected String metaDataString;
+    
+    /**
+     *  keeps track of the partials for the likelihood calculations
+     */
+    public double[] partials;
+    
+    public int[] states;
+
 
     List<RecombinationNetworkEdge> children = new ArrayList<>();
     List<RecombinationNetworkEdge> parents = new ArrayList<>();
@@ -198,5 +206,6 @@ public class RecombinationNetworkNode {
     
     public String getMetaData() {
         return metaDataString;
-    }        
+    }   
+
 }
