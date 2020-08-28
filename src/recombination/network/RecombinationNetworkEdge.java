@@ -9,6 +9,7 @@ public class RecombinationNetworkEdge {
     public RecombinationNetworkNode parentNode, childNode;
     public BreakPoints breakPoints;
     public BreakPoints passingRange;
+    public BreakPoints carryingRange;
     
     // keeps track of the matrices for the likelihood calculations
     public double[] matrixList;
@@ -121,7 +122,9 @@ public class RecombinationNetworkEdge {
 
 	
 	public void setMatrix(double[] matrixList) {
-		this.matrixList = matrixList;
+		// TODO, allow for multiple
+		System.arraycopy(this.matrixList, 0, matrixList,
+                0, matrixList.length);
 	}
 	
 	

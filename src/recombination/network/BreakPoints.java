@@ -129,6 +129,22 @@ public class BreakPoints {
 			l += breakPoints.get(i).size();
 		return l;
 	}
+	
+	/**
+	 * gets the number of different breakpoints	 
+	 * */
+	public int size() {
+		return breakPoints.size();
+	}
+	
+	/**
+	 * gets the i-th range	 
+	 * */
+	public Range getRange(int i) {
+		return breakPoints.get(i);
+	}
+
+
 
 	
 	public boolean isEmpty() {
@@ -143,9 +159,16 @@ public class BreakPoints {
 		if (this.breakPoints.get(0).from<=breakpoint && this.breakPoints.get(this.breakPoints.size()-1).to>breakpoint)
 			return true;
 		
-		return false;
-		
+		return false;		
 	} 
+	
+	public boolean contains(int point) {
+		for (int i=0; i < size();i++) {
+			if (point>=getRange(i).from && point <= getRange(i).to)
+				return true;			
+		}
+		return false;
+	}
 	
 	public BreakPoints copy() {
 		BreakPoints newBreakPoints = new BreakPoints(breakPoints);

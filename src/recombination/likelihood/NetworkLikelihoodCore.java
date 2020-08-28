@@ -25,6 +25,7 @@
 package recombination.likelihood;
 
 import recombination.network.RecombinationNetworkEdge;
+import recombination.network.RecombinationNetworkNode;
 
 /**
  * The likelihood core is the class that performs the calculations
@@ -80,7 +81,7 @@ abstract public class NetworkLikelihoodCore {
      * NB Depending on whether the child nodes contain states or partials, the
      * calculation differs-*
      */
-    abstract public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkEdge edge3);
+    abstract public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node);
     //abstract public void calculatePartials(int node1, int node2Index, int node3, int[] matrixMap);
 
     /**
@@ -119,5 +120,5 @@ abstract public class NetworkLikelihoodCore {
 //    /** do internal diagnosics, and suggest an alternative core if appropriate **/ 
 //    abstract LikelihoodCore feelsGood();
 
-    abstract public void calculatePartialsRecombination(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge3);
+    abstract public void calculatePartialsRecombination(RecombinationNetworkEdge edge1, RecombinationNetworkNode node);
 }

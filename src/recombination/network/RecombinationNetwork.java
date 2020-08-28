@@ -5,9 +5,13 @@ import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
+import coalre.network.NetworkEdge;
+import coalre.network.NetworkNode;
 import coalre.network.parser.NetworkBaseVisitor;
 import coalre.network.parser.NetworkLexer;
 import coalre.network.parser.NetworkParser;
+import recombination.alignment.RecombinationAlignment;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -525,4 +529,42 @@ public class RecombinationNetwork extends StateNode {
     public boolean notCloneable() {
         return true;
     }
+    
+    /**
+     * Update segment tree below networkNode to match tree implied by network.
+     *
+     * @param networkNode node below which segment tree is updated
+     * @param segmentIdx  index of segment tree
+     * @param cladeNodes  map containing links from existing tree clades to tree nodes
+     * @param nodeBin     list containing node objects available for new tree clades
+     * @return clade corresponding to networkNode
+     */
+    public Node getLocusChildren(RecombinationNetworkNode networkNode, Integer locus) {
+
+        List<Node> children = new ArrayList<>();
+        
+        for (RecombinationNetworkEdge childEdge : networkNode.getChildEdges()) {
+            if (childEdge.breakPoints.contains(locus)) {
+            	children.add(getLocusChildren(childEdge.childNode, locus));
+            }
+        }
+        if (children.size()==2) {
+        	Node treeNode = new Node();
+        	treeNode.setHeight(networkNode.getHeight());
+        	treeNode.addChild(children.get(0));
+        	treeNode.addChild(children.get(1));     
+        	return treeNode;
+        }else if (children.size()==1) {
+        	return children.get(0);
+        }else {
+        	Node treeNode = new Node();
+        	treeNode.setHeight(networkNode.getHeight());
+        	treeNode.setID(networkNode.getTaxonLabel());
+        	return treeNode;
+        }   	
+        
+        
+    }    
+
+    
 }

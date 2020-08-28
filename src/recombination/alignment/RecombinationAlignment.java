@@ -577,7 +577,7 @@ public class RecombinationAlignment extends Map<String> {
 
         // sort data
         SiteComparator comparator = new SiteComparator();
-        Arrays.sort(data, comparator);
+//        Arrays.sort(data, comparator);
 
         // count patterns in sorted data
         // if (siteWeights != null) the weights are recalculated below
@@ -585,12 +585,12 @@ public class RecombinationAlignment extends Map<String> {
         int[] weights = new int[siteCount];
         weights[0] = 1;
         for (int i = 1; i < siteCount; i++) {
-            if (usingTipLikelihoods || comparator.compare(data[i - 1], data[i]) != 0) {
+//            if (usingTipLikelihoods || comparator.compare(data[i - 1], data[i]) != 0) {
             	// In the case where we're using tip probabilities, we need to treat each 
             	// site as a unique pattern, because it could have a unique probability vector.
                 patterns++;
                 data[patterns - 1] = data[i];
-            }
+//            }
             weights[patterns - 1]++;
         }
 
@@ -605,11 +605,11 @@ public class RecombinationAlignment extends Map<String> {
         // find patterns for the sites
         patternIndex = new int[siteCount];
         for (int i = 0; i < siteCount; i++) {
-            int[] sites = new int[taxonCount];
-            for (int j = 0; j < taxonCount; j++) {
-                sites[j] = counts.get(j).get(i);
-            }
-            patternIndex[i] = Arrays.binarySearch(sitePatterns, sites, comparator);
+//            int[] sites = new int[taxonCount];
+//            for (int j = 0; j < taxonCount; j++) {
+//                sites[j] = counts.get(j).get(i);
+//            }
+            patternIndex[i] = i;//Arrays.binarySearch(sitePatterns, sites, comparator);
         }
 
         if (siteWeights != null) {
@@ -633,30 +633,30 @@ public class RecombinationAlignment extends Map<String> {
             }
         }
 
-        if (stripInvariantSitesInput.get()) {
-            // don't add patterns that are invariant, e.g. all gaps
-            if (log) Log.info.println("Stripping invariant sites");
-
-            int removedSites = 0;
-            for (int i = 0; i < patterns; i++) {
-                int[] pattern = sitePatterns[i];
-                int value = pattern[0];
-                boolean isInvariant = true;
-                for (int k = 1; k < pattern.length; k++) {
-                    if (pattern[k] != value) {
-                        isInvariant = false;
-                        break;
-                    }
-                }
-                if (isInvariant) {
-                    removedSites += patternWeight[i];
-                    patternWeight[i] = 0;
-
-                    if (log) Log.info.print(" <" + value + "> ");
-                }
-            }
-            if (log) Log.info.println(" removed " + removedSites + " sites ");
-        }
+//        if (stripInvariantSitesInput.get()) {
+//            // don't add patterns that are invariant, e.g. all gaps
+//            if (log) Log.info.println("Stripping invariant sites");
+//
+//            int removedSites = 0;
+//            for (int i = 0; i < patterns; i++) {
+//                int[] pattern = sitePatterns[i];
+//                int value = pattern[0];
+//                boolean isInvariant = true;
+//                for (int k = 1; k < pattern.length; k++) {
+//                    if (pattern[k] != value) {
+//                        isInvariant = false;
+//                        break;
+//                    }
+//                }
+//                if (isInvariant) {
+//                    removedSites += patternWeight[i];
+//                    patternWeight[i] = 0;
+//
+//                    if (log) Log.info.print(" <" + value + "> ");
+//                }
+//            }
+//            if (log) Log.info.println(" removed " + removedSites + " sites ");
+//        }
     } // calcPatterns
 
     /**

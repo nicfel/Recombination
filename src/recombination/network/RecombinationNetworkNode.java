@@ -48,6 +48,8 @@ public class RecombinationNetworkNode {
     public double[] partials;
     
     public int[] states;
+    
+    public boolean visited;
 
 
     List<RecombinationNetworkEdge> children = new ArrayList<>();
