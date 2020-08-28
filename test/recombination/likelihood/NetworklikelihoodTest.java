@@ -37,11 +37,8 @@ public class NetworklikelihoodTest extends TestCase {
         // Set up JC69 model: uniform freqs, kappa = 1, 0 gamma categories
     	RecombinationAlignment data = getAlignmentShort();
         RecombinationNetwork network = getNetworkShort();
+                       
         
-        
-        
-        
-
         JukesCantor JC = new JukesCantor();
         JC.initAndValidate();
 
@@ -68,7 +65,6 @@ public class NetworklikelihoodTest extends TestCase {
             TreeLikelihood treelikelihood = newTreeLikelihood();
             treelikelihood.initByName("data", data_pos, "tree", t, "siteModel", siteModel);
             treeLog += treelikelihood.calculateLogP();
-            System.out.println(treeLog);
         }
         
         
