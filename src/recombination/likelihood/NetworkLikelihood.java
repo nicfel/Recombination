@@ -200,7 +200,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         if (dataInput.get().isAscertained) {
             useAscertainedSitePatterns = true;
         }
-        
     }
 
 
@@ -241,14 +240,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
                 true, m_useAmbiguities.get()
         );
         
-        // init partials
-        List<RecombinationNetworkNode> networkNodes = new ArrayList<>(networkInput.get().getNodes());    	
-    	List<RecombinationNetworkNode> nodes = networkNodes.stream()
-                .collect(Collectors.toList());
-    	
-    	int partialLength = dataInput.get().getPatternCount() * dataInput.get().getDataType().getStateCount();
-    	for (RecombinationNetworkNode n : nodes) 
-    		n.partials = new double[partialLength];
+        initPartials();
     	
 
 
@@ -258,6 +250,20 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
             setStates(networkInput.get(), dataInput.get().getPatternCount());
         }
         hasDirt = Tree.IS_FILTHY;
+    }
+    
+    private void initPartials() {
+        
+        // init partials
+        List<RecombinationNetworkNode> networkNodes = new ArrayList<>(networkInput.get().getNodes());    	
+    	List<RecombinationNetworkNode> nodes = networkNodes.stream()
+                .collect(Collectors.toList());
+    	
+    	int partialLength = dataInput.get().getPatternCount() * dataInput.get().getDataType().getStateCount();
+    	for (RecombinationNetworkNode n : nodes) 
+    		if (n.partials==null)
+    			n.partials = new double[partialLength];
+
     }
 
     /**
@@ -376,10 +382,14 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	
     	for (RecombinationNetworkNode n : nodes) 
     		n.visited = false;
+    	// init partials that have not yet been initialized
+    	initPartials();
+    	
     	
     	try {
-        	if (traverse(network.getRootEdge(), network.getRootEdge().breakPoints) != Tree.IS_CLEAN)
+        	if (traverse(network.getRootEdge(), network.getRootEdge().breakPoints) != Tree.IS_CLEAN) {
         		calcLogP();
+        	}
         }catch (ArithmeticException e) {
         	return Double.NEGATIVE_INFINITY;
         }
@@ -395,14 +405,15 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 //            calcLogP();
 //            return logP;
         } else if (logP == Double.NEGATIVE_INFINITY && m_fScale < 10 && !scaling.get().equals(Scaling.none)) { // && !m_likelihoodCore.getUseScaling()) {
-            m_nScale = 0;
-            m_fScale *= 1.01;
-            Log.warning.println("Turning on scaling to prevent numeric instability " + m_fScale);
-            likelihoodCore.setUseScaling(m_fScale);
-            likelihoodCore.unstore();
-            hasDirt = Tree.IS_FILTHY;
-            traverse(network.getRootEdge(), network.getRootEdge().breakPoints);
-            calcLogP();
+//        	System.exit(0);
+//            m_nScale = 0;
+//            m_fScale *= 1.01;
+//            Log.warning.println("Turning on scaling to prevent numeric instability " + m_fScale);
+//            likelihoodCore.setUseScaling(m_fScale);
+//            likelihoodCore.unstore();
+//            hasDirt = Tree.IS_FILTHY;
+//            traverse(network.getRootEdge(), network.getRootEdge().breakPoints);
+//            calcLogP();
             return logP;
         }
         return logP;
@@ -438,9 +449,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
                 substitutionModel.getTransitionProbabilities(dummyNode, edge.parentNode.getHeight(), edge.childNode.getHeight(), jointBranchRate, probabilities);
                 edge.matrixList = new double[probabilities.length];
         		System.arraycopy(probabilities, 0, edge.matrixList,0, probabilities.length);
-
             }
-            update |= Tree.IS_DIRTY;
+//            update |= Tree.IS_DIRTY;
         }
 
         // If the node is internal, update the partial likelihoods.
@@ -458,7 +468,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
             final RecombinationNetworkEdge child2 = edge.childNode.getChildEdges().get(1); //Two children
             compute2.and(child2.breakPoints);
         	final int update2 = traverse(child2, compute2);
-        	
+        	        	
             // If either child node was updated then update this node too
             if (update1 != Tree.IS_CLEAN || update2 != Tree.IS_CLEAN) {
             	

@@ -506,7 +506,7 @@ public class RecombinationNetwork extends StateNode {
             
             BreakPoints bp = new BreakPoints();
             bp.init(breakPoints);
-            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, bp);
+            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, bp, null);
             if (splitPoints.size()>0)
             	edge.setPassingRange(splitPoints.get(0), splitPoints.get(1));
             node.addParentEdge(edge);

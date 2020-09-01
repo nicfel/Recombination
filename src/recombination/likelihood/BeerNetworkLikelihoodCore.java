@@ -2,6 +2,7 @@ package recombination.likelihood;
 
 import java.util.Arrays;
 
+import beast.core.Logger;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
@@ -411,7 +412,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
             }
         } else {
             if (edge2.childNode.states != null) {
-                calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute1,compute2);
+                calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute2,compute1);
             } else {
                 calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
             }
@@ -424,15 +425,15 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 //
 //
 //        int k =0;
-//        for (int i = 0; i < patternCount; i++) {
+//        for (int i = 0; i < nrOfPatterns; i++) {
 //            double f = 0.0;
 //
-//            for (int j = 0; j < stateCount; j++) {
-//                f += partials[currentPartialsIndices[nodeIndex3]][nodeIndex3][k];
+//            for (int j = 0; j < nrOfStates; j++) {
+//                f += node.partials[k];
 //                k++;
 //            }
 //            if (f == 0.0) {
-//                Logger.getLogger("error").severe("A partial likelihood (node index = " + nodeIndex3 + ", pattern = "+ i +") is zero for all states.");
+//                Logger.getLogger("error").severe("A partial likelihood (node index = " + node.getHeight() + ", pattern = "+ i +") is zero for all states.");
 //            }
 //        }
     }
@@ -602,14 +603,25 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 
     /**
+    /**
      * Store current state
      */
     @Override
     public void restore() {
+//        // Rather than copying the stored stuff back, just swap the pointers...
+//        int[] tmp1 = currentMatrixIndex;
+//        currentMatrixIndex = storedMatrixIndex;
+//        storedMatrixIndex = tmp1;
+//
+//        int[] tmp2 = currentPartialsIndex;
+//        currentPartialsIndex = storedPartialsIndex;
+//        storedPartialsIndex = tmp2;
     }
 
     @Override
 	public void unstore() {
+//        System.arraycopy(storedMatrixIndex, 0, currentMatrixIndex, 0, nrOfNodes);
+//        System.arraycopy(storedPartialsIndex, 0, currentPartialsIndex, 0, nrOfNodes);
     }
 
     /**
@@ -617,5 +629,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void store() {
+//    	
+//        System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, nrOfNodes);
+//        System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, nrOfNodes);
     }
 } // class BeerLikelihoodCore

@@ -72,7 +72,7 @@ public class NetworklikelihoodTest extends TestCase {
         
         
         assertEquals(logP, treeLog, BEASTTestCase.PRECISION);
-
+        assertEquals(logP, likelihood.calculateLogP(), BEASTTestCase.PRECISION);
     }
     
     @Test
