@@ -41,16 +41,20 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     /**
      * Calculates partial likelihoods at a node when both children have exactly known states (e.g. for leaves).
      */
-    protected void calculateStatesStatesPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node) {
+    protected void calculateStatesStatesPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
+        
+    	
         // compute the breakpoints that are on both edges or only on either edge
-        BreakPoints joint = edge1.breakPoints.copy();
-        BreakPoints e1 = edge1.breakPoints.copy();
-        BreakPoints e2 = edge2.breakPoints.copy();
+        BreakPoints joint = compute1.copy();
+        BreakPoints e1 = compute1.copy();
+        BreakPoints e2 = compute2.copy();
         
-        joint.and(edge2.breakPoints);
-        e1.andNot(edge2.breakPoints.copy());
-        e2.andNot(edge1.breakPoints.copy());      
-        
+        joint.and(compute2);
+        e1.andNot(compute2);
+        e2.andNot(compute1);      
+
+
     	for (int m = 0; m < joint.size(); m++) {
     		for (int l = 0; l < nrOfMatrices; l++) {
         		int v = l*nrOfPatterns + joint.getRange(m).from*nrOfStates;
@@ -110,19 +114,20 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     /**
      * Calculates partial likelihoods at a node when one child has states and one has partials.
      */
-    protected void calculateStatesPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node) { 
+    protected void calculateStatesPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) { 
         double sum, tmp;
-
         
         // compute the breakpoints that are on both edges or only on either edge
-        BreakPoints joint = edge1.breakPoints.copy();
-        BreakPoints e1 = edge1.breakPoints.copy();
-        BreakPoints e2 = edge2.breakPoints.copy();
+        BreakPoints joint = compute1.copy();
+        BreakPoints e1 = compute1.copy();
+        BreakPoints e2 = compute2.copy();
         
-        joint.and(edge2.breakPoints);
-        e1.andNot(edge2.breakPoints.copy());
-        e2.andNot(edge1.breakPoints.copy());
+        joint.and(compute2);
+        e1.andNot(compute2);
+        e2.andNot(compute1);      
 
+        
     	for (int m = 0; m < joint.size(); m++) {
     		for (int l = 0; l < nrOfMatrices; l++) {
         		int v = l*nrOfPatterns + joint.getRange(m).from*nrOfStates;
@@ -146,7 +151,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                            sum += edge2.matrixList[w] * edge2.childNode.partials[v + j];
 	                            w++;
 	                        }
-	
 	                        node.partials[u] = tmp * sum;
 	                        u++;
 	                    }
@@ -162,7 +166,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                            sum += edge2.matrixList[w] * edge2.childNode.partials[v + j];
 	                            w++;
 	                        }
-	
 	                        node.partials[u] = sum;
 	                        u++;
 	                    }
@@ -176,23 +179,24 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     	calculateStatesPruning(e1, edge1, node);
     	calculatePartialsPruning(e2, edge2, node);
     }
-    
+
     /**
      * Calculates partial likelihoods at a node when both children have partials.
      */
-    protected void calculatePartialsPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node) {
+    protected void calculatePartialsPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
 
     	double sum1, sum2;
-
+    	
         // compute the breakpoints that are on both edges or only on either edge
-        BreakPoints joint = edge1.breakPoints.copy();
-        BreakPoints e1 = edge1.breakPoints.copy();
-        BreakPoints e2 = edge2.breakPoints.copy();
+        BreakPoints joint = compute1.copy();
+        BreakPoints e1 = compute1.copy();
+        BreakPoints e2 = compute2.copy();
         
-        joint.and(edge2.breakPoints);
-        e1.andNot(edge2.breakPoints.copy());
-        e2.andNot(edge1.breakPoints.copy());
-        
+        joint.and(compute2);
+        e1.andNot(compute2);
+        e2.andNot(compute1);
+                
     	for (int m = 0; m < joint.size(); m++) {
     		for (int l = 0; l < nrOfMatrices; l++) {
         		int v = l*nrOfPatterns + joint.getRange(m).from*nrOfStates;
@@ -211,7 +215,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	                        w++;
 	                    }
-	
+	                    
 	                    node.partials[u] = sum1 * sum2;
 	                    u++;
 	                }
@@ -219,6 +223,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	            }
 	        }
     	}
+    	
     	
     	calculatePartialsPruning(e1, edge1, node);
     	calculatePartialsPruning(e2, edge2, node);
@@ -397,20 +402,21 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * @param nodeIndex3 the 'parent' node
      */
     @Override
-	public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node) {
+	public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
         if (edge1.childNode.states != null) {
             if (edge2.childNode.states != null) {
-                calculateStatesStatesPruning(edge1,edge2,node);
+                calculateStatesStatesPruning(edge1,edge2,node,computeFor,compute1,compute2);
             } else {
-                calculateStatesPartialsPruning(edge1,edge2,node);
+                calculateStatesPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
             }
         } else {
-            if (edge1.childNode.states != null) {
-                calculateStatesPartialsPruning(edge2,edge1,node);
+            if (edge2.childNode.states != null) {
+                calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute1,compute2);
             } else {
-                calculatePartialsPartialsPruning(edge1,edge2,node);
+                calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
             }
         }
+        
 
 //        if (useScaling) {
 //            scalePartials(edge3);
@@ -432,12 +438,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     }
     
     @Override
-	public void calculatePartialsRecombination(RecombinationNetworkEdge edge, RecombinationNetworkNode node) {
+	public void calculatePartialsRecombination(RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints compute1) {
         if (edge.childNode.states != null) {
-        	calculateStatesPruning(edge.breakPoints, edge, node);
+        	calculateStatesPruning(compute1, edge, node);
         } else {
-        	calculatePartialsPruning(edge.breakPoints, edge, node);
+        	calculatePartialsPruning(compute1, edge, node);
         }
+        
+//        System.exit(0);
 
 //        if (useScaling) {
 //            scalePartials(edge3);
@@ -598,20 +606,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void restore() {
-        // Rather than copying the stored stuff back, just swap the pointers...
-        int[] tmp1 = currentMatrixIndex;
-        currentMatrixIndex = storedMatrixIndex;
-        storedMatrixIndex = tmp1;
-
-        int[] tmp2 = currentPartialsIndex;
-        currentPartialsIndex = storedPartialsIndex;
-        storedPartialsIndex = tmp2;
     }
 
     @Override
 	public void unstore() {
-        System.arraycopy(storedMatrixIndex, 0, currentMatrixIndex, 0, nrOfNodes);
-        System.arraycopy(storedPartialsIndex, 0, currentPartialsIndex, 0, nrOfNodes);
     }
 
     /**
@@ -619,7 +617,5 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void store() {
-        System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, nrOfNodes);
-        System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, nrOfNodes);
     }
 } // class BeerLikelihoodCore

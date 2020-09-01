@@ -134,6 +134,8 @@ public class BreakPoints {
 	 * gets the number of different breakpoints	 
 	 * */
 	public int size() {
+		if (isEmpty())
+			return 0;
 		return breakPoints.size();
 	}
 	

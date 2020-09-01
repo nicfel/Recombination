@@ -6,6 +6,8 @@ import beast.evolution.alignment.Alignment;
 import beast.evolution.alignment.Sequence;
 import beast.evolution.likelihood.TreeLikelihood;
 import beast.evolution.sitemodel.SiteModel;
+import beast.evolution.substitutionmodel.Frequencies;
+import beast.evolution.substitutionmodel.HKY;
 import beast.evolution.substitutionmodel.JukesCantor;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
@@ -46,7 +48,7 @@ public class NetworklikelihoodTest extends TestCase {
         siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 1, "substModel", JC);
 
         NetworkLikelihood likelihood = newNetworkLikelihood();
-        likelihood.initByName("data", data, "recombinationNetwork", network, "siteModel", siteModel);
+        likelihood.initByName("recombinationData", data, "recombinationNetwork", network, "siteModel", siteModel);
         double logP = 0;
         logP = likelihood.calculateLogP();
         
@@ -71,10 +73,52 @@ public class NetworklikelihoodTest extends TestCase {
         
         assertEquals(logP, treeLog, BEASTTestCase.PRECISION);
 
-//        likelihood.initByName("useAmbiguities", true, "data", data, "tree", tree, "siteModel", siteModel);
-//        logP = likelihood.calculateLogP();
-//        assertEquals(logP, -1992.2056440317247, BEASTTestCase.PRECISION);
     }
+    
+    @Test
+    public void testHKYLikelihood() throws Exception {
+        // Set up JC69 model: uniform freqs, kappa = 1, 0 gamma categories
+    	RecombinationAlignment data = getAlignmentShort();
+        RecombinationNetwork network = getNetworkShort();
+                       
+    	Alignment data_freqs = getNormalAlignment();
+       
+        Frequencies freqs = new Frequencies();
+        freqs.initByName("data", data_freqs);
+
+        
+        HKY hky = new HKY();
+        hky.initByName("kappa", "29.739445", "frequencies", freqs);
+
+        SiteModel siteModel = new SiteModel();
+        siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 1, "substModel", hky);
+
+        NetworkLikelihood likelihood = newNetworkLikelihood();
+        likelihood.initByName("recombinationData", data, "recombinationNetwork", network, "siteModel", siteModel);
+        double logP = 0;
+        logP = likelihood.calculateLogP();
+        
+        
+        // compute the tree likelihoods for each positions individually
+        double treeLog = 0.0;
+        for (int i = 0; i < 4; i++) {
+            Alignment data_pos = getAlignmentPosition(i);
+            Node root = network.getLocusChildren(network.getRootEdge().childNode, i);
+            TreeParser t = new TreeParser();
+
+            t.initByName("taxa", data_pos,
+                    "newick", root.toNewick(false),
+                    "IsLabelledNewick", true);            
+           
+            TreeLikelihood treelikelihood = newTreeLikelihood();
+            treelikelihood.initByName("data", data_pos, "tree", t, "siteModel", siteModel);
+            treeLog += treelikelihood.calculateLogP();
+        }    
+        
+        
+        assertEquals(logP, treeLog, BEASTTestCase.PRECISION);
+    }
+
     
     
     static public RecombinationAlignment getAlignment() throws Exception {
@@ -118,6 +162,19 @@ public class NetworklikelihoodTest extends TestCase {
         );
         return data;
     }
+    
+    static public Alignment getNormalAlignment() throws Exception {
+        Sequence t0 = new Sequence("t0", "AGAA");
+        Sequence t1 = new Sequence("t1", "AGAT");
+        Sequence t2 = new Sequence("t2", "AGAA");
+
+        Alignment data = new Alignment();
+        data.initByName("sequence", t0, "sequence", t1, "sequence", t2,
+                "dataType", "nucleotide"
+        );
+        return data;
+    }
+
 
     
     static public RecombinationNetwork getNetworkShort() throws Exception {

@@ -29,7 +29,7 @@ import recombination.network.RecombinationNetwork;
 //
 public class GenericNetworkLikelihood extends Distribution {
     
-    final public Input<RecombinationAlignment> dataInput = new Input<>("data", "sequence data for the beast.tree", Validate.REQUIRED);
+    final public Input<RecombinationAlignment> dataInput = new Input<>("recombinationData", "sequence data for the beast.tree", Validate.REQUIRED);
 
     final public Input<RecombinationNetwork> networkInput = new Input<>("recombinationNetwork", "phylogenetic beast.tree with sequence data in the leafs", Validate.REQUIRED);
 
