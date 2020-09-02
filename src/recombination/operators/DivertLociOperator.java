@@ -141,8 +141,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (edge.parentNode.isRecombination()) {
         	
         	// get the breakpoints before the operation
-        	int old_pr1 = edge.parentNode.getParentEdges().get(0).passingRange.getMax();
-        	int old_pr2 = edge.parentNode.getParentEdges().get(1).passingRange.getMax();
+        	int old_max1 = edge.parentNode.getParentEdges().get(0).breakPoints.getMax();
+        	int old_max2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMax();
         	
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(1), rangeToRemove);
@@ -157,38 +157,17 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
             	// both passing ranges are null
             	logP += Math.log(0.5) + Math.log(1.0/(totalLength));
             }else if (min1==-1){
-            	if (max2==totalLength-1) {
-                	logP += Math.log(1.0/(min2));
-            	}else if (min2==0) {
-            		logP += Math.log(1.0/(totalLength-max2-1));
-            	}else {
-                	logP += Math.log(0.5);
-                	if (old_pr2>=max2) {
-                		logP += Math.log(1.0/(totalLength-max2-1));
-                	}else if (old_pr2<min2) {
-                		logP += Math.log(1.0/(min2));
-                	}else {
-                		throw new IllegalArgumentException("should not happen, or at least is not accounted for");
-                	}
-            	}
+            	logP += getProbNewPassingRange(min2,max2, old_max1);
             }else if(min2==-1) {
-            	if (max1==totalLength-1) {
-                	logP += Math.log(1.0/(min1+1));
-            	}else if (min1==0) {
-            		logP += Math.log(1.0/(totalLength-max1-1));
-            	}else {
-                	logP += Math.log(0.5);
-                	if (old_pr1>=max1) {
-                		logP += Math.log(1.0/(totalLength-max1-1));
-                	}else if (old_pr1<min1) {
-                		logP += Math.log(1.0/(min1));
-                	}else {
-                		throw new IllegalArgumentException("should not happen, or at least is not accounted for");
-                	}
-            	}
+            	logP += getProbNewPassingRange(min1,max1, old_max2);
             }else {
-            	double diff = Math.max(min2-max1, min1-max2); 
-        		logP += Math.log(1.0/(diff));  
+            	// check if the parts of the removed breakpoints are between the breakpoints of the two edges
+            	BreakPoints betweenBP = new BreakPoints(Math.min(max1, max2), Math.max(min1, min2));
+            	betweenBP.and(rangeToRemove);
+            	if (!betweenBP.isEmpty()) {
+            		logP += Math.log(1.0/(betweenBP.getLength()+1));
+            	}
+            	
             }  
 
         } else {
@@ -273,6 +252,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 		int min2 = edge2.breakPoints.getMin();
 		int max2 = edge2.breakPoints.getMax();		
 		
+
+		
 		if (min1==-1 && min2==-1) { 
 			// both passing ranges are null
 			if (Randomizer.nextBoolean()) {
@@ -308,6 +289,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 			edge2.setPassingRange(0,start-1);
 		}    	
     }
+    
     private double sampleBetweenRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, int min1, int max2) {
     	int diff = min1-max2;
 		int newBreakPoint = Randomizer.nextInt(diff)+max2;
@@ -319,48 +301,76 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     private double sampleNewPassingRange(RecombinationNetworkEdge edge1,
 			RecombinationNetworkEdge edge2, int min, int max) {
     	double logHR = 0.0;
-    	
-    	if (min==0 && max==totalLength-1) {
+
+		if (min==0 && max==totalLength-1) {
 			// passing range 2 is null
 			edge1.setPassingRange(0, totalLength-1);
 			edge2.passingRange=null;
     	}else if (min>0 && max<totalLength-1) {
     		logHR += Math.log(0.5);
 			if (Randomizer.nextBoolean()) {		
-				int diff = totalLength-max-1;
+				int diff = totalLength-max;
 				logHR += Math.log(1.0/diff);				
-				int start = Randomizer.nextInt(diff)+max+1;
-				edge2.setPassingRange(start+1, totalLength-1);
+				int start = Randomizer.nextInt(diff)+max;
+
+				if (start==(totalLength-1)) 
+					edge2.passingRange = null;
+				else
+					edge2.setPassingRange(start+1, totalLength-1);
+				
 				edge1.setPassingRange(0,start);
 			}else {
-				logHR += Math.log(1.0/min);
-				int end = Randomizer.nextInt(min);
-				edge2.setPassingRange(0, end);
+				logHR += Math.log(1.0/(min+1));
+				int end = Randomizer.nextInt(min+1)-1;
+				
+				if (end==-1)
+					edge2.passingRange = null;
+				else
+					edge2.setPassingRange(0, end);
+				
 				edge1.setPassingRange(end+1,totalLength-1);
 			}			
 		}else if (min>0){
-			logHR += Math.log(1.0/(min-1));
+			logHR += Math.log(1.0/(min+1));
 
-			int end = Randomizer.nextInt(min+1);
-			end--;
-			if (end<0) {
+			int end = Randomizer.nextInt(min+1)-1;
+			if (end==-1) 
 				edge2.setPassingRange(null);
-				edge1.setPassingRange(end+1,totalLength-1);
-			}else {
-				edge2.setPassingRange(0, end);
-				edge1.setPassingRange(end+1,totalLength-1);
-			}
+			else 
+				edge2.setPassingRange(0, end);			
 
-		}else {
+			edge1.setPassingRange(end+1,totalLength-1);
+		}else {		
+			int diff = totalLength-max;
+			logHR += Math.log(1.0/diff);				
+			int start = Randomizer.nextInt(diff)+max;
+
+			if (start==(totalLength-1)) 
+				edge2.passingRange = null;
+			else
+				edge2.setPassingRange(start+1, totalLength-1);
 			
-			int diff = totalLength-max-1;
-			logHR += Math.log(1.0/diff);
-
-			int start = Randomizer.nextInt(diff)+max+1;
-			edge2.setPassingRange(start+1, totalLength-1);
 			edge1.setPassingRange(0,start);
 		}   
 
     	return logHR;
+    }
+
+    private double getProbNewPassingRange(double min, double max, double old_max) {    	
+		if (min==0 && max==totalLength-1) {
+			return 0.0;
+		}else if (max==totalLength-1) {
+			return Math.log(1.0/(min+1));
+    	}else if (min==0) {
+    		return Math.log(1.0/(totalLength-max));
+    	}else {
+        	if (old_max>=max) {
+        		return Math.log(0.5) + Math.log(1.0/(totalLength-max));
+        	}else if (old_max<min) {
+        		return Math.log(0.5) + Math.log(1.0/(min+1));
+        	}else {
+        		throw new IllegalArgumentException("should not happen, or at least is not accounted for");
+        	}
+    	}
     }
 }
