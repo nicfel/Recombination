@@ -213,7 +213,7 @@ public class BreakPoints {
 	 */
 	public void and(BreakPoints breakPoints) {
 		List<Range> newBreaks = new ArrayList<>();
-		if (breakPoints==null || breakPoints.isEmpty()) {
+		if (breakPoints==null || breakPoints.isEmpty() || isEmpty()) {
 			this.breakPoints = null;
 			return;
 		}
@@ -256,8 +256,8 @@ public class BreakPoints {
 	 * remove breakpoints from this.breakpoints
 	 * @param breakPoints
 	 */
-	public void andNot(BreakPoints breakPoints) {
-		if (breakPoints.isEmpty())
+	public void andNot(BreakPoints breakPoints) {		
+		if (breakPoints.isEmpty() || isEmpty())
 			return;
 		
 		List<Range> newBreaks = new ArrayList<>();
