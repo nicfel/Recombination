@@ -257,7 +257,7 @@ public class BreakPoints {
 	 * @param breakPoints
 	 */
 	public void andNot(BreakPoints breakPoints) {		
-		if (breakPoints.isEmpty() || isEmpty())
+		if (breakPoints==null || breakPoints.isEmpty() || isEmpty())
 			return;
 		
 		List<Range> newBreaks = new ArrayList<>();

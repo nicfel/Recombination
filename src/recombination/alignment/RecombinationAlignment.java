@@ -609,8 +609,10 @@ public class RecombinationAlignment extends Map<String> {
 //            for (int j = 0; j < taxonCount; j++) {
 //                sites[j] = counts.get(j).get(i);
 //            }
+//            patternIndex[i] = Arrays.binarySearch(sitePatterns, sites, comparator);
             patternIndex[i] = i;//Arrays.binarySearch(sitePatterns, sites, comparator);
         }
+
 
         if (siteWeights != null) {
             Arrays.fill(patternWeight, 0);

@@ -40,9 +40,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 
     @Override
     public double proposal() {
-    	
        
-        double logHR = 0.0;
+    	double logHR = 0.0;
         // Adds empty network edges
         if (addRemoveEmptyEdgesInput.get()){
         	logHR += addEmptyNetworkEdges();
@@ -67,6 +66,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
             
         	logHR += RemoveAllEmptyNetworkSegments();
         }
+        
+
         // case there are empty edges, which can happen when addRemoveEmptyEdges is false
 		if (!allEdgesAncestral()){
 //			System.out.println("/////////////////");
@@ -76,13 +77,13 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
             return Double.NEGATIVE_INFINITY;
 		}
 		
-        // case there are empty edges, which can happen when addRemoveEmptyEdges is false
-		if (!allRangesMatch()){
-			System.out.println(network);
-			throw new IllegalArgumentException("Range issues");
-
-//            return Double.NEGATIVE_INFINITY;
-		}
+//        // case there are empty edges, which can happen when addRemoveEmptyEdges is false
+//		if (!allRangesMatch()){
+//			System.out.println(network);
+////			throw new IllegalArgumentException("Range issues");
+//
+////            return Double.NEGATIVE_INFINITY;
+//		}
 		
 		
         // case there are empty edges, which can happen when addRemoveEmptyEdges is false
@@ -92,12 +93,12 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 //            return Double.NEGATIVE_INFINITY;
 		}
 		
-        // case there are empty edges, which can happen when addRemoveEmptyEdges is false
-		if (!splitsMakeSense()){
-			System.out.println(network);
-			throw new IllegalArgumentException("Split error");
-//            return Double.NEGATIVE_INFINITY;
-		}
+//        // case there are empty edges, which can happen when addRemoveEmptyEdges is false
+//		if (!splitsMakeSense()){
+//			System.out.println(network);
+//			throw new IllegalArgumentException("Split error");
+////            return Double.NEGATIVE_INFINITY;
+//		}
 
                 		
         return logHR;
@@ -478,30 +479,30 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         return true;
     }
     
-    /** 
-     * sanity checks whether the passingRange and loci on branches are compatible
-     * @return
-     */
-    public boolean allRangesMatch() {
-        Set<RecombinationNetworkNode> nodeList = networkInput.get().getNodes();
-        for (RecombinationNetworkNode node : nodeList) {
-            for (RecombinationNetworkEdge parentEdge : node.getParentEdges()) {
-                if (parentEdge.childNode.isRecombination()) {
-                    BreakPoints lc = parentEdge.breakPoints.copy();
-                    lc.andNot(parentEdge.passingRange);
-                    if (!lc.isEmpty()) {
-                    	System.out.println(parentEdge.breakPoints);
-                    	System.out.println(parentEdge.passingRange);
-                    	System.out.println(lc);
-                    	System.out.println(parentEdge.childNode.getHeight());
-                    	return false;
-                    }
-                }
-            }
-        }
-        return true;
-
-    }
+//    /** 
+//     * sanity checks whether the passingRange and loci on branches are compatible
+//     * @return
+//     */
+//    public boolean allRangesMatch() {
+//        Set<RecombinationNetworkNode> nodeList = networkInput.get().getNodes();
+//        for (RecombinationNetworkNode node : nodeList) {
+//            for (RecombinationNetworkEdge parentEdge : node.getParentEdges()) {
+//                if (parentEdge.childNode.isRecombination()) {
+//                    BreakPoints lc = parentEdge.breakPoints.copy();
+//                    lc.andNot(parentEdge.passingRange);
+//                    if (!lc.isEmpty()) {
+//                    	System.out.println(parentEdge.breakPoints);
+//                    	System.out.println(parentEdge.passingRange);
+//                    	System.out.println(lc);
+//                    	System.out.println(parentEdge.childNode.getHeight());
+//                    	return false;
+//                    }
+//                }
+//            }
+//        }
+//        return true;
+//
+//    }
     
     
     /** 
@@ -525,21 +526,21 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 
     }
     
-    public boolean splitsMakeSense() {
-        Set<RecombinationNetworkNode> nodeList = networkInput.get().getNodes();
-        for (RecombinationNetworkNode node : nodeList) {
-            for (RecombinationNetworkEdge parentEdge : node.getParentEdges()) {
-            	if (parentEdge.childNode.isRecombination()) {
-            		if (parentEdge.passingRange.getMin()!=0 && parentEdge.passingRange.getMax()!=network.totalLength-1) {
-            			return false;
-            		}
-            	}
-
-            }
-        }
-        return true;
-
-    }
+//    public boolean splitsMakeSense() {
+//        Set<RecombinationNetworkNode> nodeList = networkInput.get().getNodes();
+//        for (RecombinationNetworkNode node : nodeList) {
+//            for (RecombinationNetworkEdge parentEdge : node.getParentEdges()) {
+//            	if (parentEdge.childNode.isRecombination()) {
+//            		if (parentEdge.passingRange.getMin()!=0 && parentEdge.passingRange.getMax()!=network.totalLength-1) {
+//            			return false;
+//            		}
+//            	}
+//
+//            }
+//        }
+//        return true;
+//
+//    }
 
 
 

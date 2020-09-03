@@ -49,7 +49,11 @@ public class RecombinationNetworkNode {
     
     public int[] states;
     
-    public boolean visited;
+    /**
+     * Dummy breakpoints used for the the likelihood calculations
+     */
+    public List<BreakPoints> dummy;
+    
 
 
     List<RecombinationNetworkEdge> children = new ArrayList<>();
@@ -64,6 +68,11 @@ public class RecombinationNetworkNode {
 
     public RecombinationNetworkNode setHeight(final double height) {
         this.height = height;
+        for (RecombinationNetworkEdge e : getParentEdges())
+        	e.makeDirty(Tree.IS_FILTHY);
+        for (RecombinationNetworkEdge e : getChildEdges())
+        	e.makeDirty(Tree.IS_FILTHY);
+
         return this;
     }
 
@@ -77,12 +86,16 @@ public class RecombinationNetworkNode {
     public RecombinationNetworkNode addParentEdge(RecombinationNetworkEdge newParentEdge) {
         parents.add(newParentEdge);
         newParentEdge.childNode = this;
+        newParentEdge.makeDirty(Tree.IS_FILTHY);
+
         return this;
     }
 
     public RecombinationNetworkNode removeParentEdge(RecombinationNetworkEdge parentEdge) {
         parents.remove(parentEdge);
         parentEdge.childNode = null;
+        parentEdge.makeDirty(Tree.IS_FILTHY);
+
         return this;
     }
 
@@ -93,12 +106,14 @@ public class RecombinationNetworkNode {
     public RecombinationNetworkNode addChildEdge(RecombinationNetworkEdge newChildEdge) {
         children.add(newChildEdge);
         newChildEdge.parentNode = this;
+        newChildEdge.makeDirty(Tree.IS_FILTHY);
         return this;
     }
 
     public RecombinationNetworkNode removeChildEdge(RecombinationNetworkEdge childEdge) {
         children.remove(childEdge);
         childEdge.parentNode = null;
+        childEdge.makeDirty(Tree.IS_FILTHY);
         return this;
     }
 

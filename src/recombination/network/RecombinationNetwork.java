@@ -211,11 +211,12 @@ public class RecombinationNetwork extends StateNode {
         }
 
         result.append("[&");
-        if (currentEdge.childNode.isRecombination())
-        	result.append("split={").append(currentEdge.passingRange).append("},");
         
         result.append("loci={").append(currentEdge.breakPoints);
         result.append("}");
+        result.append(",dirty=").append(currentEdge.isDirty);
+        
+
         result.append(",length=").append(currentEdge.breakPoints.getGeneticLengthInt());
         
         if (currentEdge.childNode.getTypeLabel() != null) 
@@ -257,6 +258,13 @@ public class RecombinationNetwork extends StateNode {
 
     @Override
     public void setEverythingDirty(boolean isDirty) {
+    	for (RecombinationNetworkEdge e : getEdges().stream().collect(Collectors.toList())) {
+            if (!isDirty) {
+            	e.isDirty = Tree.IS_CLEAN;
+            }else {
+            	e.isDirty = Tree.IS_FILTHY;
+            }
+    	}
         setSomethingIsDirty(isDirty);
     }
 
@@ -308,15 +316,29 @@ public class RecombinationNetwork extends StateNode {
 
     @Override
     protected void store() {
+//    	System.out.println("store");
         storedRootEdge = rootEdge.getCopy();
     }
+    
+    
+    public void storeLikelihoods() {
+//    	System.out.println("lstore");
+    	storedRootEdge = rootEdge.getCopy();
+    }
+
 
     @Override
     public void restore() {
+//    	System.out.println("restore");
+
         RecombinationNetworkEdge tmp = storedRootEdge;
         storedRootEdge = rootEdge;
         rootEdge = tmp;
         hasStartedEditing = false;
+        
+    	for (RecombinationNetworkEdge e : getEdges().stream().collect(Collectors.toList()))
+           	e.isDirty = Tree.IS_CLEAN;
+
     }
 
     @Override
@@ -458,7 +480,6 @@ public class RecombinationNetwork extends StateNode {
             }
 
             boolean lociProcessed = false;
-            boolean splitProcessed = false;
            
             List<Integer> breakPoints = new ArrayList<Integer>();
             List<Integer> splitPoints = new ArrayList<Integer>();
@@ -479,21 +500,6 @@ public class RecombinationNetwork extends StateNode {
                     }
 
                     lociProcessed = true;
-                    break;
-                }
-                for (NetworkParser.AttribContext attribCtx : ctx.post().meta().attrib()) {
-                    if (!removeQuotes(attribCtx.attribKey.getText()).equals("split"))
-                        continue;
-
-                    if (attribCtx.attribValue().vector() == null)
-                        continue;
-
-                    for (NetworkParser.AttribValueContext attribValueCtx : attribCtx.attribValue().vector().attribValue()) {
-                    	String[] attr = attribValueCtx.getText().split("-");
-                    	splitPoints.add(Integer.valueOf(attr[0]));
-                    	splitPoints.add(Integer.valueOf(attr[1]));
-                    }
-
                     break;
                 }
 
@@ -565,6 +571,11 @@ public class RecombinationNetwork extends StateNode {
         
         
     }    
+
+    @Override
+    public boolean somethingIsDirty() {    	
+        return this.hasStartedEditing;
+    }
 
     
 }

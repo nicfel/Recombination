@@ -1,6 +1,7 @@
 package recombination.operators;
 
 import beast.core.Input;
+import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
@@ -137,6 +138,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
                        
         if (edge.isRootEdge())
             return logP;
+        
+        edge.makeDirty(Tree.IS_DIRTY); 
 
         if (edge.parentNode.isRecombination()) {
         	

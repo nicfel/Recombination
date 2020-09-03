@@ -2,7 +2,7 @@ package recombination.network;
 
 import java.util.*;
 
-import recombination.network.BreakPoints.Range;
+import beast.evolution.tree.Tree;
 
 public class RecombinationNetworkEdge {
 
@@ -11,10 +11,24 @@ public class RecombinationNetworkEdge {
     public BreakPoints passingRange;
     public BreakPoints carryingRange;
     
+    /**
+     * status of this node after an operation is performed on the state *
+     */
+    int isDirty = Tree.IS_CLEAN;
+
+    public boolean visited;
+   
     // keeps track of the matrices for the likelihood calculations
     public double[] matrixList;
 
     public RecombinationNetworkEdge() { }
+
+    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
+    		BreakPoints breakPoints) {
+        this.parentNode = parentNode;
+        this.childNode = childNode;
+        this.breakPoints = breakPoints;
+    }
 
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
     		BreakPoints breakPoints, double[] matrixList) {
@@ -23,27 +37,17 @@ public class RecombinationNetworkEdge {
         this.breakPoints = breakPoints;
         if (matrixList!=null) {
         	this.matrixList = new double[matrixList.length];
-        	System.arraycopy(matrixList, 0, this.matrixList, 0, this.matrixList.length);
+        	System.arraycopy(matrixList, 0, this.matrixList, 0, matrixList.length);
         }
+        isDirty = Tree.IS_FILTHY;
     }
-    
-    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
-    		BreakPoints breakPoints, BreakPoints passingRange, double[] matrixList) {
-        this.parentNode = parentNode;
-        this.childNode = childNode;
-        this.breakPoints = breakPoints;
-        this.passingRange = passingRange;
-        if (matrixList!=null) {
-        	this.matrixList = new double[matrixList.length];
-        	System.arraycopy(matrixList, 0, this.matrixList, 0, this.matrixList.length);
-        }
-    }
-   
+       
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
     		int totalLength) {
         this.parentNode = parentNode;
         this.childNode = childNode;
         this.breakPoints = new BreakPoints(totalLength);
+        isDirty = Tree.IS_FILTHY;
    }
     
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
@@ -52,6 +56,7 @@ public class RecombinationNetworkEdge {
         this.childNode = childNode;
         this.breakPoints = new BreakPoints();
         this.breakPoints.init(breakPointsList);
+        isDirty = Tree.IS_FILTHY;
     }
 
     public double getRecombinationLength() {
@@ -79,11 +84,12 @@ public class RecombinationNetworkEdge {
 
     public RecombinationNetworkEdge getCopy(Map<RecombinationNetworkNode,RecombinationNetworkNode> seenNodes) {
         RecombinationNetworkEdge edgeCopy;
-        if (passingRange!=null)
-        	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), passingRange.copy(), matrixList);
-        else
-        	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), matrixList);
-        
+       	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy());
+       	if (matrixList!=null) {
+	       	edgeCopy.matrixList = new double[matrixList.length];
+	    	System.arraycopy(matrixList, 0,  edgeCopy.matrixList, 0, matrixList.length);
+       	}
+       
         RecombinationNetworkNode childNodeCopy;
         boolean traverse = true;
         if (seenNodes.containsKey(childNode)) {
@@ -109,6 +115,7 @@ public class RecombinationNetworkEdge {
         }
 
         childNodeCopy.addParentEdge(edgeCopy);
+       	edgeCopy.isDirty = isDirty;
 
         if (traverse) {
             for (RecombinationNetworkEdge childEdge : childNode.getChildEdges()) {
@@ -142,12 +149,20 @@ public class RecombinationNetworkEdge {
 		// TODO, allow for multiple
 		System.arraycopy(this.matrixList, 0, matrixList,
                 0, matrixList.length);
-	}
-	
+	}	
 	
 	public double[] getMatrix() {
 		return matrixList;
 	}
+	
+    public int isDirty() {
+        return isDirty;
+    }
+
+    public void makeDirty(final int dirty) {
+        isDirty |= dirty;
+    }
+
 
 
 	
