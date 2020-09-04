@@ -11,6 +11,7 @@ import coalre.network.parser.NetworkBaseVisitor;
 import coalre.network.parser.NetworkLexer;
 import coalre.network.parser.NetworkParser;
 import recombination.alignment.RecombinationAlignment;
+import recombination.util.NodeEdgeID;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -27,7 +28,7 @@ public class RecombinationNetwork extends StateNode {
     protected RecombinationNetworkEdge rootEdge;
 
     protected RecombinationNetworkEdge storedRootEdge;
-
+        
     public Integer totalLength = null;
     
     public RecombinationNetwork() {
@@ -318,15 +319,20 @@ public class RecombinationNetwork extends StateNode {
     protected void store() {
 //    	System.out.println("store");
         storedRootEdge = rootEdge.getCopy();
+        
+        List<Integer> nodeIDs = new ArrayList<>();
+        List<Integer> edgeIDs = new ArrayList<>();
+        for (RecombinationNetworkNode node : getNodes().stream().filter(e -> !e.isLeaf()).collect(Collectors.toList())) 
+        	nodeIDs.add(node.ID);
+        for (RecombinationNetworkEdge edge : getEdges()) 
+        	edgeIDs.add(edge.ID);
+        
+        NodeEdgeID.purgeNodeIDs(nodeIDs);
+        NodeEdgeID.purgeEdgeIDs(edgeIDs);
+    	NodeEdgeID.store();
     }
     
-    
-    public void storeLikelihoods() {
-//    	System.out.println("lstore");
-    	storedRootEdge = rootEdge.getCopy();
-    }
-
-
+   
     @Override
     public void restore() {
 //    	System.out.println("restore");
@@ -338,7 +344,9 @@ public class RecombinationNetwork extends StateNode {
         
     	for (RecombinationNetworkEdge e : getEdges().stream().collect(Collectors.toList()))
            	e.isDirty = Tree.IS_CLEAN;
-
+    	
+    	// restore id mapping
+    	NodeEdgeID.restore();
     }
 
     @Override

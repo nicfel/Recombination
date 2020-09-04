@@ -29,11 +29,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     protected int[] currentPartialsIndex;
     protected int[] storedPartialsIndex;
     
-    public HashMap<Double, double[]> partials;
-    protected HashMap<Double, double[]> storedPartials;
+    public HashMap<Integer, double[]> partials;
+    protected HashMap<Integer, double[]> storedPartials;
 
-    protected HashMap<Double, double[]> matrix;
-    protected HashMap<Double, double[]> storedMatrix;
+    protected HashMap<Integer, double[]> matrix;
+    protected HashMap<Integer, double[]> storedMatrix;
+    
+    protected List<Integer> touched;
+
     
     public HashMap<Integer, int[]> states;
 
@@ -69,10 +72,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         e1.andNot(compute2);
         e2.andNot(compute1);      
         
-        double[] mat1 = this.matrix.get(edge1.getLength());
-        double[] mat2 = this.matrix.get(edge2.getLength());
+        double[] mat1 = this.matrix.get(edge1.ID);
+        double[] mat2 = this.matrix.get(edge2.ID);
         
-        double[] partials_parent = this.partials.get(node.getHeight());
+        double[] partials_parent = this.partials.get(node.ID);
         int[] states_child1 = this.states.get(edge1.childNode.getTaxonIndex());
         int[] states_child2 = this.states.get(edge2.childNode.getTaxonIndex());
 
@@ -151,12 +154,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         e1.andNot(compute2);
         e2.andNot(compute1); 
         
-        double[] mat1 = this.matrix.get(edge1.getLength());
-        double[] mat2 = this.matrix.get(edge2.getLength());
+        double[] mat1 = this.matrix.get(edge1.ID);
+        double[] mat2 = this.matrix.get(edge2.ID);
         
-        double[] partials_parent = this.partials.get(node.getHeight());
+        double[] partials_parent = this.partials.get(node.ID);
         int[] states_child1 = this.states.get(edge1.childNode.getTaxonIndex());
-        double[] partials_child2 = this.partials.get(edge2.childNode.getHeight());
+        double[] partials_child2 = this.partials.get(edge2.childNode.ID);
 
         
     	for (int m = 0; m < joint.size(); m++) {
@@ -228,12 +231,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         e1.andNot(compute2);
         e2.andNot(compute1);
         
-        double[] mat1 = this.matrix.get(edge1.getLength());
-        double[] mat2 = this.matrix.get(edge2.getLength());
+        double[] mat1 = this.matrix.get(edge1.ID);
+        double[] mat2 = this.matrix.get(edge2.ID);
         
-        double[] partials_parent = this.partials.get(node.getHeight());
-        double[] partials_child1 = this.partials.get(edge1.childNode.getHeight());
-        double[] partials_child2 = this.partials.get(edge2.childNode.getHeight());
+        double[] partials_parent = this.partials.get(node.ID);
+        double[] partials_child1 = this.partials.get(edge1.childNode.ID);
+        double[] partials_child2 = this.partials.get(edge2.childNode.ID);
 
 
                 
@@ -281,7 +284,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
         int u = 0;
         int v = 0;
-        double[] inPartials = partials.get(node.getHeight());
+        double[] inPartials = partials.get(node.ID);
         for (int k = 0; k < nrOfPatterns; k++) {
 
             for (int i = 0; i < nrOfStates; i++) {
@@ -313,9 +316,9 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     protected void calculateStatesPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node) {
     	
-        double[] mat = this.matrix.get(edge.getLength());
+        double[] mat = this.matrix.get(edge.ID);
         
-        double[] partials_parent = this.partials.get(node.getHeight());
+        double[] partials_parent = this.partials.get(node.ID);
         int[] states_child = states.get(edge.childNode.getTaxonIndex());
 
 
@@ -355,9 +358,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
     	double sum1;
 
-        double[] mat = this.matrix.get(edge.getLength());
-        double[] partials_parent = this.partials.get(node.getHeight());
-        double[] partials_child = this.partials.get(edge.childNode.getHeight());
+        double[] mat = this.matrix.get(edge.ID);
+        double[] partials_parent = this.partials.get(node.ID);
+        double[] partials_child = this.partials.get(edge.childNode.ID);
+        
+        boolean error =false;
 
     	for (int m = 0; m < carries.size(); m++) {
     		for (int l = 0; l < nrOfMatrices; l++) {
@@ -375,6 +380,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                        sum1 += mat[w] * partials_child[v + j];	
 	                        w++;
 	                    }
+	                    
 	
 	                    partials_parent[u] = sum1;
 	                    u++;
@@ -383,7 +389,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	            }
             }
         }
-    	partials.replace(node.getHeight(), partials_parent);
+    	
+
     }
    
     /**
@@ -423,6 +430,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         this.nrOfMatrices = matrixCount;
         this.integrateCategories = integrateCategories;
         matrixSize = nrOfStates * nrOfStates;
+        storedPartials = new HashMap<>();
         
         
     }
@@ -469,6 +477,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
             }
         }
         
+        if (!touched.contains(node.ID)) {
+        	if (!partials.containsKey(node.ID))
+        		System.out.println("fldkskfldsd");
+        	
+        	touched.add(node.ID);
+        }
+
+        
 //        System.out.println(node.getHeight() + " " + computeFor);
 //        System.out.println(Arrays.toString(partials.get(node.getHeight())));
 //        System.out.println(states.keySet());
@@ -511,6 +527,15 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         } else {
         	calculatePartialsPruning(compute1, edge, node);
         }
+        
+        
+        if (!touched.contains(node.ID)) {
+        	if (!partials.containsKey(node.ID))
+        		System.out.println("fldkskfldsd");
+
+        	touched.add(node.ID);
+        }
+        
 //        System.exit(0);
 
 //        if (useScaling) {
@@ -634,13 +659,15 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     @Override
     public void restore() {
         // Rather than copying the stored stuff back, just swap the pointers...
-        HashMap<Double, double[]> tmp1 = matrix;
+        HashMap<Integer, double[]> tmp1 = matrix;
         matrix = storedMatrix;
         storedMatrix = tmp1;
 
-        HashMap<Double, double[]> tmp2 = partials;
+        HashMap<Integer, double[]> tmp2 = partials;
         partials = storedPartials;
         storedPartials = tmp2;
+    	touched = new ArrayList<>();
+
     }
 
     @Override
@@ -655,7 +682,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     @Override
     public void store() {
     	storedMatrix = new HashMap<>();
-    	for (Double e : matrix.keySet()) {
+    	for (Integer e : matrix.keySet()) {
     		double[] oldmat = matrix.get(e);
             double[] newmat = new double[oldmat.length];
     		System.arraycopy(oldmat, 0, newmat, 0, oldmat.length);
@@ -663,15 +690,40 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     	}
     	
     	storedPartials = new HashMap<>();
-    	for (Double n : partials.keySet()) {
+    	for (Integer n : partials.keySet()) {
     		double[] oldp = partials.get(n);
             double[] newp = new double[oldp.length];
     		System.arraycopy(oldp, 0, newp, 0, oldp.length);
-    		storedPartials.put(n, newp);
+   			storedPartials.put(n, newp);
     	}
 //    	
 //        System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, nrOfNodes);
 //        System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, nrOfNodes);
+    }
+    
+    
+    public void rapidStore() {
+    	storedMatrix = new HashMap<>();
+    	for (Integer e : matrix.keySet()) {
+    		double[] oldmat = matrix.get(e);
+            double[] newmat = new double[oldmat.length];
+    		System.arraycopy(oldmat, 0, newmat, 0, oldmat.length);
+    		storedMatrix.put(e, newmat);
+    	}
+    	
+		System.out.println(partials.keySet());
+    	for (Integer n : touched) {
+    		double[] oldp = partials.get(n);
+            double[] newp = new double[oldp.length];
+    		System.arraycopy(oldp, 0, newp, 0, oldp.length);
+    		if (storedPartials.containsKey(n))
+    			storedPartials.replace(n, newp);
+    		else
+    			storedPartials.put(n, newp);
+
+    	}
+    	
+    	touched = new ArrayList<>();
     }
 
 
@@ -679,10 +731,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	public void setEdgeMatrix(RecombinationNetworkEdge edge, int i, double[] matrix) {
         double[] newmat = new double[matrix.length];
 		System.arraycopy(matrix, 0, newmat, 0, matrix.length);
-		if (this.matrix.containsKey(edge)) {
-			this.matrix.replace(edge.getLength(), newmat);
+		if (this.matrix.containsKey(edge.ID)) {
+			this.matrix.replace(edge.ID, newmat);
 		}else {
-			this.matrix.put(edge.getLength(), newmat);
+			this.matrix.put(edge.ID, newmat);
 		}
 	}
 	
@@ -690,8 +742,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	@Override
     public void initPartials(RecombinationNetworkNode node, int length) {
-		if (!partials.containsKey(node.getHeight())) {
-			partials.put(node.getHeight(), new double[length]);
+		if (!partials.containsKey(node.ID)) {
+			partials.put(node.ID, new double[length]);
 		}
 	}
 	
@@ -706,28 +758,28 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 
 	@Override
-	public void cleanMatrix(List<RecombinationNetworkEdge> edges) {
-		matrix.clear();
-//		List<Double> remove = new ArrayList<>();
-//		for (Double e : matrix.keySet()) {
-//			if (!edges.contains(e))
-//				remove.add(e);
-//		}
-//			matrix.remove(e);
+	public void cleanMatrix(List<Integer> edgesIDs) {
+		touched = new ArrayList<>();
+		List<Integer> remove = new ArrayList<>();
+		for (Integer e : matrix.keySet()) {
+			if (!edgesIDs.contains(e))
+				remove.add(e);
+		}
+		for (Integer e : remove)
+			matrix.remove(e);
 
 	}
 
 
 	@Override
-	public void cleanPartials(List<RecombinationNetworkNode> nodes) {
-		partials.clear();
-//		List<RecombinationNetworkNode> remove = new ArrayList<>();
-//		for ( n : partials.keySet()) {
-//			if (!nodes.contains(n))
-//				remove.add(n);
-//		}
-//		for (RecombinationNetworkNode n : remove)
-//			partials.remove(n);
+	public void cleanPartials(List<Integer> nodeIDs) {
+		List<Integer> remove = new ArrayList<>();
+		for (Integer n : partials.keySet()) {
+			if (!nodeIDs.contains(n))
+				remove.add(n);
+		}
+		for (Integer n : remove)
+			partials.remove(n);
 
 	}
 

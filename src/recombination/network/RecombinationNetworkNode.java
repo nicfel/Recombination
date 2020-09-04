@@ -9,6 +9,7 @@ import java.util.TreeMap;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import recombination.network.BreakPoints.Range;
+import recombination.util.NodeEdgeID;
 
 public class RecombinationNetworkNode {
 
@@ -46,6 +47,10 @@ public class RecombinationNetworkNode {
      * Dummy breakpoints used for the the likelihood calculations
      */
     public List<BreakPoints> dummy;
+    public List<Boolean> computeOnwards;
+    
+    
+    public Integer ID;
     
 
 
@@ -53,7 +58,14 @@ public class RecombinationNetworkNode {
     List<RecombinationNetworkEdge> parents = new ArrayList<>();
 
     public RecombinationNetworkNode() {
+    	ID = NodeEdgeID.getNewNodeID();
     }
+    
+    public RecombinationNetworkNode(int id) {
+    	
+    	ID = id;
+    }
+
 
     public double getHeight() {
         return height;

@@ -3,6 +3,7 @@ package recombination.network;
 import java.util.*;
 
 import beast.evolution.tree.Tree;
+import recombination.util.NodeEdgeID;
 
 public class RecombinationNetworkEdge {
 
@@ -11,6 +12,8 @@ public class RecombinationNetworkEdge {
     public BreakPoints passingRange;
     public BreakPoints carryingRange;
     
+    public Integer ID;
+    
     /**
      * status of this node after an operation is performed on the state *
      */
@@ -18,32 +21,48 @@ public class RecombinationNetworkEdge {
 
     public boolean visited;
    
-    public RecombinationNetworkEdge() { }
+    public RecombinationNetworkEdge() { 
+        ID = NodeEdgeID.getNewEdgeID();
+        isDirty = Tree.IS_FILTHY;
+    }
 
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
     		BreakPoints breakPoints) {
         this.parentNode = parentNode;
         this.childNode = childNode;
         this.breakPoints = breakPoints;
-    }
-
-       
-    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
-    		int totalLength) {
-        this.parentNode = parentNode;
-        this.childNode = childNode;
-        this.breakPoints = new BreakPoints(totalLength);
+        ID = NodeEdgeID.getNewEdgeID();
         isDirty = Tree.IS_FILTHY;
-   }
+    }
     
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
-    		List<Integer> breakPointsList) {
+    		BreakPoints breakPoints, int id) {
         this.parentNode = parentNode;
         this.childNode = childNode;
-        this.breakPoints = new BreakPoints();
-        this.breakPoints.init(breakPointsList);
+        this.breakPoints = breakPoints;
+        ID = id;
         isDirty = Tree.IS_FILTHY;
     }
+
+    
+
+       
+//    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
+//    		int totalLength) {
+//        this.parentNode = parentNode;
+//        this.childNode = childNode;
+//        this.breakPoints = new BreakPoints(totalLength);
+//        isDirty = Tree.IS_FILTHY;
+//   }
+    
+//    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
+//    		List<Integer> breakPointsList) {
+//        this.parentNode = parentNode;
+//        this.childNode = childNode;
+//        this.breakPoints = new BreakPoints();
+//        this.breakPoints.init(breakPointsList);
+//        isDirty = Tree.IS_FILTHY;
+//    }
 
     public double getRecombinationLength() {
         // There are always two reassortment configurations that
@@ -70,7 +89,7 @@ public class RecombinationNetworkEdge {
 
     public RecombinationNetworkEdge getCopy(Map<RecombinationNetworkNode,RecombinationNetworkNode> seenNodes) {
         RecombinationNetworkEdge edgeCopy;
-       	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy());
+       	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), ID);
        
         RecombinationNetworkNode childNodeCopy;
         boolean traverse = true;
@@ -78,7 +97,7 @@ public class RecombinationNetworkEdge {
             childNodeCopy = seenNodes.get(childNode);
             traverse = false;
         } else {
-            childNodeCopy = new RecombinationNetworkNode();
+            childNodeCopy = new RecombinationNetworkNode(childNode.ID);
             childNodeCopy.setHeight(childNode.getHeight());
             childNodeCopy.setTaxonLabel(childNode.getTaxonLabel());
             childNodeCopy.setTaxonIndex(childNode.getTaxonIndex());

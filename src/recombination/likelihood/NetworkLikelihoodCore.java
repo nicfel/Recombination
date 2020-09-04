@@ -67,6 +67,8 @@ abstract public class NetworkLikelihoodCore {
      * numeric issues (underflow).
      */
     boolean m_bUseScaling = false;
+    
+    boolean debug = false;
 
     abstract public void setUseScaling(double scale);
 
@@ -112,15 +114,17 @@ abstract public class NetworkLikelihoodCore {
 
     abstract public void initPartials(RecombinationNetworkNode node, int length);
 
-    abstract public void cleanMatrix(List<RecombinationNetworkEdge> edges);
+    abstract public void cleanMatrix(List<Integer> edges);
 
-    abstract public void cleanPartials(List<RecombinationNetworkNode> nodes);
+    abstract public void cleanPartials(List<Integer> nodes);
 
     /**
      * store current state *
      */
     abstract public void store();
 
+    abstract public void rapidStore();
+    
     /**
      * reset current state to stored state, only used when switching from non-scaled to scaled or vice versa *
      */
@@ -134,4 +138,5 @@ abstract public class NetworkLikelihoodCore {
 //    abstract LikelihoodCore feelsGood();
 
     abstract public void calculatePartialsRecombination(RecombinationNetworkEdge edge1, RecombinationNetworkNode node, BreakPoints compute1);
+	
 }
