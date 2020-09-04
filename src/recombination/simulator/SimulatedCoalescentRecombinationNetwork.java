@@ -175,7 +175,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         // Create corresponding lineage
         BreakPoints breakPoints = new BreakPoints(totalLength);        
         
-        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, n, breakPoints, null);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, n, breakPoints);
         
         extantLineages.add(lineage);
         n.addParentEdge(lineage);
@@ -206,7 +206,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
 
         // Create new lineage
-        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints, null);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints);
         coalescentNode.addParentEdge(lineage);
 
         extantLineages.remove(lineage1);
@@ -234,8 +234,8 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         node.setHeight(reassortmentTime).addChildEdge(lineage);
 
         // Create reassortment lineages
-        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), null);
-        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), null);
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft());
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight());
             
         // add the breakPoints to the edges
         leftLineage.setPassingRange(0, breakpoint);

@@ -24,6 +24,8 @@
 */
 package recombination.likelihood;
 
+import java.util.List;
+
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
@@ -102,7 +104,17 @@ abstract public class NetworkLikelihoodCore {
     public void processStack() {
     }
 
-    abstract protected void calculateIntegratePartials(double[] inPartials, double[] proportions, double[] outPartials);
+    abstract protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials);
+
+    abstract public void setEdgeMatrix(RecombinationNetworkEdge edge, int i, double[] matrix);
+    
+    abstract public void setStates(RecombinationNetworkNode node, int[] states);
+
+    abstract public void initPartials(RecombinationNetworkNode node, int length);
+
+    abstract public void cleanMatrix(List<RecombinationNetworkEdge> edges);
+
+    abstract public void cleanPartials(List<RecombinationNetworkNode> nodes);
 
     /**
      * store current state *

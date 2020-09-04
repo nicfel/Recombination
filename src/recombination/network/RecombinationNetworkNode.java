@@ -43,13 +43,6 @@ public class RecombinationNetworkNode {
     protected String metaDataString;
     
     /**
-     *  keeps track of the partials for the likelihood calculations
-     */
-    public double[] partials;
-    
-    public int[] states;
-    
-    /**
      * Dummy breakpoints used for the the likelihood calculations
      */
     public List<BreakPoints> dummy;

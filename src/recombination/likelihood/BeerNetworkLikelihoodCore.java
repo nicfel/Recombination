@@ -1,6 +1,9 @@
 package recombination.likelihood;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 import beast.core.Logger;
 import recombination.network.BreakPoints;
@@ -20,12 +23,19 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
     protected boolean integrateCategories;
 
-    protected int[][] states;
 
     protected int[] currentMatrixIndex;
     protected int[] storedMatrixIndex;
     protected int[] currentPartialsIndex;
     protected int[] storedPartialsIndex;
+    
+    public HashMap<Double, double[]> partials;
+    protected HashMap<Double, double[]> storedPartials;
+
+    protected HashMap<Double, double[]> matrix;
+    protected HashMap<Double, double[]> storedMatrix;
+    
+    public HashMap<Integer, int[]> states;
 
     protected boolean useScaling = false;
 
@@ -36,6 +46,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
     public BeerNetworkLikelihoodCore(int nrOfStates) {
         this.nrOfStates = nrOfStates;
+        matrix = new HashMap<>();
+        partials = new HashMap<>();
+        states = new HashMap<>();
+        
     } // c'tor
 
 
@@ -54,6 +68,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         joint.and(compute2);
         e1.andNot(compute2);
         e2.andNot(compute1);      
+        
+        double[] mat1 = this.matrix.get(edge1.getLength());
+        double[] mat2 = this.matrix.get(edge2.getLength());
+        
+        double[] partials_parent = this.partials.get(node.getHeight());
+        int[] states_child1 = this.states.get(edge1.childNode.getTaxonIndex());
+        int[] states_child2 = this.states.get(edge2.childNode.getTaxonIndex());
+
 
 
     	for (int m = 0; m < joint.size(); m++) {
@@ -61,8 +83,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         		int v = l*nrOfPatterns + joint.getRange(m).from*nrOfStates;
 
 	            for (int k = joint.getRange(m).from; k <= joint.getRange(m).to; k++) {
-	                int state1 = edge1.childNode.states[k];
-	                int state2 = edge2.childNode.states[k];
+	                int state1 = states_child1[k];
+	                int state2 = states_child2[k];
 	
 	                int w = l * matrixSize;
 	
@@ -70,7 +92,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	                    for (int i = 0; i < nrOfStates; i++) {
 	
-	                    	node.partials[v] = edge1.matrixList[w + state1] * edge2.matrixList[w + state2];
+	                    	partials_parent[v] = mat1[w + state1] * mat2[w + state2];
+	                    	
 	
 	                        v++;
 	                        w += nrOfStates;
@@ -81,7 +104,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	                    for (int i = 0; i < nrOfStates; i++) {
 	
-	                    	node.partials[v] = edge1.matrixList[w + state1];
+	                    	partials_parent[v] = mat1[w + state1];
 	
 	                        v++;
 	                        w += nrOfStates;
@@ -91,7 +114,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	                    for (int i = 0; i < nrOfStates; i++) {
 	
-	                    	node.partials[v] = edge2.matrixList[w + state2];
+	                    	partials_parent[v] = mat2[w + state2];
 	
 	                        v++;
 	                        w += nrOfStates;
@@ -100,7 +123,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                    // both children have a gap or unknown state so set partials to 1
 	
 	                    for (int j = 0; j < nrOfStates; j++) {
-	                    	node.partials[v] = 1.0;
+	                    	partials_parent[v] = 1.0;
 	                        v++;
 	                    }
 	                }
@@ -126,7 +149,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         
         joint.and(compute2);
         e1.andNot(compute2);
-        e2.andNot(compute1);      
+        e2.andNot(compute1); 
+        
+        double[] mat1 = this.matrix.get(edge1.getLength());
+        double[] mat2 = this.matrix.get(edge2.getLength());
+        
+        double[] partials_parent = this.partials.get(node.getHeight());
+        int[] states_child1 = this.states.get(edge1.childNode.getTaxonIndex());
+        double[] partials_child2 = this.partials.get(edge2.childNode.getHeight());
 
         
     	for (int m = 0; m < joint.size(); m++) {
@@ -136,7 +166,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 	            for (int k = joint.getRange(m).from; k <= joint.getRange(m).to; k++) {
 	
-	                int state1 = edge1.childNode.states[k];
+	                int state1 = states_child1[k];
 	
 	                int w = l * matrixSize;
 	
@@ -145,14 +175,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	                    for (int i = 0; i < nrOfStates; i++) {
 	
-	                        tmp = edge1.matrixList[w + state1];
+	                        tmp = mat1[w + state1];
 	
 	                        sum = 0.0;
 	                        for (int j = 0; j < nrOfStates; j++) {
-	                            sum += edge2.matrixList[w] * edge2.childNode.partials[v + j];
+	                            sum += mat2[w] * partials_child2[v + j];
 	                            w++;
 	                        }
-	                        node.partials[u] = tmp * sum;
+	                        partials_parent[u] = tmp * sum;
 	                        u++;
 	                    }
 	
@@ -164,10 +194,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	                        sum = 0.0;
 	                        for (int j = 0; j < nrOfStates; j++) {
-	                            sum += edge2.matrixList[w] * edge2.childNode.partials[v + j];
+	                            sum += mat2[w] * partials_child2[v + j];
 	                            w++;
 	                        }
-	                        node.partials[u] = sum;
+	                        partials_parent[u] = sum;
 	                        u++;
 	                    }
 	
@@ -197,6 +227,15 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         joint.and(compute2);
         e1.andNot(compute2);
         e2.andNot(compute1);
+        
+        double[] mat1 = this.matrix.get(edge1.getLength());
+        double[] mat2 = this.matrix.get(edge2.getLength());
+        
+        double[] partials_parent = this.partials.get(node.getHeight());
+        double[] partials_child1 = this.partials.get(edge1.childNode.getHeight());
+        double[] partials_child2 = this.partials.get(edge2.childNode.getHeight());
+
+
                 
     	for (int m = 0; m < joint.size(); m++) {
     		for (int l = 0; l < nrOfMatrices; l++) {
@@ -211,13 +250,13 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                    sum1 = sum2 = 0.0;
 	
 	                    for (int j = 0; j < nrOfStates; j++) {
-	                        sum1 += edge1.matrixList[w] * edge1.childNode.partials[v + j];
-	                        sum2 += edge2.matrixList[w] * edge2.childNode.partials[v + j];
+	                        sum1 += mat1[w] * partials_child1[v + j];
+	                        sum2 += mat2[w] * partials_child2[v + j];	                        
 	
 	                        w++;
 	                    }
 	                    
-	                    node.partials[u] = sum1 * sum2;
+	                    partials_parent[u] = sum1 * sum2;
 	                    u++;
 	                }
 	                v += nrOfStates;
@@ -238,10 +277,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * @param outPartials an array into which the partials will go
      */
     @Override
-	protected void calculateIntegratePartials(double[] inPartials, double[] proportions, double[] outPartials) {
+	protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials) {
 
         int u = 0;
         int v = 0;
+        double[] inPartials = partials.get(node.getHeight());
         for (int k = 0; k < nrOfPatterns; k++) {
 
             for (int i = 0; i < nrOfStates; i++) {
@@ -272,19 +312,25 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have exactly known states (e.g. for leaves).
      */
     protected void calculateStatesPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node) {
+    	
+        double[] mat = this.matrix.get(edge.getLength());
+        
+        double[] partials_parent = this.partials.get(node.getHeight());
+        int[] states_child = states.get(edge.childNode.getTaxonIndex());
+
+
     	for (int m = 0; m < carries.size(); m++) {
     		for (int l = 0; l < nrOfMatrices; l++) {
         		int v = l*nrOfPatterns + carries.getRange(m).from*nrOfStates;
 	            for (int k = carries.getRange(m).from; k <= carries.getRange(m).to; k++) {
 	            	
-	                int state1 = edge.childNode.states[k];
+	                int state1 = states_child[k];
 	                if (state1 < nrOfStates) {
 	                	int w = l * matrixSize;
 	
 	                    for (int i = 0; i < nrOfStates; i++) {
 	
-	                    	node.partials[v] = edge.matrixList[w + state1];
-	
+	                    	partials_parent[v] = mat[w + state1];
 	                        v++;
 	                        w += nrOfStates;
 	                    }
@@ -293,7 +339,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                    // both children have a gap or unknown state so set partials to 1
 	
 	                    for (int j = 0; j < nrOfStates; j++) {
-	                    	node.partials[v] = 1.0;
+	                    	partials_parent[v] = 1.0;
 	                        v++;
 	                    }
 	                }
@@ -309,6 +355,9 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
     	double sum1;
 
+        double[] mat = this.matrix.get(edge.getLength());
+        double[] partials_parent = this.partials.get(node.getHeight());
+        double[] partials_child = this.partials.get(edge.childNode.getHeight());
 
     	for (int m = 0; m < carries.size(); m++) {
     		for (int l = 0; l < nrOfMatrices; l++) {
@@ -323,18 +372,18 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                    sum1 =  0.0;
 	
 	                    for (int j = 0; j < nrOfStates; j++) {
-	                        sum1 += edge.matrixList[w] * edge.childNode.partials[v + j];
-	
+	                        sum1 += mat[w] * partials_child[v + j];	
 	                        w++;
 	                    }
 	
-	                    node.partials[u] = sum1;
+	                    partials_parent[u] = sum1;
 	                    u++;
 	                }
 	                v += nrOfStates;
 	            }
             }
         }
+    	partials.replace(node.getHeight(), partials_parent);
     }
    
     /**
@@ -374,6 +423,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         this.nrOfMatrices = matrixCount;
         this.integrateCategories = integrateCategories;
         matrixSize = nrOfStates * nrOfStates;
+        
+        
     }
 
     /**
@@ -404,19 +455,34 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
 	public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
-        if (edge1.childNode.states != null) {
-            if (edge2.childNode.states != null) {
+        if (states.containsKey(edge1.childNode.getTaxonIndex())) {
+            if (states.containsKey(edge2.childNode.getTaxonIndex())) {
                 calculateStatesStatesPruning(edge1,edge2,node,computeFor,compute1,compute2);
             } else {
                 calculateStatesPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
             }
         } else {
-            if (edge2.childNode.states != null) {
+            if (states.containsKey(edge2.childNode.getTaxonIndex())) {
                 calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute2,compute1);
             } else {
                 calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
             }
         }
+        
+//        System.out.println(node.getHeight() + " " + computeFor);
+//        System.out.println(Arrays.toString(partials.get(node.getHeight())));
+//        System.out.println(states.keySet());
+//        System.out.println(edge1.childNode);
+//        System.out.println(edge1.childNode.isLeaf());
+
+        
+//        System.out.println(matrix.get(edge1)[0]);
+        
+//        System.out.println(node.getHeight() + " " + matrix.size());
+//        System.out.println();
+//
+//        for (RecombinationNetworkEdge e : matrix.keySet())
+//        	System.out.println(matrix.get(e)[0]);
         
 
 //        if (useScaling) {
@@ -440,12 +506,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     
     @Override
 	public void calculatePartialsRecombination(RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints compute1) {
-        if (edge.childNode.states != null) {
+        if (states.containsKey(edge.childNode.getTaxonIndex())) {
         	calculateStatesPruning(compute1, edge, node);
         } else {
         	calculatePartialsPruning(compute1, edge, node);
         }
-        
 //        System.exit(0);
 
 //        if (useScaling) {
@@ -467,51 +532,9 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 //        }
     }
 
-
-//    /**
-//     * Calculates partial likelihoods at a node.
-//     *
-//     * @param nodeIndex1 the 'child 1' node
-//     * @param nodeIndex2 the 'child 2' node
-//     * @param nodeIndex3 the 'parent' node
-//     * @param matrixMap  a map of which matrix to use for each pattern (can be null if integrating over categories)
-//     */
-//    public void calculatePartials(int nodeIndex1, int nodeIndex2, int nodeIndex3, int[] matrixMap) {
-//        if (states[nodeIndex1] != null) {
-//            if (states[nodeIndex2] != null) {
-//                calculateStatesStatesPruning(
-//                        states[nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-//                        states[nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-//                        partials[currentPartialsIndex[nodeIndex3]][nodeIndex3], matrixMap);
-//            } else {
-//                calculateStatesPartialsPruning(
-//                        states[nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-//                        partials[currentPartialsIndex[nodeIndex2]][nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-//                        partials[currentPartialsIndex[nodeIndex3]][nodeIndex3], matrixMap);
-//            }
-//        } else {
-//            if (states[nodeIndex2] != null) {
-//                calculateStatesPartialsPruning(
-//                        states[nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-//                        partials[currentPartialsIndex[nodeIndex1]][nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-//                        partials[currentPartialsIndex[nodeIndex3]][nodeIndex3], matrixMap);
-//            } else {
-//                calculatePartialsPartialsPruning(
-//                        partials[currentPartialsIndex[nodeIndex1]][nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-//                        partials[currentPartialsIndex[nodeIndex2]][nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-//                        partials[currentPartialsIndex[nodeIndex3]][nodeIndex3], matrixMap);
-//            }
-//        }
-//
-//        if (useScaling) {
-//            scalePartials(nodeIndex3);
-//        }
-//    }
-//
-//
-//    @Override
+    @Override
 	public void integratePartials(RecombinationNetworkEdge edge, double[] proportions, double[] outPartials) {
-        calculateIntegratePartials(edge.childNode.partials, proportions, outPartials);
+        calculateIntegratePartials(edge.childNode, proportions, outPartials);
     }
 
 
@@ -578,6 +601,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         }
     }
 
+    
+    
     /**
      * This function returns the scaling factor for that pattern by summing over
      * the log scalings used at each node. If scaling is off then this just returns
@@ -608,14 +633,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void restore() {
-//        // Rather than copying the stored stuff back, just swap the pointers...
-//        int[] tmp1 = currentMatrixIndex;
-//        currentMatrixIndex = storedMatrixIndex;
-//        storedMatrixIndex = tmp1;
-//
-//        int[] tmp2 = currentPartialsIndex;
-//        currentPartialsIndex = storedPartialsIndex;
-//        storedPartialsIndex = tmp2;
+        // Rather than copying the stored stuff back, just swap the pointers...
+        HashMap<Double, double[]> tmp1 = matrix;
+        matrix = storedMatrix;
+        storedMatrix = tmp1;
+
+        HashMap<Double, double[]> tmp2 = partials;
+        partials = storedPartials;
+        storedPartials = tmp2;
     }
 
     @Override
@@ -629,8 +654,81 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void store() {
+    	storedMatrix = new HashMap<>();
+    	for (Double e : matrix.keySet()) {
+    		double[] oldmat = matrix.get(e);
+            double[] newmat = new double[oldmat.length];
+    		System.arraycopy(oldmat, 0, newmat, 0, oldmat.length);
+    		storedMatrix.put(e, newmat);
+    	}
+    	
+    	storedPartials = new HashMap<>();
+    	for (Double n : partials.keySet()) {
+    		double[] oldp = partials.get(n);
+            double[] newp = new double[oldp.length];
+    		System.arraycopy(oldp, 0, newp, 0, oldp.length);
+    		storedPartials.put(n, newp);
+    	}
 //    	
 //        System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, nrOfNodes);
 //        System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, nrOfNodes);
     }
+
+
+	@Override
+	public void setEdgeMatrix(RecombinationNetworkEdge edge, int i, double[] matrix) {
+        double[] newmat = new double[matrix.length];
+		System.arraycopy(matrix, 0, newmat, 0, matrix.length);
+		if (this.matrix.containsKey(edge)) {
+			this.matrix.replace(edge.getLength(), newmat);
+		}else {
+			this.matrix.put(edge.getLength(), newmat);
+		}
+	}
+	
+	
+	
+	@Override
+    public void initPartials(RecombinationNetworkNode node, int length) {
+		if (!partials.containsKey(node.getHeight())) {
+			partials.put(node.getHeight(), new double[length]);
+		}
+	}
+	
+	@Override
+	public void setStates(RecombinationNetworkNode node, int[] states) {
+        int[] newstates = new int[states.length];
+		System.arraycopy(states, 0, newstates, 0, states.length);
+		this.states.put(node.getTaxonIndex(), newstates);
+
+
+	}
+
+
+	@Override
+	public void cleanMatrix(List<RecombinationNetworkEdge> edges) {
+		matrix.clear();
+//		List<Double> remove = new ArrayList<>();
+//		for (Double e : matrix.keySet()) {
+//			if (!edges.contains(e))
+//				remove.add(e);
+//		}
+//			matrix.remove(e);
+
+	}
+
+
+	@Override
+	public void cleanPartials(List<RecombinationNetworkNode> nodes) {
+		partials.clear();
+//		List<RecombinationNetworkNode> remove = new ArrayList<>();
+//		for ( n : partials.keySet()) {
+//			if (!nodes.contains(n))
+//				remove.add(n);
+//		}
+//		for (RecombinationNetworkNode n : remove)
+//			partials.remove(n);
+
+	}
+
 } // class BeerLikelihoodCore

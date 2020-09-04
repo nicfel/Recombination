@@ -67,9 +67,7 @@ public class NetworklikelihoodTest extends TestCase {
             TreeLikelihood treelikelihood = newTreeLikelihood();
             treelikelihood.initByName("data", data_pos, "tree", t, "siteModel", siteModel);
             treeLog += treelikelihood.calculateLogP();
-        }
-        
-        
+        }        
         
         assertEquals(logP, treeLog, BEASTTestCase.PRECISION);
         assertEquals(logP, likelihood.calculateLogP(), BEASTTestCase.PRECISION);

@@ -18,9 +18,6 @@ public class RecombinationNetworkEdge {
 
     public boolean visited;
    
-    // keeps track of the matrices for the likelihood calculations
-    public double[] matrixList;
-
     public RecombinationNetworkEdge() { }
 
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
@@ -30,17 +27,6 @@ public class RecombinationNetworkEdge {
         this.breakPoints = breakPoints;
     }
 
-    public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
-    		BreakPoints breakPoints, double[] matrixList) {
-        this.parentNode = parentNode;
-        this.childNode = childNode;
-        this.breakPoints = breakPoints;
-        if (matrixList!=null) {
-        	this.matrixList = new double[matrixList.length];
-        	System.arraycopy(matrixList, 0, this.matrixList, 0, matrixList.length);
-        }
-        isDirty = Tree.IS_FILTHY;
-    }
        
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
     		int totalLength) {
@@ -85,10 +71,6 @@ public class RecombinationNetworkEdge {
     public RecombinationNetworkEdge getCopy(Map<RecombinationNetworkNode,RecombinationNetworkNode> seenNodes) {
         RecombinationNetworkEdge edgeCopy;
        	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy());
-       	if (matrixList!=null) {
-	       	edgeCopy.matrixList = new double[matrixList.length];
-	    	System.arraycopy(matrixList, 0,  edgeCopy.matrixList, 0, matrixList.length);
-       	}
        
         RecombinationNetworkNode childNodeCopy;
         boolean traverse = true;
@@ -103,14 +85,6 @@ public class RecombinationNetworkEdge {
             childNodeCopy.setTypeIndex(childNode.typeIndex);
             childNodeCopy.setTypeLabel(childNode.typeLabel);
             childNodeCopy.setTypeLabel(childNode.typeLabel);
-            if (childNode.states!=null) {
-            	childNodeCopy.states = new int[childNode.states.length];
-            	System.arraycopy(childNode.states, 0,  childNodeCopy.states, 0, childNode.states.length);
-            }
-            if (childNode.partials!=null) {
-            	childNodeCopy.partials = new double[childNode.partials.length];
-            	System.arraycopy(childNode.partials, 0,  childNodeCopy.partials, 0, childNode.partials.length);
-            }
             seenNodes.put(childNode, childNodeCopy);
         }
 
@@ -144,17 +118,7 @@ public class RecombinationNetworkEdge {
 		passingRange = lociToDivert;
 	}
 
-	
-	public void setMatrix(double[] matrixList) {
-		// TODO, allow for multiple
-		System.arraycopy(this.matrixList, 0, matrixList,
-                0, matrixList.length);
-	}	
-	
-	public double[] getMatrix() {
-		return matrixList;
-	}
-	
+		
     public int isDirty() {
         return isDirty;
     }
