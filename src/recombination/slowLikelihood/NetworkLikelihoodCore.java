@@ -22,12 +22,10 @@
 * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
 * Boston, MA  02110-1301  USA
 */
-package recombination.likelihood;
+package recombination.slowLikelihood;
 
-import java.util.HashMap;
 import java.util.List;
 
-import beast.evolution.alignment.Alignment;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
@@ -94,7 +92,7 @@ abstract public class NetworkLikelihoodCore {
     /**
      * integrate partials over categories (if any). *
      */
-    abstract public void integratePartials(RecombinationNetworkEdge edge, double[] proportions, double[] outPartials, Alignment data);
+    abstract public void integratePartials(RecombinationNetworkEdge edge, double[] proportions, double[] outPartials);
 
     /**
      * calculate log likelihoods at the root of the tree,
@@ -108,7 +106,7 @@ abstract public class NetworkLikelihoodCore {
     public void processStack() {
     }
 
-    abstract protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials, Alignment data);
+    abstract protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials);
 
     abstract public void setEdgeMatrix(RecombinationNetworkEdge edge, int i, double[] matrix);
     
@@ -139,6 +137,6 @@ abstract public class NetworkLikelihoodCore {
 //    /** do internal diagnosics, and suggest an alternative core if appropriate **/ 
 //    abstract LikelihoodCore feelsGood();
 
-    abstract public void calculatePartialsRecombination(RecombinationNetworkEdge edge1, RecombinationNetworkNode node, BreakPoints compute1, BreakPoints computeFor);
+    abstract public void calculatePartialsRecombination(RecombinationNetworkEdge edge1, RecombinationNetworkNode node, BreakPoints compute1);
 	
 }

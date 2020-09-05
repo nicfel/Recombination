@@ -146,8 +146,6 @@ public class BreakPoints {
 		return breakPoints.get(i);
 	}
 
-
-
 	
 	public boolean isEmpty() {
 		if (breakPoints==null)
@@ -341,6 +339,42 @@ public class BreakPoints {
 			}
 		}
 		this.breakPoints = new ArrayList<>(newBreaks);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+        if (this == obj)
+    		return true;
+        
+        BreakPoints bp = (BreakPoints) obj;
+        if (bp.size()!=this.size())
+        	return false;
+        
+        if (bp.getRange(0).from!=getRange(0).from)
+        	return false;
+        
+        if (bp.getRange(0).to!=getRange(0).to)
+        	return false;
+        
+        for (int i=1; i < size(); i++) {
+            if (bp.getRange(i).from!=getRange(i).from)
+            	return false;
+            
+            if (bp.getRange(i).to!=getRange(i).to)
+            	return false;
+        }        
+        return true;
+	}
+	
+	@Override
+	public int hashCode() {
+		// TODO more unique hashcode
+		int result = 0;
+		for (int i = 0; i < size(); i++) {
+			result += (getRange(i).to- getRange(i).from+1) + getLength()*i;
+		}
+		
+		return result;
 	}
 
 

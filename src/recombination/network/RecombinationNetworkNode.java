@@ -47,6 +47,7 @@ public class RecombinationNetworkNode {
      * Dummy breakpoints used for the the likelihood calculations
      */
     public List<BreakPoints> dummy;
+    public List<BreakPoints> dummy2;
     public List<Boolean> computeOnwards;
     
     

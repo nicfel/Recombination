@@ -37,7 +37,7 @@ public class NetworklikelihoodTest extends TestCase {
     @Test
     public void testJC69Likelihood() throws Exception {
         // Set up JC69 model: uniform freqs, kappa = 1, 0 gamma categories
-    	RecombinationAlignment data = getAlignmentShort();
+    	Alignment data = getAlignmentShort();
         RecombinationNetwork network = getNetworkShort();
                        
         
@@ -48,9 +48,12 @@ public class NetworklikelihoodTest extends TestCase {
         siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 1, "substModel", JC);
 
         NetworkLikelihood likelihood = newNetworkLikelihood();
-        likelihood.initByName("recombinationData", data, "recombinationNetwork", network, "siteModel", siteModel);
+        likelihood.initByName("data", data, "recombinationNetwork", network, "siteModel", siteModel);
         double logP = 0;
         logP = likelihood.calculateLogP();
+        
+        
+        System.out.println("f;dl;fdlk;d");
         
         
         // compute the tree likelihoods for each positions individually
@@ -76,7 +79,7 @@ public class NetworklikelihoodTest extends TestCase {
     @Test
     public void testHKYLikelihood() throws Exception {
         // Set up JC69 model: uniform freqs, kappa = 1, 0 gamma categories
-    	RecombinationAlignment data = getAlignmentShort();
+    	Alignment data = getAlignmentShort();
         RecombinationNetwork network = getNetworkShort();
                        
     	Alignment data_freqs = getNormalAlignment();
@@ -92,7 +95,7 @@ public class NetworklikelihoodTest extends TestCase {
         siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 1, "substModel", hky);
 
         NetworkLikelihood likelihood = newNetworkLikelihood();
-        likelihood.initByName("recombinationData", data, "recombinationNetwork", network, "siteModel", siteModel);
+        likelihood.initByName("data", data, "recombinationNetwork", network, "siteModel", siteModel);
         double logP = 0;
         logP = likelihood.calculateLogP();
         
@@ -134,12 +137,12 @@ public class NetworklikelihoodTest extends TestCase {
         return data;
     }
     
-    static public RecombinationAlignment getAlignmentShort() throws Exception {
+    static public Alignment getAlignmentShort() throws Exception {
         Sequence t0 = new Sequence("t0", "AGAA");
         Sequence t1 = new Sequence("t1", "AGAT");
         Sequence t2 = new Sequence("t2", "AGAA");
 
-        RecombinationAlignment data = new RecombinationAlignment();
+        Alignment data = new Alignment();
         data.initByName("sequence", t0, "sequence", t1, "sequence", t2,
                 "dataType", "nucleotide"
         );

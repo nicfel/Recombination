@@ -1,4 +1,4 @@
-package recombination.likelihood;
+package recombination.slowLikelihood;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Logger;
-import beast.evolution.alignment.Alignment;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
@@ -30,8 +29,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     protected int[] currentPartialsIndex;
     protected int[] storedPartialsIndex;
     
-    public HashMap<Integer, HashMap<BreakPoints, double[]>> partials;
-    protected HashMap<Integer, HashMap<BreakPoints, double[]>> storedPartials;
+    public HashMap<Integer, double[]> partials;
+    protected HashMap<Integer, double[]> storedPartials;
 
     protected HashMap<Integer, double[]> matrix;
     protected HashMap<Integer, double[]> storedMatrix;
@@ -39,7 +38,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     protected List<Integer> touched;
 
     
-    public HashMap<String, int[]> states;
+    public HashMap<Integer, int[]> states;
 
     protected boolean useScaling = false;
 
@@ -61,79 +60,68 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have exactly known states (e.g. for leaves).
      */
     protected void calculateStatesStatesPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
-    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
-        
+    		BreakPoints computeFor) {
     	
-        // compute the breakpoints that are on both edges or only on either edge
-        BreakPoints joint = compute1.copy();
-        BreakPoints e1 = compute1.copy();
-        BreakPoints e2 = compute2.copy();
+        double[] mat1 = this.matrix.get(edge1.ID);
+        double[] mat2 = this.matrix.get(edge2.ID);
         
-        joint.and(compute2);
-        e1.andNot(compute2);
-        e2.andNot(compute1);      
+        double[] partials_parent = this.partials.get(node.ID);
+        int[] states_child1 = this.states.get(edge1.childNode.getTaxonIndex());
+        int[] states_child2 = this.states.get(edge2.childNode.getTaxonIndex());
         
-        double[] mat1 = matrix.get(edge1.ID);
-        double[] mat2 = matrix.get(edge2.ID);
-        
-        double[] partials_parent = partials.get(node.ID).get(computeFor);
-        int[] states_child1 = states.get(edge1.childNode.getTaxonLabel());
-        int[] states_child2 = states.get(edge2.childNode.getTaxonLabel());
-        
-        if (partials_parent==null) {
-        	 partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-        	 partials_parent = partials.get(node.ID).get(computeFor);
-        }
-        	
-        
-        
-       int v = 0;
-       for (int l = 0; l < nrOfMatrices; l++) {
-            for (int k = 0; k < nrOfPatterns; k++) {
-                int state1 = states_child1[k];
-                int state2 = states_child2[k];
 
-                int w = l * matrixSize;
 
-                if (state1 < nrOfStates && state2 < nrOfStates) {
+    	for (int m = 0; m < computeFor.size(); m++) {
+    		for (int l = 0; l < nrOfMatrices; l++) {
+        		int v = l*nrOfPatterns + computeFor.getRange(m).from*nrOfStates;
 
-                    for (int i = 0; i < nrOfStates; i++) {
-
-                    	partials_parent[v] = mat1[w + state1] * mat2[w + state2];
-
-                        v++;
-                        w += nrOfStates;
-                    }
-
-                } else if (state1 < nrOfStates) {
-                    // child 2 has a gap or unknown state so treat it as unknown
-
-                    for (int i = 0; i < nrOfStates; i++) {
-
-                    	partials_parent[v] = mat1[w + state1];
-
-                        v++;
-                        w += nrOfStates;
-                    }
-                } else if (state2 < nrOfStates) {
-                    // child 2 has a gap or unknown state so treat it as unknown
-
-                    for (int i = 0; i < nrOfStates; i++) {
-
-                    	partials_parent[v] = mat2[w + state2];
-
-                        v++;
-                        w += nrOfStates;
-                    }
-                } else {
-                    // both children have a gap or unknown state so set partials to 1
-
-                    for (int j = 0; j < nrOfStates; j++) {
-                    	partials_parent[v] = 1.0;
-                        v++;
-                    }
-                }
-            }
+	            for (int k = computeFor.getRange(m).from; k <= computeFor.getRange(m).to; k++) {
+	                int state1 = states_child1[k];
+	                int state2 = states_child2[k];
+	
+	                int w = l * matrixSize;
+	
+	                if (state1 < nrOfStates && state2 < nrOfStates) {
+	
+	                    for (int i = 0; i < nrOfStates; i++) {
+	
+	                    	partials_parent[v] = mat1[w + state1] * mat2[w + state2];
+	                    	
+	
+	                        v++;
+	                        w += nrOfStates;
+	                    }
+	
+	                } else if (state1 < nrOfStates) {
+	                    // child 2 has a gap or unknown state so treat it as unknown
+	
+	                    for (int i = 0; i < nrOfStates; i++) {
+	
+	                    	partials_parent[v] = mat1[w + state1];
+	
+	                        v++;
+	                        w += nrOfStates;
+	                    }
+	                } else if (state2 < nrOfStates) {
+	                    // child 2 has a gap or unknown state so treat it as unknown
+	
+	                    for (int i = 0; i < nrOfStates; i++) {
+	
+	                    	partials_parent[v] = mat2[w + state2];
+	
+	                        v++;
+	                        w += nrOfStates;
+	                    }
+	                } else {
+	                    // both children have a gap or unknown state so set partials to 1
+	
+	                    for (int j = 0; j < nrOfStates; j++) {
+	                    	partials_parent[v] = 1.0;
+	                        v++;
+	                    }
+	                }
+	            }
+    		}
         }
     }
     
@@ -142,77 +130,65 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     protected void calculateStatesPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) { 
+        double sum, tmp;
+        
+        // compute the breakpoints that are on both edges or only on either edge
         
         double[] mat1 = this.matrix.get(edge1.ID);
         double[] mat2 = this.matrix.get(edge2.ID);
         
-        double[] partials_parent = this.partials.get(node.ID).get(computeFor);
-        int[] states_child1 = this.states.get(edge1.childNode.getTaxonLabel());
-        double[] partials_child2 = this.partials.get(edge2.childNode.ID).get(compute2);
-        
-        
-        if (partials_parent==null) {
-       	 partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-       	 partials_parent = partials.get(node.ID).get(computeFor);
-        }
-        
-//	      System.out.println(node.getHeight());
-//	      System.out.println(compute2);
-//	//      System.out.println(compute2);
-//	      System.out.println(partials.get(edge2.childNode.ID).keySet());
-//	//      System.out.println(partials.get(edge2.childNode.ID).keySet());
-//	      System.out.println(Arrays.toString(partials_child2));
+        double[] partials_parent = this.partials.get(node.ID);
+        int[] states_child1 = this.states.get(edge1.childNode.getTaxonIndex());
+        double[] partials_child2 = this.partials.get(edge2.childNode.ID);
 
         
-        double sum, tmp;
+    	for (int m = 0; m < computeFor.size(); m++) {
+    		for (int l = 0; l < nrOfMatrices; l++) {
+        		int v = l*nrOfPatterns + computeFor.getRange(m).from*nrOfStates;
+        		int u = v;
 
-        int u = 0;
-        int v = 0;
-
-        for (int l = 0; l < nrOfMatrices; l++) {
-            for (int k = 0; k < nrOfPatterns; k++) {
-
-                int state1 = states_child1[k];
-
-                int w = l * matrixSize;
-
-                if (state1 < nrOfStates) {
-
-
-                    for (int i = 0; i < nrOfStates; i++) {
-
-                        tmp = mat1[w + state1];
-
-                        sum = 0.0;
-                        for (int j = 0; j < nrOfStates; j++) {
-                            sum += mat2[w] * partials_child2[v + j];
-                            w++;
-                        }
-
-                        partials_parent[u] = tmp * sum;
-                        u++;
-                    }
-
-                    v += nrOfStates;
-                } else {
-                    // Child 1 has a gap or unknown state so don't use it
-
-                    for (int i = 0; i < nrOfStates; i++) {
-
-                        sum = 0.0;
-                        for (int j = 0; j < nrOfStates; j++) {
-                            sum += mat2[w] * partials_child2[v + j];
-                            w++;
-                        }
-
-                        partials_parent[u] = sum;
-                        u++;
-                    }
-
-                    v += nrOfStates;
-                }
-            }
-        }
+	            for (int k = computeFor.getRange(m).from; k <= computeFor.getRange(m).to; k++) {
+	
+	                int state1 = states_child1[k];
+	
+	                int w = l * matrixSize;
+	
+	                if (state1 < nrOfStates) {
+	
+	
+	                    for (int i = 0; i < nrOfStates; i++) {
+	
+	                        tmp = mat1[w + state1];
+	
+	                        sum = 0.0;
+	                        for (int j = 0; j < nrOfStates; j++) {
+	                            sum += mat2[w] * partials_child2[v + j];
+	                            w++;
+	                        }
+	                        partials_parent[u] = tmp * sum;
+	                        u++;
+	                    }
+	
+	                    v += nrOfStates;
+	                } else {
+	                    // Child 1 has a gap or unknown state so don't use it
+	
+	                    for (int i = 0; i < nrOfStates; i++) {
+	
+	                        sum = 0.0;
+	                        for (int j = 0; j < nrOfStates; j++) {
+	                            sum += mat2[w] * partials_child2[v + j];
+	                            w++;
+	                        }
+	                        partials_parent[u] = sum;
+	                        u++;
+	                    }
+	
+	                    v += nrOfStates;
+	                }
+	            }
+	        }
+    	}
     }
 
     /**
@@ -220,51 +196,93 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     protected void calculatePartialsPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
+
+    	double sum1, sum2;
     	
-    	
+        // compute the breakpoints that are on both edges or only on either edge
+        BreakPoints joint = compute1.copy();
+        BreakPoints e1 = compute1.copy();
+        BreakPoints e2 = compute2.copy();
+        
+        joint.and(compute2);
+        e1.andNot(compute2);
+        e2.andNot(compute1);
+        
         
         double[] mat1 = this.matrix.get(edge1.ID);
         double[] mat2 = this.matrix.get(edge2.ID);
         
-        double[] partials_parent = this.partials.get(node.ID).get(computeFor);
-        double[] partials_child1 = this.partials.get(edge1.childNode.ID).get(compute1);
-        double[] partials_child2 = this.partials.get(edge2.childNode.ID).get(compute2);
-        
-        if (partials_parent==null) {
-          	 partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-          	 partials_parent = partials.get(node.ID).get(computeFor);
-        }
-        
-        double sum1, sum2;
+        double[] partials_parent = this.partials.get(node.ID);
+        double[] partials_child1 = this.partials.get(edge1.childNode.ID);
+        double[] partials_child2 = this.partials.get(edge2.childNode.ID);
+
+
+                
+    	for (int m = 0; m < joint.size(); m++) {
+    		for (int l = 0; l < nrOfMatrices; l++) {
+        		int v = l*nrOfPatterns + joint.getRange(m).from*nrOfStates;
+        		int u = v;
+
+	            for (int k = joint.getRange(m).from; k <= joint.getRange(m).to; k++) {
+	                int w = l * matrixSize;
+	
+	                for (int i = 0; i < nrOfStates; i++) {
+	
+	                    sum1 = sum2 = 0.0;
+	
+	                    for (int j = 0; j < nrOfStates; j++) {
+	                        sum1 += mat1[w] * partials_child1[v + j];
+	                        sum2 += mat2[w] * partials_child2[v + j];	                        
+	
+	                        w++;
+	                    }
+	                    
+	                    partials_parent[u] = sum1 * sum2;
+	                    u++;
+	                }
+	                v += nrOfStates;
+	            }
+	        }
+    	}
+     }
+
+    /**
+     * Integrates partials across categories.
+     *
+     * @param inPartials  the array of partials to be integrated
+     * @param proportions the proportions of sites in each category
+     * @param outPartials an array into which the partials will go
+     */
+    @Override
+	protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials) {
 
         int u = 0;
         int v = 0;
+        double[] inPartials = partials.get(node.ID);
+        for (int k = 0; k < nrOfPatterns; k++) {
 
-        for (int l = 0; l < nrOfMatrices; l++) {
+            for (int i = 0; i < nrOfStates; i++) {
+
+                outPartials[u] = inPartials[v] * proportions[0];
+                u++;
+                v++;
+            }
+        }
+
+
+        for (int l = 1; l < nrOfMatrices; l++) {
+            u = 0;
 
             for (int k = 0; k < nrOfPatterns; k++) {
 
-                int w = l * matrixSize;
-
                 for (int i = 0; i < nrOfStates; i++) {
 
-                    sum1 = sum2 = 0.0;
-
-                    for (int j = 0; j < nrOfStates; j++) {
-                        sum1 += mat1[w] * partials_child1[v + j];
-                        sum2 += mat2[w] * partials_child2[v + j];
-
-                        w++;
-                    }
-
-                    partials_parent[u] = sum1 * sum2;
+                    outPartials[u] += inPartials[v] * proportions[l];
                     u++;
+                    v++;
                 }
-                v += nrOfStates;
             }
         }
-        
-
     }
 
     /**
@@ -274,135 +292,80 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     	
         double[] mat = this.matrix.get(edge.ID);
         
-        double[] partials_parent = this.partials.get(node.ID).get(carries);
-        int[] states_child = states.get(edge.childNode.getTaxonLabel());
-        
-        if (partials_parent==null) {
-         	 partials.get(node.ID).put(carries, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-         	 partials_parent = partials.get(node.ID).get(carries);
+        double[] partials_parent = this.partials.get(node.ID);
+        int[] states_child = states.get(edge.childNode.getTaxonIndex());
+
+
+    	for (int m = 0; m < carries.size(); m++) {
+    		for (int l = 0; l < nrOfMatrices; l++) {
+        		int v = l*nrOfPatterns + carries.getRange(m).from*nrOfStates;
+	            for (int k = carries.getRange(m).from; k <= carries.getRange(m).to; k++) {
+	            	
+	                int state1 = states_child[k];
+	                if (state1 < nrOfStates) {
+	                	int w = l * matrixSize;
+	
+	                    for (int i = 0; i < nrOfStates; i++) {
+	
+	                    	partials_parent[v] = mat[w + state1];
+	                        v++;
+	                        w += nrOfStates;
+	                    }
+	
+	                } else {
+	                    // both children have a gap or unknown state so set partials to 1
+	
+	                    for (int j = 0; j < nrOfStates; j++) {
+	                    	partials_parent[v] = 1.0;
+	                        v++;
+	                    }
+	                }
+	            }
+        	}
         }
-        
-        int v = 0;
-        for (int l = 0; l < nrOfMatrices; l++) {
-             for (int k = 0; k < nrOfPatterns; k++) {
-                 int state1 = states_child[k];
-
-                 int w = l * matrixSize;
-
-                 if (state1 < nrOfStates) {
-                     // child 2 has a gap or unknown state so treat it as unknown
-
-                     for (int i = 0; i < nrOfStates; i++) {
-
-                     	partials_parent[v] = mat[w + state1];
-
-                         v++;
-                         w += nrOfStates;
-                     }
-                 } else {
-                     // both children have a gap or unknown state so set partials to 1
-
-                     for (int j = 0; j < nrOfStates; j++) {
-                     	partials_parent[v] = 1.0;
-                         v++;
-                     }
-                 }
-             }
-         }
-
     }
 
     /**
      * Calculates partial likelihoods at a node when both children have partials.
      */
-    protected void calculatePartialsPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints oldEdgePointer) {
+    protected void calculatePartialsPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node) {
 
-    	
-        double[] mat = matrix.get(edge.ID);
-        double[] partials_parent = partials.get(node.ID).get(carries);
-        double[] partials_child = partials.get(edge.childNode.ID).get(oldEdgePointer);
+    	double sum1;
+
+        double[] mat = this.matrix.get(edge.ID);
+        double[] partials_parent = this.partials.get(node.ID);
+        double[] partials_child = this.partials.get(edge.childNode.ID);
         
-        
-        if (partials_parent==null) {
-         	 partials.get(node.ID).put(carries, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-         	 partials_parent = partials.get(node.ID).get(carries);
-       }
-        
+        boolean error =false;
 
+    	for (int m = 0; m < carries.size(); m++) {
+    		for (int l = 0; l < nrOfMatrices; l++) {
+        		int v = l*nrOfPatterns + carries.getRange(m).from*nrOfStates;
+        		int u = v;
+	            for (int k = carries.getRange(m).from; k <= carries.getRange(m).to; k++) {
 
-        double sum1;
-
-        int u = 0;
-        int v = 0;
-
-        for (int l = 0; l < nrOfMatrices; l++) {
-
-            for (int k = 0; k < nrOfPatterns; k++) {
-
-                int w = l * matrixSize;
-
-                for (int i = 0; i < nrOfStates; i++) {
-
-                    sum1 = 0.0;
-
-                    for (int j = 0; j < nrOfStates; j++) {
-                        sum1 += mat[w] * partials_child[v + j];
-                        w++;
-                    }
-
-                    partials_parent[u] = sum1;
-                    u++;
-                }
-                v += nrOfStates;
-            }
-        }
-    }
-    
-    /**
-     * Integrates partials across categories.
-     *
-     * @param inPartials  the array of partials to be integrated
-     * @param proportions the proportions of sites in each category
-     * @param outPartials an array into which the partials will go
-     */
-    @Override
-	protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials, Alignment data) {
-    	HashMap<BreakPoints, double[]> rootProbs = partials.get(node.ID);
-        for (BreakPoints bp : partials.get(node.ID).keySet()){
-            double[] inPartials = rootProbs.get(bp);            
-            
-            for (int j = 0; j< bp.size();j++) {
-
-        		for (int m = bp.getRange(j).from; m <= bp.getRange(j).to; m++) {
-        			
-		            int u = m*nrOfStates;
-		            int v = data.getPatternIndex(m)*nrOfStates;
-
+	                int w = l * matrixSize;
+	
 	                for (int i = 0; i < nrOfStates; i++) {
 	
-	                	outPartials[u] = inPartials[v] * proportions[0];
-	                    u++;
-	                    v++;
-	                }
-		            
-		
-		
-		            for (int l = 1; l < nrOfMatrices; l++) {
-		                u = data.getPatternIndex(m)*nrOfStates;	
-	                    for (int i = 0; i < nrOfStates; i++) {
+	                    sum1 =  0.0;
 	
-	                    	outPartials[u] += inPartials[v] * proportions[l];
-	                        u++;
-	                        v++;
+	                    for (int j = 0; j < nrOfStates; j++) {
+	                        sum1 += mat[w] * partials_child[v + j];	
+	                        w++;
 	                    }
-		                
-		            }
-	        	}
-        	}
+	                    
+	
+	                    partials_parent[u] = sum1;
+	                    u++;
+	                }
+	                v += nrOfStates;
+	            }
+            }
         }
-        
-    }
+    	
 
+    }
    
     /**
      * Calculates pattern log likelihoods at a node.
@@ -414,7 +377,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     @Override
 	public void calculateLogLikelihoods(double[] partials, double[] frequencies, double[] outLogLikelihoods) {
         int v = 0;
-        for (int k = 0; k < outLogLikelihoods.length; k++) {
+        for (int k = 0; k < nrOfPatterns; k++) {
+
             double sum = 0.0;
             for (int i = 0; i < nrOfStates; i++) {
 
@@ -473,16 +437,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
 	public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
-    	
-
-        if (states.containsKey(edge1.childNode.getTaxonLabel())) {
-            if (states.containsKey(edge2.childNode.getTaxonLabel())) {
+        if (states.containsKey(edge1.childNode.getTaxonIndex())) {
+            if (states.containsKey(edge2.childNode.getTaxonIndex())) {
                 calculateStatesStatesPruning(edge1,edge2,node,computeFor,compute1,compute2);
             } else {
                 calculateStatesPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
             }
         } else {
-            if (states.containsKey(edge2.childNode.getTaxonLabel())) {
+            if (states.containsKey(edge2.childNode.getTaxonIndex())) {
                 calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute2,compute1);
             } else {
                 calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
@@ -533,11 +495,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     }
     
     @Override
-	public void calculatePartialsRecombination(RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints compute1, BreakPoints computeFor) {
-        if (states.containsKey(edge.childNode.getTaxonLabel())) {
+	public void calculatePartialsRecombination(RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints compute1) {
+        if (states.containsKey(edge.childNode.getTaxonIndex())) {
         	calculateStatesPruning(compute1, edge, node);
         } else {
-        	calculatePartialsPruning(compute1, edge, node, computeFor);
+        	calculatePartialsPruning(compute1, edge, node);
         }
         
         
@@ -570,8 +532,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     }
 
     @Override
-	public void integratePartials(RecombinationNetworkEdge edge, double[] proportions, double[] outPartials, Alignment data) {
-        calculateIntegratePartials(edge.childNode, proportions, outPartials, data);
+	public void integratePartials(RecombinationNetworkEdge edge, double[] proportions, double[] outPartials) {
+        calculateIntegratePartials(edge.childNode, proportions, outPartials);
     }
 
 
@@ -675,7 +637,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         matrix = storedMatrix;
         storedMatrix = tmp1;
 
-        HashMap<Integer, HashMap<BreakPoints, double[]>> tmp2 = partials;
+        HashMap<Integer, double[]> tmp2 = partials;
         partials = storedPartials;
         storedPartials = tmp2;
     	touched = new ArrayList<>();
@@ -703,44 +665,40 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     	
     	storedPartials = new HashMap<>();
     	for (Integer n : partials.keySet()) {
-    		HashMap<BreakPoints, double[]> tmp =  new HashMap<>();
-    		for (BreakPoints bp : partials.get(n).keySet()) {
-        		double[] oldp = partials.get(n).get(bp);
-                double[] newp = new double[oldp.length];
-        		System.arraycopy(oldp, 0, newp, 0, oldp.length);
-        		tmp.put(bp, newp);
-    		}
-    		storedPartials.put(n, tmp);
+    		double[] oldp = partials.get(n);
+            double[] newp = new double[oldp.length];
+    		System.arraycopy(oldp, 0, newp, 0, oldp.length);
+   			storedPartials.put(n, newp);
     	}
-    	
+//    	
 //        System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, nrOfNodes);
 //        System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, nrOfNodes);
     }
     
     
-//    public void rapidStore() {
-//    	storedMatrix = new HashMap<>();
-//    	for (Integer e : matrix.keySet()) {
-//    		double[] oldmat = matrix.get(e);
-//            double[] newmat = new double[oldmat.length];
-//    		System.arraycopy(oldmat, 0, newmat, 0, oldmat.length);
-//    		storedMatrix.put(e, newmat);
-//    	}
-//    	
-//		System.out.println(partials.keySet());
-//    	for (Integer n : touched) {
-//    		double[] oldp = partials.get(n);
-//            double[] newp = new double[oldp.length];
-//    		System.arraycopy(oldp, 0, newp, 0, oldp.length);
-//    		if (storedPartials.containsKey(n))
-//    			storedPartials.replace(n, newp);
-//    		else
-//    			storedPartials.put(n, newp);
-//
-//    	}
-//    	
-//    	touched = new ArrayList<>();
-//    }
+    public void rapidStore() {
+    	storedMatrix = new HashMap<>();
+    	for (Integer e : matrix.keySet()) {
+    		double[] oldmat = matrix.get(e);
+            double[] newmat = new double[oldmat.length];
+    		System.arraycopy(oldmat, 0, newmat, 0, oldmat.length);
+    		storedMatrix.put(e, newmat);
+    	}
+    	
+		System.out.println(partials.keySet());
+    	for (Integer n : touched) {
+    		double[] oldp = partials.get(n);
+            double[] newp = new double[oldp.length];
+    		System.arraycopy(oldp, 0, newp, 0, oldp.length);
+    		if (storedPartials.containsKey(n))
+    			storedPartials.replace(n, newp);
+    		else
+    			storedPartials.put(n, newp);
+
+    	}
+    	
+    	touched = new ArrayList<>();
+    }
 
 
 	@Override
@@ -759,7 +717,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	@Override
     public void initPartials(RecombinationNetworkNode node, int length) {
 		if (!partials.containsKey(node.ID)) {
-			partials.put(node.ID, new HashMap<>());
+			partials.put(node.ID, new double[length]);
 		}
 	}
 	
@@ -767,7 +725,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	public void setStates(RecombinationNetworkNode node, int[] states) {
         int[] newstates = new int[states.length];
 		System.arraycopy(states, 0, newstates, 0, states.length);
-		this.states.put(node.getTaxonLabel(), newstates);
+		this.states.put(node.getTaxonIndex(), newstates);
 
 
 	}
@@ -797,13 +755,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		for (Integer n : remove)
 			partials.remove(n);
 
-	}
-
-
-	@Override
-	public void rapidStore() {
-		// TODO Auto-generated method stub
-		
 	}
 
 } // class BeerLikelihoodCore
