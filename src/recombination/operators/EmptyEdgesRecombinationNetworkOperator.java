@@ -100,6 +100,12 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 ////            return Double.NEGATIVE_INFINITY;
 //		}
 
+		
+		if (!coalBPcheck()){
+			System.out.println(network);
+			throw new IllegalArgumentException("BreakPoints error");
+		}
+
                 		
         return logHR;
     }
@@ -525,6 +531,50 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         return true;
 
     }
+    
+    /** 
+     * sanity checks that no breakpoints overlap
+     * @return
+     */
+    public boolean coalBPcheck() {
+        List<RecombinationNetworkNode> nodeList = network.getNodes().stream()
+                .filter(e -> e.isCoalescence())
+                .collect(Collectors.toList());
+        
+        for (RecombinationNetworkNode node : nodeList) {
+        	BreakPoints cp = node.getChildEdges().get(0).breakPoints.copy();
+        	cp.or(node.getChildEdges().get(1).breakPoints);
+        	
+        	if (!cp.equals(node.getParentEdges().get(0).breakPoints)) {
+        		System.out.println(node.getHeight());
+        		return false;
+        	}
+        	
+        }
+        return true;
+
+    }
+    
+    public boolean crecombBPcheck() {
+        List<RecombinationNetworkNode> nodeList = network.getNodes().stream()
+                .filter(e -> e.isRecombination())
+                .collect(Collectors.toList());
+        
+        for (RecombinationNetworkNode node : nodeList) {
+        	BreakPoints cp = node.getParentEdges().get(0).breakPoints.copy();
+        	cp.or(node.getParentEdges().get(1).breakPoints);
+        	
+        	if (!cp.equals(node.getChildEdges().get(0).breakPoints)) {
+        		System.out.println(node.getHeight());
+        		return false;
+        	}
+        	
+        }
+        return true;
+
+    }
+
+
     
 //    public boolean splitsMakeSense() {
 //        Set<RecombinationNetworkNode> nodeList = networkInput.get().getNodes();

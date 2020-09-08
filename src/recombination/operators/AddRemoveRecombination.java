@@ -190,6 +190,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
             destEdge = sourceEdge;
         double destTime = edgeToRemove.parentNode.getHeight();
         
+        
         // Remove reassortment edge
         logHR += removeRecombinationEdge(edgeToRemove);
         
@@ -235,7 +236,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
         // Divert segments away from chosen edge
         BreakPoints lociToDivert = edgeToRemove.breakPoints.copy();
-
+        
         logHR -= addLociToAncestors(edgeToRemoveSpouse, lociToDivert);
         logHR += removeLociFromAncestors(edgeToRemove, lociToDivert);
         logHR += Math.log(0.5) + Math.log(1/(edgeToRemoveSpouse.breakPoints.getLength()-1));

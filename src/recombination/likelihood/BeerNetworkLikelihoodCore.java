@@ -232,8 +232,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         
 //        System.out.println(edge1.childNode.getHeight() + " " + compute1);
 //        
-//        if (node.getHeight()==13.98962830121011 && computeFor.getRange(0).to==59)
-//        	System.out.println(computeFor + " " + partials_child1[0] + " " + edge1.childNode.getHeight() + " " + compute1);
         
         if (partials_parent==null) {
 //        	System.out.println(node.getHeight());
