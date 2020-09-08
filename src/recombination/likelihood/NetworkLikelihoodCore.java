@@ -140,5 +140,9 @@ abstract public class NetworkLikelihoodCore {
 //    abstract LikelihoodCore feelsGood();
 
     abstract public void calculatePartialsRecombination(RecombinationNetworkEdge edge1, RecombinationNetworkNode node, BreakPoints compute1, BreakPoints computeFor);
+
+	protected abstract void cleanPartialsNode(RecombinationNetworkNode node);
+
+	protected abstract void checkLabels(RecombinationNetworkNode node, BreakPoints computeFor);
 	
 }

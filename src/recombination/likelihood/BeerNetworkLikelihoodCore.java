@@ -230,15 +230,25 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         double[] partials_child1 = this.partials.get(edge1.childNode.ID).get(compute1);
         double[] partials_child2 = this.partials.get(edge2.childNode.ID).get(compute2);
         
+//        System.out.println(edge1.childNode.getHeight() + " " + compute1);
+//        
+//        if (node.getHeight()==13.98962830121011 && computeFor.getRange(0).to==59)
+//        	System.out.println(computeFor + " " + partials_child1[0] + " " + edge1.childNode.getHeight() + " " + compute1);
+        
         if (partials_parent==null) {
+//        	System.out.println(node.getHeight());
+//        	System.out.println(partials.get(node.ID).keySet());
+//        	System.out.println(computeFor);
           	 partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
           	 partials_parent = partials.get(node.ID).get(computeFor);
         }
         
         double sum1, sum2;
+        
 
         int u = 0;
         int v = 0;
+        boolean error=false;
 
         for (int l = 0; l < nrOfMatrices; l++) {
 
@@ -251,19 +261,29 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
                     sum1 = sum2 = 0.0;
 
                     for (int j = 0; j < nrOfStates; j++) {
-                        sum1 += mat1[w] * partials_child1[v + j];
-                        sum2 += mat2[w] * partials_child2[v + j];
+                        sum1 += mat1[w] 
+                        		* partials_child1[v + j];
+                        sum2 += mat2[w] 
+                        		* partials_child2[v + j];
 
                         w++;
                     }
-
+                    if (debug)
+                    	if (partials_parent[u] != sum1 * sum2) {
+                    		error=true;
+                    	}
                     partials_parent[u] = sum1 * sum2;
                     u++;
                 }
                 v += nrOfStates;
             }
         }
-        
+//        if (node.getHeight()==4.284926641552382)
+//        	System.out.println(partials_parent[0]);
+//        	
+//        
+//        if (error)
+//    		System.out.println(node.getHeight());
 
     }
 
@@ -309,6 +329,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
                  }
              }
          }
+        
+
 
     }
 
@@ -326,8 +348,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         if (partials_parent==null) {
          	 partials.get(node.ID).put(carries, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
          	 partials_parent = partials.get(node.ID).get(carries);
-       }
+        }
         
+//        if (node.getHeight()==12.70201476174934 && carries.getRange(0).to==59)
+//        	System.out.println(carries + " " + partials_child[0] + " " +  oldEdgePointer);
+
 
 
         double sum1;
@@ -356,6 +381,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
                 v += nrOfStates;
             }
         }
+        
+//        if (node.getHeight()==12.70201476174934 && carries.getRange(0).to==59)
+//        	System.out.println(carries + " " + partials_parent[0] + " " +  oldEdgePointer);
+
     }
     
     /**
@@ -368,8 +397,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     @Override
 	protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials, Alignment data) {
     	HashMap<BreakPoints, double[]> rootProbs = partials.get(node.ID);
+    	
+//    	System.out.println("roots " + rootProbs.keySet());
+    	
         for (BreakPoints bp : partials.get(node.ID).keySet()){
-            double[] inPartials = rootProbs.get(bp);            
+            double[] inPartials = rootProbs.get(bp); 
+//            System.out.println("ip " + inPartials[0]);
             
             for (int j = 0; j< bp.size();j++) {
 
@@ -488,6 +521,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
                 calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
             }
         }
+        ensureLables(node, computeFor);
         
         if (!touched.contains(node.ID)) {
         	if (!partials.containsKey(node.ID))
@@ -495,6 +529,15 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         	
         	touched.add(node.ID);
         }
+        
+        
+//        if (node.getHeight()==14.08418547897941) {
+//        	System.out.println(node.getHeight() + " " + edge2.childNode.getHeight() + " " + computeFor + " " + compute2 );
+//        	System.out.println(this.partials.get(edge2.childNode.ID).keySet());
+//        	System.out.println(this.partials.get(edge1.childNode.ID).get(compute1)[0]);
+//        	System.out.println(this.partials.get(edge2.childNode.ID).get(compute2)[0]);
+//        }
+
 
         
 //        System.out.println(node.getHeight() + " " + computeFor);
@@ -540,6 +583,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         	calculatePartialsPruning(compute1, edge, node, computeFor);
         }
         
+        ensureLables(node, compute1);
+        
+//        
+//		if (node.getHeight()==9.713805614024373) {
+//			System.out.println();
+//			System.out.println(partials.get(node.ID).keySet());
+//		}
+
         
         if (!touched.contains(node.ID)) {
         	if (!partials.containsKey(node.ID))
@@ -805,5 +856,57 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		// TODO Auto-generated method stub
 		
 	}
+
+
+	@Override
+	protected void cleanPartialsNode(RecombinationNetworkNode node) {
+		partials.replace(node.ID, new HashMap<>());
+		
+	}
+
+
+	protected void ensureLables(RecombinationNetworkNode node, BreakPoints computeFor) {
+		HashMap<BreakPoints, double[]> nodePartials = partials.get(node.ID);
+		List<BreakPoints> remove = new ArrayList<>();
+		for (BreakPoints bp : nodePartials.keySet()) {
+			if (!computeFor.equals(bp)) {
+				BreakPoints cp = computeFor.copy();
+				cp.and(bp);
+				if (!cp.isEmpty()) {
+//					System.out.println("el" + node.getHeight() + " " + computeFor + " " + bp + " " + nodePartials.keySet());
+					remove.add(bp);
+				}				
+			}
+		}
+		for (BreakPoints bp : remove) {
+			nodePartials.remove(bp);
+//			System.out.println("el " + nodePartials.keySet());
+		}
+	}
+	
+	@Override
+	protected void checkLabels(RecombinationNetworkNode node, BreakPoints computeFor) {
+//		return;
+		HashMap<BreakPoints, double[]> nodePartials = partials.get(node.ID);
+//		System.out.println(nodePartials.keySet());
+
+//		if (!nodePartials.containsKey(computeFor))
+//			return;
+		
+		for (BreakPoints bp : nodePartials.keySet()) {
+			if (!computeFor.equals(bp)) {
+				BreakPoints cp = computeFor.copy();
+				cp.andNot(bp);
+				if (cp.isEmpty()) {
+//					if (nodePartials.containsKey(computeFor))
+//					System.out.println("cl " + node.getHeight() + " " + computeFor + " " + bp + " " + nodePartials.keySet());
+					nodePartials.put(computeFor.copy(), Arrays.copyOf(nodePartials.get(bp), nodePartials.get(bp).length));
+					nodePartials.remove(bp);
+					return;
+				}			
+			}
+		}
+	}
+	
 
 } // class BeerLikelihoodCore

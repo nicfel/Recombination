@@ -259,8 +259,11 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
                 .collect(Collectors.toList());
     	
     	int partialLength = dataInput.get().getPatternCount() * dataInput.get().getDataType().getStateCount();
-    	for (RecombinationNetworkNode n : nodes) 
+    	for (RecombinationNetworkNode n : nodes) {
     		likelihoodCore.initPartials(n, partialLength);
+    		if (hasDirt==Tree.IS_FILTHY)
+    			likelihoodCore.cleanPartialsNode(n);
+    	}
 
     }
 
@@ -406,7 +409,11 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		n.dummy2 = new ArrayList<>();
     		n.computeOnwards = new ArrayList<>();
     	}
-
+//    	System.out.println(network);
+    	if (hasDirt==Tree.IS_FILTHY)
+    		likelihoodCore.debug=true;
+    	else
+    		likelihoodCore.debug=false;
 
     	try {
         	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isLeaf()).collect(Collectors.toList())) {
@@ -417,6 +424,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         }catch (ArithmeticException e) {
         	return Double.NEGATIVE_INFINITY;
         }
+//    	System.out.println(logP);
 //    	System.out.println("   ");
 //    	System.exit(0);
 
@@ -499,9 +507,9 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     void upwardsTraversal(RecombinationNetworkNode node, BreakPoints computeFor_BP, boolean compute, RecombinationNetworkEdge prev_edge, BreakPoints prev_Pointer) {
     	BreakPoints computeFor = computeFor_BP.copy();
     	
-    	
     	if (computeFor.isEmpty())
     		return;    	
+    	
       
         if (node.isLeaf()) {        	
         	RecombinationNetworkEdge edge = node.getParentEdges().get(0);
@@ -516,7 +524,10 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
                     throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
                     //m_pLikelihoodCore->calculatePartials(childNum1, childNum2, nodeNum, siteCategories);
                 }
-    		}
+    		}else {
+				// check label overlap
+                likelihoodCore.checkLabels(node, computeFor);
+			}
         	
         	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
         		BreakPoints bp = computeFor.copy();
@@ -527,6 +538,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         	}
         	
         }else {
+
         	for (RecombinationNetworkEdge edge : node.getChildEdges())
         		if (edge.isDirty()!=Tree.IS_CLEAN)
         			compute=true;
@@ -552,6 +564,11 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	                    throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
 	                    //m_pLikelihoodCore->calculatePartials(childNum1, childNum2, nodeNum, siteCategories);
 	                }       
+    			}else {
+//    				if (node.getHeight()==14.08418547897941)
+//    					System.out.println(node.getHeight() + " " + cf_only);
+    				// check label overlap
+                    likelihoodCore.checkLabels(node, cf_only);
     			}
     			
                 likelihoodCore.debug = false;
@@ -561,26 +578,35 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
             	}
 
     			computeFor.andNot(cf_only);
+
     		}
     		
 //        	compute = true;
+    		
+
 
     		BreakPoints bp_in = computeFor.copy();
     		for (int i = 0; i < node.dummy.size();i++) {
         		BreakPoints bp_here = node.dummy.get(i).copy();
         		// get the overlap
         		bp_here.and(bp_in);
-        		if (!bp_here.isEmpty()) {	  
+        		
 
-        			BreakPoints compute1 = computeFor.copy();
-        			BreakPoints compute2 = bp_here.copy();
-	        		
-	        		compute1.and(node.getChildEdges().get(0).breakPoints);
-	        		compute2.and(node.getChildEdges().get(1).breakPoints);
-	        		
-	        		
+        		
+        		if (!bp_here.isEmpty()) {	
+        			
+        			
+
+//        			BreakPoints compute1 = computeFor.copy();
+//        			BreakPoints compute2 = bp_here.copy();
+//	        		
+//	        		compute1.and(node.getChildEdges().get(0).breakPoints);
+//	        		compute2.and(node.getChildEdges().get(1).breakPoints);
 	        		
                 	compute = node.computeOnwards.get(i) ? true : compute;
+
+//                	if (node.getHeight()<5.692 && node.getHeight()>5.691)
+//                		System.out.println(computeFor_BP + " " + compute);
 
 	        		if (compute) {
 		                if (m_siteModel.integrateAcrossCategories()) {
@@ -592,7 +618,15 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 		                    throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
 		                    //m_pLikelihoodCore->calculatePartials(childNum1, childNum2, nodeNum, siteCategories);
 		                }
-	        		}
+	        		}else {
+	    				// check label overlap
+	                    likelihoodCore.checkLabels(node, bp_here);
+	    			}
+//	        		if (bp_here.size()==2) {
+//	        			System.out.println(node.getHeight());
+//	        			System.out.println(bp_here);
+//	        			System.exit(0);
+//	        		}
 	        		
 	        		computeFor.andNot(bp_here);	        		
 
@@ -601,12 +635,26 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	                	upwardsTraversal(edge.parentNode, bp_here, compute, edge ,bp_here);
 	                }
 
-        		}     		
+        		}  
+//        		if (node.getHeight()==9.713805614024373) {
+//        			System.out.println(bp_here);
+//        		}
         	}
     		node.dummy2.add(prev_Pointer.copy());
     		node.dummy.add(computeFor);
     		node.computeOnwards.add(compute);
+    		
+//	        if (node.getHeight()==9.713805614024373) {
+//	        	System.out.println(":::::::::::::::::::::::");
+//	        	System.out.println(computeFor);
+//	        	System.out.println(node.dummy);
+//	        	System.out.println(node.dummy2);
+//	        	System.out.println(prev_Pointer);
+//	        	System.out.println(prev_edge.childNode.getHeight());
+//	        }
+
         }
+        
         
     }
     

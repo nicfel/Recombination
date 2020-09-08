@@ -371,7 +371,7 @@ public class BreakPoints {
 		// TODO more unique hashcode
 		int result = 0;
 		for (int i = 0; i < size(); i++) {
-			result += (getRange(i).to- getRange(i).from+1) + getLength()*i;
+			result += (getRange(i).to*getLength() + getRange(i).from*getLength())*(i+13)+ getLength();
 		}
 		
 		return result;
