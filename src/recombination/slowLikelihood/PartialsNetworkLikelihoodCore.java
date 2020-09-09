@@ -46,7 +46,7 @@ import recombination.network.RecombinationNetworkNode;
  * is current state is commonly the most efficient way to sort out which is which.
  */
 
-abstract public class NetworkLikelihoodCore {
+abstract public class PartialsNetworkLikelihoodCore {
 
     /**
      * reserve memory for partials, indices and other

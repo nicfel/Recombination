@@ -168,11 +168,11 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         int stateCount = dataInput.get().getMaxStateCount();
         int patterns = dataInput.get().getPatternCount();
         
-//        if (stateCount == 4) {
-//            likelihoodCore = new BeerNetworkLikelihoodCore4();
-//        } else {
+        if (stateCount == 4) {
+            likelihoodCore = new BeerNetworkLikelihood4();
+        } else {
             likelihoodCore = new BeerNetworkLikelihoodCore(stateCount);
-//        }
+        }
 
         String className = getClass().getSimpleName();
 
@@ -256,6 +256,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         // init partials
         List<RecombinationNetworkNode> networkNodes = new ArrayList<>(networkInput.get().getNodes());    	
     	List<RecombinationNetworkNode> nodes = networkNodes.stream()
+    			.filter(e -> !e.isLeaf())
                 .collect(Collectors.toList());
     	
     	int partialLength = dataInput.get().getPatternCount() * dataInput.get().getDataType().getStateCount();
@@ -373,10 +374,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
     @Override
     public double calculateLogP() {
-    	
-//    	System.out.println("clears");
-    	
-
         final RecombinationNetwork network = networkInput.get();
         
         List<RecombinationNetworkNode> nodes = network.getNodes().stream().filter(e -> !e.isLeaf()).collect(Collectors.toList());
@@ -388,8 +385,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         	nodeIDs.add(node.ID);
         for (RecombinationNetworkEdge edge : edges) 
         	edgeIDs.add(edge.ID);
-
-        
         
         likelihoodCore.cleanPartials(nodeIDs);
         likelihoodCore.cleanMatrix(edgeIDs);
@@ -398,9 +393,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	for (RecombinationNetworkEdge e : edges) 
     		e.visited = false;
     	
-    	    	
-//    	System.out.println(network);
-    	// init partials that have not yet been initialized
+      	// init partials that have not yet been initialized
     	initPartials();
     	
     	// set dummy nodes
@@ -409,7 +402,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		n.dummy2 = new ArrayList<>();
     		n.computeOnwards = new ArrayList<>();
     	}
-//    	System.out.println(network);
+
     	if (hasDirt==Tree.IS_FILTHY)
     		likelihoodCore.debug=true;
     	else
@@ -666,8 +659,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	            for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
 	            	
 	                final double jointBranchRate = m_siteModel.getRateForCategory(i, dummyNode) * branchRate;
-	                substitutionModel.getTransitionProbabilities(dummyNode, edge.parentNode.getHeight(), edge.childNode.getHeight(), jointBranchRate, probabilities);    	
-	                likelihoodCore.setEdgeMatrix(edge, 0, probabilities);
+	                substitutionModel.getTransitionProbabilities(dummyNode, edge.parentNode.getHeight(), edge.childNode.getHeight(), jointBranchRate, probabilities);
+	                likelihoodCore.setEdgeMatrix(edge, i, probabilities);
 	            }
 	            edge.visited = true;
 	    	}

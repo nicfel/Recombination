@@ -48,7 +48,7 @@ public class RecombinationNetworkStatsLogger extends BEASTObject implements Logg
         else
         	out.print(prefix + "height\t" +
 	                prefix + "totalLength\t" +
-	                prefix + "reassortmentNodeCount\t");
+	                prefix + "recombinationNodeCount\t");
 
     }
 

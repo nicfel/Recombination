@@ -4,6 +4,7 @@ import beast.core.Function;
 import beast.core.Input;
 import beast.core.Input.Validate;
 import beast.core.parameter.RealParameter;
+import beast.evolution.alignment.Alignment;
 import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
@@ -42,7 +43,11 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
             "Name of file to write simulated network to.");
     
     public Input<Integer> totalLengthInput = new Input<>("totalLength",
-            "total length of the alignment", Validate.REQUIRED);
+            "total length of the alignment");
+    
+    public Input<Alignment> dataInput = new Input<>("data",
+            "total length of the alignment");
+
 
 
     private PopulationFunction populationFunction;
@@ -53,7 +58,10 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
         populationFunction = populationFunctionInput.get();
         binomialProb = binomialProbInput.get();
-        totalLength = totalLengthInput.get();
+        if (dataInput.get()!=null)
+        	totalLength = dataInput.get().getSiteCount();
+        else
+        	totalLength = totalLengthInput.get();
         
         recombinationRate = recombinationRateInput.get();
 
@@ -165,7 +173,6 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         while (extantLineages.size() > 1 || !remainingSampleNodes.isEmpty());
 
         setRootEdge(extantLineages.get(0));
-        this.totalLength = totalLengthInput.get();
     }
 
     private void sample(List<RecombinationNetworkNode> remainingSampleNodes, List<RecombinationNetworkEdge> extantLineages) {
