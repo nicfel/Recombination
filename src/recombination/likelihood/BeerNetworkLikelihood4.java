@@ -26,28 +26,17 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     protected void calculateStatesStatesPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
         
-    	
-        // compute the breakpoints that are on both edges or only on either edge
-        BreakPoints joint = compute1.copy();
-        BreakPoints e1 = compute1.copy();
-        BreakPoints e2 = compute2.copy();
-        
-        joint.and(compute2);
-        e1.andNot(compute2);
-        e2.andNot(compute1);      
-        
+    	        
         double[] matrices1 = matrix.get(edge1.ID);
         double[] matrices2 = matrix.get(edge2.ID);
         
-        double[] partials3 = partials.get(node.ID).get(computeFor);
+        double[] partials3 = partialsNew.getPartialsAdd(node.ID, computeFor);
         int[] stateIndex1 = states.get(edge1.childNode.getTaxonLabel());
         int[] stateIndex2 = states.get(edge2.childNode.getTaxonLabel());
         
-        if (partials3==null) {
-        	 partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-        	 partials3 = partials.get(node.ID).get(computeFor);
-        }
         
+        boolean error=false;
+
         int v=0;
         	
         for (int l = 0; l < nrOfMatrices; l++) {
@@ -60,7 +49,13 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
                 int w = l * matrixSize;
 
                 if (state1 < 4 && state2 < 4) {
-
+                	
+//                    if ((matrices1[w + state1] * matrices2[w + state2])!=partials3[v]) {
+//                    	error=true;
+//                    	if (v==0)
+//                    		System.out.println(partials3[v] + " " + (matrices1[w + state1] * matrices2[w + state2]));
+//                    }
+                    
                     partials3[v] = matrices1[w + state1] * matrices2[w + state2];
                     v++;
                     w += 4;
@@ -117,9 +112,9 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
                     v++;
                 }
             }
-        }
-
+        }      
         
+//        System.out.println(node.getHeight() + "  fdslkhkjdlfskljfds");
     }
     
     /**
@@ -128,35 +123,18 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     protected void calculateStatesPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) { 
         
-    	double sum, tmp;
+    	double sum;
 
         int u = 0;
         int v = 0;
-
         
         double[] matrices1 = this.matrix.get(edge1.ID);
         double[] matrices2 = this.matrix.get(edge2.ID);
         
-        double[] partials3 = this.partials.get(node.ID).get(computeFor);
+        double[] partials3 = partialsNew.getPartialsAdd(node.ID, computeFor);
         int[] states_child1 = this.states.get(edge1.childNode.getTaxonLabel());
-        double[] partials2 = this.partials.get(edge2.childNode.ID).get(compute2);
-        
-        
-        if (partials3==null) {
-       	 	partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-       	 	partials3 = partials.get(node.ID).get(computeFor);
-        }
-        
-//		if (node.getHeight()==10.246340253681149) {
-//	        System.out.println(partials.get(edge2.childNode.ID).keySet());
-//	        System.out.println(compute2);
-//
-//		}
-//        System.out.println(node.getHeight());
-//        System.out.println(edge2.childNode.getHeight());
-//        System.out.println(partials.get(edge2.childNode.ID).keySet());
-//        System.out.println(compute2);
-//        
+        double[] partials2 = partialsNew.getPartialsAdd(edge2.childNode.ID, compute2);
+       
         for (int l = 0; l < nrOfMatrices; l++) {
             for (int k = 0; k < nrOfPatterns; k++) {
 
@@ -233,6 +211,8 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
                 }
             }
         }
+        
+
     }
 
     /**
@@ -243,19 +223,12 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     	
         double[] matrices1 = this.matrix.get(edge1.ID);
         double[] matrices2 = this.matrix.get(edge2.ID);
-        
-        double[] partials3 = this.partials.get(node.ID).get(computeFor);
-        double[] partials1 = this.partials.get(edge1.childNode.ID).get(compute1);
-        double[] partials2 = this.partials.get(edge2.childNode.ID).get(compute2);
-        
-        if (partials3==null) {
-			partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-          	partials3 = partials.get(node.ID).get(computeFor);
-        }
-//        System.out.println(node.getHeight());
-//        System.out.println(partials.get(edge1.childNode.ID).keySet() + " " + compute1 + " " + edge1.childNode.getHeight());
-//        System.out.println(partials.get(edge2.childNode.ID).keySet() + " " + compute2 + " " + edge2.childNode.getHeight());
+                
+        double[] partials3 = partialsNew.getPartialsAdd(node.ID, computeFor);
+        double[] partials1 = partialsNew.getPartials(edge1.childNode.ID, compute1);
+        double[] partials2 = partialsNew.getPartials(edge2.childNode.ID, compute2);
                
+
         int u = 0;
         int v = 0;
         double sum1,sum2;
@@ -324,13 +297,9 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     	
         double[] matrices1 = this.matrix.get(edge.ID);
         
-        double[] partials3 = this.partials.get(node.ID).get(carries);
+        double[] partials3 = partialsNew.getPartialsAdd(node.ID, carries);
         int[] states_child = states.get(edge.childNode.getTaxonLabel());
         
-        if (partials3==null) {
-         	 partials.get(node.ID).put(carries, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-         	partials3 = partials.get(node.ID).get(carries);
-        }
         
         int v = 0;
         for (int l = 0; l < nrOfMatrices; l++) {
@@ -376,18 +345,12 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have partials.
      */
     protected void calculatePartialsPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints oldEdgePointer) {
+    	
+        double[] partials3 = partialsNew.getPartialsAdd(node.ID, carries);
         double[] matrices1 = matrix.get(edge.ID);
-        double[] partials3 = partials.get(node.ID).get(carries);
-        double[] partials1 = partials.get(edge.childNode.ID).get(oldEdgePointer);
-        
-        
-        if (partials3==null) {
-         	 partials.get(node.ID).put(carries, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
-         	partials3 = partials.get(node.ID).get(carries);
-        }
-        
-        
-        double sum1, sum2;
+        double[] partials1 = partialsNew.getPartials(edge.childNode.ID, oldEdgePointer);
+
+        double sum1;
 
         int u = 0;
         int v = 0;
@@ -429,6 +392,10 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
                 v += 4;
             }
         }
+//        if (error)
+//        	System.out.println(node.getHeight() + " " + carries);
+
+
     }
 
 } // class BeerLikelihoodCore

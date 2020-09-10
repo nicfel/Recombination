@@ -395,8 +395,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		e.visited = false;
     	
     	rootBreaks = new ArrayList<>();
-    	
-    	
       	// init partials that have not yet been initialized
     	initPartials();
     	
@@ -765,6 +763,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
                 	BreakPoints cp = bp_here.copy();
                 	cp.and(node.dirtyBreakPoints);                	
 	        		if (cp.equals(bp_here)) {
+//	        			System.out.println("c1");
 		                if (m_siteModel.integrateAcrossCategories()) {
 			        		if (prev_edge.ID==node.getChildEdges().get(0).ID)
 			        			likelihoodCore.calculatePartials(node.getChildEdges().get(0), node.getChildEdges().get(1), node, bp_here, prev_Pointer, node.dummy2.get(i));
@@ -775,12 +774,13 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 		                    //m_pLikelihoodCore->calculatePartials(childNum1, childNum2, nodeNum, siteCategories);
 		                }
 	        		}else if (cp.isEmpty()) {
-//	        			System.out.println("c");
+//	        			System.out.println("c2");
+//	        			System.out.println(node.getHeight() + " " + bp_here);
 //	        			System.out.println(node.getHeight() + " + " + bp_in + " " + prev_edge.childNode.getHeight());
 //	        			System.out.println(node.getHeight() + " + " + bp_here + " +"+node.dummy.get(i) + " " + node.dirtyBreakPoints);
 	                    likelihoodCore.checkLabels(node, bp_here);
 	        		}else {
-//	        			System.out.println("c2");
+//	        			System.out.println("c3");
 //	        			System.out.println(bp_here);
 //	        			System.out.println(node.dirtyBreakPoints);
 	    				// check label overlap
@@ -848,6 +848,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     
 
 	private BreakPoints updateEdgeMatrixBP(RecombinationNetworkEdge edge) {
+				
 		if (edge.isDirty()==Tree.IS_FILTHY || hasDirt!=Tree.IS_CLEAN) {
 	    	if (!edge.visited) {
 	            final double branchRate = branchRateModel.getRateForBranch(dummyNode);
@@ -858,6 +859,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	                likelihoodCore.setEdgeMatrix(edge, i, probabilities);
 	            }
 	            edge.visited = true;
+	            
 	    	}	    	
 	    	return edge.breakPoints;
 		}

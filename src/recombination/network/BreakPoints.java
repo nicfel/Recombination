@@ -357,7 +357,13 @@ public class BreakPoints {
         if (this == obj)
     		return true;
         
+        
+        
         BreakPoints bp = (BreakPoints) obj;
+        
+        if (isEmpty() && bp.isEmpty())
+        	return true;
+        	
         if (bp.size()!=this.size())
         	return false;
         

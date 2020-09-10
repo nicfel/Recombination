@@ -10,6 +10,7 @@ import beast.evolution.alignment.Alignment;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
+import recombination.util.Partials;
 
 /**
  * standard likelihood core, uses no caching *
@@ -32,6 +33,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     
     public HashMap<Integer, HashMap<BreakPoints, double[]>> partials;
     protected HashMap<Integer, HashMap<BreakPoints, double[]>> storedPartials;
+    
+    protected Partials partialsNew;
 
     protected HashMap<Integer, double[]> matrix;
     protected HashMap<Integer, double[]> storedMatrix;
@@ -361,10 +364,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
 	protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials, Alignment data, List<BreakPoints> rootBreaks) {
-    	HashMap<BreakPoints, double[]> rootProbs = partials.get(node.ID);
-    	
         for (BreakPoints bp : rootBreaks){
-            double[] inPartials = rootProbs.get(bp);
+            double[] inPartials = partialsNew.getPartials(node.ID, bp);
             for (int j = 0; j< bp.size();j++) {
 
         		for (int m = bp.getRange(j).from; m <= bp.getRange(j).to; m++) {
@@ -432,7 +433,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         this.nrOfMatrices = matrixCount;
         this.integrateCategories = integrateCategories;
         matrixSize = nrOfStates * nrOfStates;
-        storedPartials = new HashMap<>();       
+        storedPartials = new HashMap<>(); 
+        
+        nrOfNodes=50;
+        
+        partialsNew = new Partials(nrOfNodes*3,50,nrOfMatrices*nrOfPatterns*nrOfStates);
+        
         
     }
 
@@ -600,11 +606,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         HashMap<Integer, double[]> tmp1 = matrix;
         matrix = storedMatrix;
         storedMatrix = tmp1;
-
-        HashMap<Integer, HashMap<BreakPoints, double[]>> tmp2 = partials;
-        partials = storedPartials;
-        storedPartials = tmp2;
-    	touched = new ArrayList<>();
+        
+        partialsNew.restore();
 
     }
 
@@ -619,6 +622,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void store() {
+    	storeMatrix();
+    	storePartials();
+    	partialsNew.store();
+    }
+    
+    private void storeMatrix() {
     	storedMatrix = new HashMap<>();
     	for (Integer e : matrix.keySet()) {
     		double[] oldmat = matrix.get(e);
@@ -626,20 +635,9 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     		System.arraycopy(oldmat, 0, newmat, 0, oldmat.length);
     		storedMatrix.put(e, newmat);
     	}
-    	
-//    	for (Integer n : partials.keySet()) {
-//    		if (touched.contains(n)) {
-//	    		HashMap<BreakPoints, double[]> tmp =  new HashMap<>();
-//	    		for (BreakPoints bp : partials.get(n).keySet()) {
-//	          		double[] oldp = partials.get(n).get(bp);
-//	                double[] newp = new double[oldp.length];
-//	        		System.arraycopy(oldp, 0, newp, 0, oldp.length);
-//	        		tmp.put(bp, newp);
-//	    		}
-//	    		storedPartials.replace(n, tmp);
-//    		}
-//    	}
-    	
+    }
+    
+    private void storePartials() {
     	storedPartials = new HashMap<>();
     	for (Integer n : partials.keySet()) {
     		HashMap<BreakPoints, double[]> tmp =  new HashMap<>();
@@ -651,8 +649,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     		}
     		storedPartials.put(n, tmp);
     	}
-
     }
+
     
    	@Override
 	public void setEdgeMatrix(RecombinationNetworkEdge edge, int matrixIndex, double[] matrix) {
@@ -670,9 +668,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	@Override
     public void initPartials(RecombinationNetworkNode node, int length) {
-		if (!partials.containsKey(node.ID)) {
-			partials.put(node.ID, new HashMap<>());
-		}
+		partialsNew.addNewNode(node.ID);
 	}
 	
 	@Override
@@ -680,8 +676,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         int[] newstates = new int[states.length];
 		System.arraycopy(states, 0, newstates, 0, states.length);
 		this.states.put(node.getTaxonLabel(), newstates);
-
-
 	}
 
 
@@ -708,7 +702,14 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		}
 		for (Integer n : remove)
 			partials.remove(n);
-
+				
+		remove = new ArrayList<>();
+		for (Integer n : partialsNew.keySet()) {
+			if (!nodeIDs.contains(n))
+				remove.add(n);
+		}
+		for (Integer n : remove)
+			partialsNew.remove(n);
 	}
 
 
@@ -722,100 +723,71 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	@Override
 	protected void cleanPartialsNode(RecombinationNetworkNode node) {
 		partials.replace(node.ID, new HashMap<>());
-		
+		partialsNew.removeBreaks(node.ID);
 	}
 
-
 	protected void ensureLables(RecombinationNetworkNode node, BreakPoints computeFor) {
-		HashMap<BreakPoints, double[]> nodePartials = partials.get(node.ID);
+		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
 		
-		if (node.getHeight()==17.49929042858815) {
-//			System.out.println("============================");
-//			System.out.println(node.getHeight());
-//			System.out.println(computeFor);			
-//			System.out.println(nodePartials.keySet());
-		}
-		
-		List<BreakPoints> remove = new ArrayList<>();
-		List<BreakPoints> replace = new ArrayList<>();
-		for (BreakPoints bp : nodePartials.keySet()) {
-			if (!computeFor.equals(bp)) {
-				BreakPoints cp = computeFor.copy();
-				cp.and(bp);
-				if (!cp.isEmpty()) {
-			        if (!touched.contains(node.ID)) {
-			        	touched.add(node.ID);
-			        }
-					remove.add(bp);
-					BreakPoints cp2 = bp.copy();
-					cp2.andNot(computeFor);
-					replace.add(cp2);					
-				}				
+
+
+		for (BreakPoints bp : breaks) {
+			if (!bp.isEmpty()) {
+				if (!computeFor.equals(bp)) {
+					BreakPoints cp = computeFor.copy();
+					cp.and(bp);
+					if (!cp.isEmpty()) {
+				        if (!touched.contains(node.ID)) {
+				        	touched.add(node.ID);
+				        }
+						BreakPoints cp2 = bp.copy();
+						cp2.andNot(computeFor);
+						partialsNew.replaceBreaks(node.ID, bp, cp2);
+					}				
+				}
 			}
 		}		
 		
+//		if (node.getHeight()==2.549370337249723) {
+//			System.out.println("......................");
+//			System.out.println(partialsNew.getPartials(node.ID, breaks.get(0))[0]);
+//		}
 
-		for (int i = 0; i < remove.size();i++) {
-			if (!replace.get(i).isEmpty()) {
-				nodePartials.put(replace.get(i), 
-						Arrays.copyOf(nodePartials.get(remove.get(i)), nodePartials.get(remove.get(i)).length));
-			}
-			nodePartials.remove(remove.get(i));
-		}
-		if (node.getHeight()==17.49929042858815) {
-//			System.out.println();
-//			System.out.println(remove);
-//			System.out.println(replace);
-//			System.out.println(nodePartials.keySet());
-//			System.out.println();
-		}
+		
 	}
 	
 	@Override
 	protected void checkLabels(RecombinationNetworkNode node, BreakPoints computeFor) {
 
-		HashMap<BreakPoints, double[]> nodePartials = partials.get(node.ID);
-		if (nodePartials.containsKey(computeFor))
+		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
+		
+//		if (node.getHeight()==2.549370337249723) {
+//			System.out.println("......................");
+//			System.out.println(partialsNew.getPartials(node.ID, breaks.get(0))[0] + " " + node.ID);
+//		}
+		
+		if (breaks.contains(computeFor))
 			return;
 		
 		
-//		if (node.getHeight()==17.49929042858815) {
-//			System.out.println();
-//			System.out.println(node.getHeight());
-//			System.out.println(nodePartials.keySet());
-//			System.out.println(computeFor);			
-//		}
+//		if (node.getHeight()==2.549370337249723)
+//			System.out.println("......................");
 		
-		BreakPoints replace = new BreakPoints();
-		for (BreakPoints bp : nodePartials.keySet()) {
-			if (!computeFor.equals(bp)) {
-				BreakPoints cp = computeFor.copy();
-				cp.andNot(bp);
-				if (cp.isEmpty()) {
-			        if (!touched.contains(node.ID)) {
-			        	touched.add(node.ID);
-			        }
-			        if (!replace.isEmpty())
-			        	throw new IllegalArgumentException("caching issue with dirty edges");
-			        replace = bp;
-				}			
+		for (BreakPoints bp : breaks) {
+			if (!bp.isEmpty()) {
+				if (!computeFor.equals(bp)) {
+					BreakPoints cp = computeFor.copy();
+					cp.andNot(bp);
+					if (cp.isEmpty()) {
+				        if (!touched.contains(node.ID)) {
+				        	touched.add(node.ID);
+				        }
+						partialsNew.replaceBreaks(node.ID, bp, computeFor.copy());
+	
+					}			
+				}
 			}
 		}
-		
-		if (replace.isEmpty()) {
-			System.out.println(node.getHeight());
-			System.out.println(nodePartials.keySet());
-			System.out.println(computeFor);			
-
-			throw new IllegalArgumentException("caching issue with dirty edges");			
-		}
-		nodePartials.put(computeFor.copy(), Arrays.copyOf(nodePartials.get(replace), nodePartials.get(replace).length));
-		nodePartials.remove(replace);
-
-//		if (node.getHeight()==17.49929042858815) {
-//			System.out.println(nodePartials.keySet());
-//		}
-		
 		ensureLables(node, computeFor);
 
 		return;
@@ -824,27 +796,16 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	@Override
 	protected int reassignLabels(RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints dirtyEdges) {
-		HashMap<BreakPoints, double[]> nodePartials = partials.get(node.ID);
+		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
 		
-//		if (node.getHeight()==9.826255341202273) {
-//			System.out.println();
-//			System.out.println(nodePartials.keySet());
-//			System.out.println(dirtyEdges);
-//			System.out.println(computeFor);
-//			
+		
+//		if (node.getHeight()==2.549370337249723) {
+//			System.out.println("......................");
+//			System.out.println(partialsNew.getPartials(node.ID, breaks.get(0))[0]);
 //		}
-		
-		if (node.getHeight()==10.88118366767749) {
-//			System.out.println();
-//			System.out.println(node.getHeight());
-//			System.out.println(nodePartials.keySet());
-//			System.out.println(dirtyEdges);
-//			System.out.println(computeFor);			
-		}
 
-			
 
-		if (nodePartials.containsKey(computeFor))
+		if (breaks.contains(computeFor))
 			return 0;
 
 		BreakPoints cp = computeFor.copy();
@@ -854,39 +815,24 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 			throw new IllegalArgumentException("caching issue with dirty edges");
 		}
 		
-		BreakPoints replace = new BreakPoints();
-		for (BreakPoints bp : nodePartials.keySet()) {
-			if (!computeFor.equals(bp)) {
-				BreakPoints cp_tmp = cp.copy();
-				cp_tmp.andNot(bp);
-				if (cp_tmp.isEmpty()) {
-			        if (!touched.contains(node.ID)) {
-			        	touched.add(node.ID);
-			        }
-			        if (!replace.isEmpty())
-			        	throw new IllegalArgumentException("caching issue with dirty edges");
+//		if (node.getHeight()==2.549370337249723)
+//			System.out.println("......................");
 
-			        replace = bp;
-				}			
+		
+		for (BreakPoints bp : breaks) {
+			if (!bp.isEmpty()) {
+				if (!computeFor.equals(bp)) {
+					BreakPoints cp_tmp = cp.copy();
+					cp_tmp.andNot(bp);
+					if (cp_tmp.isEmpty()) {
+				        if (!touched.contains(node.ID)) {
+				        	touched.add(node.ID);
+				        }
+						partialsNew.replaceBreaks(node.ID, bp, computeFor.copy());
+					}			
+				}
 			}
 		}
-		
-		if (replace.isEmpty()) {
-			throw new IllegalArgumentException("caching issue with dirty edges");			
-		}
-		
-		nodePartials.put(computeFor.copy(), Arrays.copyOf(nodePartials.get(replace), nodePartials.get(replace).length));
-		nodePartials.remove(replace);
-		
-		if (node.getHeight()==10.88118366767749) {
-//			System.out.println(nodePartials.keySet());
-		}
-
-//		if (node.getHeight()==9.826255341202273) {
-//			System.out.println(nodePartials.keySet());
-//			System.out.println(dirtyEdges);
-//			System.out.println(computeFor);		
-//		}
 		ensureLables(node, computeFor);
 
 		return 0;
