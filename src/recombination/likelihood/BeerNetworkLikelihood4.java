@@ -147,6 +147,16 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
        	 	partials3 = partials.get(node.ID).get(computeFor);
         }
         
+//		if (node.getHeight()==10.246340253681149) {
+//	        System.out.println(partials.get(edge2.childNode.ID).keySet());
+//	        System.out.println(compute2);
+//
+//		}
+//        System.out.println(node.getHeight());
+//        System.out.println(edge2.childNode.getHeight());
+//        System.out.println(partials.get(edge2.childNode.ID).keySet());
+//        System.out.println(compute2);
+//        
         for (int l = 0; l < nrOfMatrices; l++) {
             for (int k = 0; k < nrOfPatterns; k++) {
 
@@ -237,12 +247,15 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
         double[] partials3 = this.partials.get(node.ID).get(computeFor);
         double[] partials1 = this.partials.get(edge1.childNode.ID).get(compute1);
         double[] partials2 = this.partials.get(edge2.childNode.ID).get(compute2);
-               
+        
         if (partials3==null) {
 			partials.get(node.ID).put(computeFor, new double[nrOfMatrices*nrOfPatterns*nrOfStates]);
           	partials3 = partials.get(node.ID).get(computeFor);
         }
-        
+//        System.out.println(node.getHeight());
+//        System.out.println(partials.get(edge1.childNode.ID).keySet() + " " + compute1 + " " + edge1.childNode.getHeight());
+//        System.out.println(partials.get(edge2.childNode.ID).keySet() + " " + compute2 + " " + edge2.childNode.getHeight());
+               
         int u = 0;
         int v = 0;
         double sum1,sum2;
@@ -363,7 +376,6 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have partials.
      */
     protected void calculatePartialsPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints oldEdgePointer) {
-    	
         double[] matrices1 = matrix.get(edge.ID);
         double[] partials3 = partials.get(node.ID).get(carries);
         double[] partials1 = partials.get(edge.childNode.ID).get(oldEdgePointer);

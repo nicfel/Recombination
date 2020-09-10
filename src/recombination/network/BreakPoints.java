@@ -402,7 +402,14 @@ public class BreakPoints {
 	 */
 	public void or(BreakPoints breakPoints) {
 		if (this.breakPoints==null) {
+			if (breakPoints==null || breakPoints.isEmpty()) {
+				return;
+			}
+			
 			this.breakPoints = new ArrayList<>(breakPoints.breakPoints);
+			return;
+		}
+		if (breakPoints==null || breakPoints.isEmpty()) {
 			return;
 		}
 			

@@ -216,6 +216,9 @@ public class RecombinationNetwork extends StateNode {
         result.append("loci={").append(currentEdge.breakPoints);
         result.append("}");
         result.append(",dirty=").append(currentEdge.isDirty);
+        result.append(",dirtyEdges={").append(currentEdge.childNode.dirtyBreakPoints);
+        result.append("}");
+
         
 
         result.append(",length=").append(currentEdge.breakPoints.getGeneticLengthInt());
@@ -265,6 +268,11 @@ public class RecombinationNetwork extends StateNode {
             }else {
             	e.isDirty = Tree.IS_FILTHY;
             }
+    	}
+    	if (!isDirty) {
+        	for (RecombinationNetworkNode n : getNodes().stream().collect(Collectors.toList())) {
+            	n.dirtyBreakPoints = null;
+        	}
     	}
         setSomethingIsDirty(isDirty);
     }

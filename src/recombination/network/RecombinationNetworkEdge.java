@@ -18,8 +18,6 @@ public class RecombinationNetworkEdge {
      * status of this node after an operation is performed on the state *
      */
     int isDirty = Tree.IS_CLEAN;
-    public BreakPoints dirtyBreakPoints;
-
 
     public boolean visited;
    
@@ -145,7 +143,8 @@ public class RecombinationNetworkEdge {
     }
 
     public void makeDirty(final int dirty) {
-        isDirty |= dirty;
+    	if (isDirty!=Tree.IS_FILTHY)
+    		isDirty = dirty;
     }
 
 

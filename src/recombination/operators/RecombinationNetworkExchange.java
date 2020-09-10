@@ -35,7 +35,6 @@ public class RecombinationNetworkExchange extends DivertLociOperator {
 
 	@Override
 	public double networkProposal() {
-
 		double logHR;
 		network.startEditing(this);
 

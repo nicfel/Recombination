@@ -48,7 +48,8 @@ public class RecombinationNetworkNode {
      */
     public List<BreakPoints> dummy;
     public List<BreakPoints> dummy2;
-    public List<Boolean> computeOnwards;
+    public List<Integer> computeOnwards;
+    public BreakPoints dirtyBreakPoints;
     
     
     public Integer ID;
@@ -62,8 +63,7 @@ public class RecombinationNetworkNode {
     	ID = NodeEdgeID.getNewNodeID();
     }
     
-    public RecombinationNetworkNode(int id) {
-    	
+    public RecombinationNetworkNode(int id) {   	
     	ID = id;
     }
 
@@ -73,13 +73,16 @@ public class RecombinationNetworkNode {
     }
 
     public RecombinationNetworkNode setHeight(final double height) {
-        this.height = height;
+        this.height = height;        
+        makeAllDirty();
+        return this;
+    }
+    
+    private void makeAllDirty() {
         for (RecombinationNetworkEdge e : getParentEdges())
         	e.makeDirty(Tree.IS_FILTHY);
         for (RecombinationNetworkEdge e : getChildEdges())
         	e.makeDirty(Tree.IS_FILTHY);
-
-        return this;
     }
 
     /**
@@ -92,7 +95,7 @@ public class RecombinationNetworkNode {
     public RecombinationNetworkNode addParentEdge(RecombinationNetworkEdge newParentEdge) {
         parents.add(newParentEdge);
         newParentEdge.childNode = this;
-        newParentEdge.makeDirty(Tree.IS_FILTHY);
+        makeAllDirty();
 
         return this;
     }
@@ -100,8 +103,7 @@ public class RecombinationNetworkNode {
     public RecombinationNetworkNode removeParentEdge(RecombinationNetworkEdge parentEdge) {
         parents.remove(parentEdge);
         parentEdge.childNode = null;
-        parentEdge.makeDirty(Tree.IS_FILTHY);
-
+        makeAllDirty();
         return this;
     }
 
@@ -112,14 +114,14 @@ public class RecombinationNetworkNode {
     public RecombinationNetworkNode addChildEdge(RecombinationNetworkEdge newChildEdge) {
         children.add(newChildEdge);
         newChildEdge.parentNode = this;
-        newChildEdge.makeDirty(Tree.IS_FILTHY);
+        makeAllDirty();
         return this;
     }
 
     public RecombinationNetworkNode removeChildEdge(RecombinationNetworkEdge childEdge) {
         children.remove(childEdge);
         childEdge.parentNode = null;
-        childEdge.makeDirty(Tree.IS_FILTHY);
+        makeAllDirty();
         return this;
     }
 

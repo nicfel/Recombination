@@ -59,21 +59,15 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         	edge1 = node.getParentEdges().get(0);
         	edge2 = node.getParentEdges().get(1);       	
         }
-        
-//        System.out.println(edge1.breakPoints + " " + edge2.breakPoints);
-        
+              
 
         edge1.makeDirty(Tree.IS_DIRTY);
         edge2.makeDirty(Tree.IS_DIRTY);
-//        node.getChildEdges().get(0).makeDirty(Tree.IS_FILTHY);
 
     	edge2.passingRange = new BreakPoints(newBreakPoint, totalLength-1);
     	edge1.passingRange = new BreakPoints(0,newBreakPoint-1);
-    	
-//    	System.out.println(edge1.passingRange + " " + edge2.getPassingRange());
-    	 
 
-        if (edge2.breakPoints.getMin()>newBreakPoint) {
+    	if (edge2.breakPoints.getMin()>newBreakPoint) {
         	BreakPoints rangeToDivert = new BreakPoints(newBreakPoint, edge2.breakPoints.getMin()-1);
         	rangeToDivert.and(edge1.breakPoints);
 	        logHR -= addLociToAncestors(edge2, rangeToDivert);
@@ -113,10 +107,17 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (rangeToRemove.isEmpty())
             return logP;
         
-        edge.breakPoints.andNot(rangeToRemove.copy());       
-                       
         if (edge.isRootEdge())
             return logP;
+        
+        edge.breakPoints.andNot(rangeToRemove.copy());       
+        if (edge.childNode.dirtyBreakPoints==null) {
+        	edge.childNode.dirtyBreakPoints = rangeToRemove.copy();
+        }else {
+        	edge.childNode.dirtyBreakPoints.or(rangeToRemove);
+        }
+
+                       
         
         edge.makeDirty(Tree.IS_DIRTY); 
 
@@ -181,13 +182,20 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
             return logP;        
 
         edge.breakPoints.or(rangeToAdd);
+        if (edge.childNode.dirtyBreakPoints==null) {
+        	edge.childNode.dirtyBreakPoints = rangeToAdd.copy();
+        }else {
+        	edge.childNode.dirtyBreakPoints.or(rangeToAdd);
+        }
+        
+        edge.makeDirty(Tree.IS_DIRTY); 
+
 
         if (edge.isRootEdge())
             return logP;        
         
         if (edge.parentNode.isRecombination()) {        	
         	// resample the passing Range between the boundries given by the left and right breakpoints
-        	double lp=logP;
         	logP += resamplePassingRange(edge.parentNode.getParentEdges().get(0),
         			edge.parentNode.getParentEdges().get(1), rangeToAdd);  
 
