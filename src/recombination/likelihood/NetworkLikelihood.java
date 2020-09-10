@@ -409,9 +409,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		upwardsTraversalDirtyEdges(n, new BreakPoints());
     	}
     	
-//    	System.out.println(network);
-
-
 
     	if (hasDirt==Tree.IS_FILTHY)
     		likelihoodCore.debug=true;
@@ -431,9 +428,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         }catch (ArithmeticException e) {
         	return Double.NEGATIVE_INFINITY;
         }
-//    	System.out.println(logP);
-//    	System.out.println("   ");
-//    	System.exit(0);
 
         m_nScale++;
         if (logP > 0 || (likelihoodCore.getUseScaling() && m_nScale > X)) {

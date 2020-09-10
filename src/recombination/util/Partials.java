@@ -8,7 +8,11 @@ import recombination.network.BreakPoints;
 
 public class Partials {
 	
-	double[][][] patterns;
+
+	double[][][][] fancyPatterns;
+	
+//	double[][][] patterns;
+//	double[][][] storedPatterns;
 
 	
 	List<Integer> ID;
@@ -16,10 +20,9 @@ public class Partials {
 	
 	List<Integer> storeID;
 	List<List<BreakPoints>> storedBreaks;	
-	double[][][] storedPatterns;
 	
-	boolean[][][] patternIndices;
-	boolean[][][] storedPatternIndices;
+	boolean[][] patternIndices;
+	boolean[][] storedPatternIndices;
 	
 	
 
@@ -27,8 +30,11 @@ public class Partials {
 	public Partials(int nrNodes, int nrBreaks, int nrPatterns){
 		ID = new ArrayList<>();
 		breaks = new ArrayList<>();
-		patterns = new double[nrNodes][nrBreaks][nrPatterns];
-		storedPatterns = new double[nrNodes][nrBreaks][nrPatterns];
+	
+		patternIndices = new boolean[nrNodes][nrBreaks];
+		storedPatternIndices = new boolean[nrNodes][nrBreaks];
+		fancyPatterns = new double[nrNodes][nrBreaks][2][nrPatterns];
+
 	}
 	
 	public void addNode(Integer new_id) {
@@ -107,7 +113,12 @@ public class Partials {
 	public double[] getPartials(Integer new_id, BreakPoints bp) {
 		int i = ID.indexOf(new_id);
 		int j = breaks.get(i).indexOf(bp);
-		return patterns[i][j];
+		
+		
+		if (patternIndices[i][j]) {
+			return fancyPatterns[i][j][0];
+		}else
+			return fancyPatterns[i][j][1];
 	}
 	
 	public double[] getPartialsAdd(Integer new_id, BreakPoints bp) {
@@ -117,26 +128,35 @@ public class Partials {
 			addBreaksFast(i, bp);
 			j = breaks.get(i).indexOf(bp);
 		}
-		if (j==50) {
-			System.out.println(breaks.get(i));
-			System.out.println(breaks.get(i).indexOf(null));
-		}
-		return patterns[i][j];
-	}
 
+		if (patternIndices[i][j])
+			return fancyPatterns[i][j][0];
+		else
+			return fancyPatterns[i][j][1];
+	}
 	
-	public void setPartials(Integer new_id, BreakPoints bp, double[] new_partials) {
+	public double[] getPartialsOperation(Integer new_id, BreakPoints bp) {
 		int i = ID.indexOf(new_id);
 		int j = breaks.get(i).indexOf(bp);
-		patterns[i][j] = Arrays.copyOf(new_partials, new_partials.length);
+		if (j==-1) {
+			addBreaksFast(i, bp);
+			j = breaks.get(i).indexOf(bp);
+		}
+		
+		patternIndices[i][j] = !patternIndices[i][j];
+
+		if (patternIndices[i][j])
+			return fancyPatterns[i][j][0];
+		else
+			return fancyPatterns[i][j][1];
 	}
+
 	
 	public List<Integer> keySet(){
 		return ID;
 	}
 
 	public void store() {
-//		System.out.println("store");
 		storeID = new ArrayList<>(ID);
 		storedBreaks = new ArrayList<>();
 		for (int i = 0; i < breaks.size(); i++) {
@@ -148,39 +168,20 @@ public class Partials {
 					storedBreaks.get(i).add(bp.copy());
 			}
 		}
-
-		copyPartials();
-	}
-	
-	private void copyPartials() {		
-//		for (int i = 0; i < storeID.size(); i++) {
-//			if (storeID.get(i)!=null) {
-//				for (int j = 0; j < storedBreaks.get(i).size();j++) {
-//					if (!storedBreaks.get(i).get(j).isEmpty()) {
-//						System.arraycopy(patterns[i][j], 0, storedPatterns[i][j], 0, patterns[i][j].length);
-//					}
-//				}
-//			}
-//		}
 		for (int i = 0; i < storeID.size(); i++) {
 			if (storeID.get(i)!=null) {
 				for (int j = 0; j < storedBreaks.get(i).size();j++) {
-					if (!storedBreaks.get(i).get(j).isEmpty()) {
-						for (int k = 0; k < patterns[i][j].length; k++) {
-							storedPatterns[i][j][k] = patterns[i][j][k];
-						}
-//						System.arraycopy(patterns[i][j], 0, storedPatterns[i][j], 0, patterns[i][j].length);
-					}
+					System.arraycopy(patternIndices[i], 0, storedPatternIndices[i], 0, patternIndices[i].length);
 				}
 			}
 		}
-
 	}
 	
+	
 	public void restore() {
-        double[][][] tmp1 = patterns;
-        patterns = storedPatterns;
-        storedPatterns = tmp1;
+//        double[][][] tmp1 = patterns;
+//        patterns = storedPatterns;
+//        storedPatterns = tmp1;
                 
     	List<Integer> tmp2 = ID;
     	ID = storeID;
@@ -189,6 +190,16 @@ public class Partials {
         List<List<BreakPoints>> tmp3 = breaks;
         breaks = storedBreaks;
         storedBreaks = tmp3;
+        
+        
+		for (int i = 0; i < ID.size(); i++) {
+			if (storeID.get(i)!=null) {
+				for (int j = 0; j < breaks.get(i).size();j++) {
+					System.arraycopy(storedPatternIndices[i], 0, patternIndices[i], 0, patternIndices[i].length);
+				}
+			}
+		}
+
         
 //		System.out.println("restore");
 //		int i = ID.indexOf(661898545);
