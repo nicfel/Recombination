@@ -110,16 +110,18 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (edge.isRootEdge())
             return logP;
         
+    	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
+
         edge.breakPoints.andNot(rangeToRemove.copy());       
-        if (edge.childNode.dirtyBreakPoints==null) {
-        	edge.childNode.dirtyBreakPoints = rangeToRemove.copy();
-        }else {
-        	edge.childNode.dirtyBreakPoints.or(rangeToRemove);
-        }
+//        if (edge.childNode.dirtyBreakPoints==null) {
+//        	edge.childNode.dirtyBreakPoints = rangeToRemove.copy();
+//        }else {
+//        	edge.childNode.dirtyBreakPoints.or(rangeToRemove);
+//        }
 
                        
         
-        edge.makeDirty(Tree.IS_DIRTY); 
+        edge.makeDirty(Tree.IS_FILTHY); 
 
         if (edge.parentNode.isRecombination()) {
         	
@@ -181,14 +183,16 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (rangeToAdd.isEmpty())
             return logP;        
 
+    	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
+
         edge.breakPoints.or(rangeToAdd);
-        if (edge.childNode.dirtyBreakPoints==null) {
-        	edge.childNode.dirtyBreakPoints = rangeToAdd.copy();
-        }else {
-        	edge.childNode.dirtyBreakPoints.or(rangeToAdd);
-        }
+//        if (edge.childNode.dirtyBreakPoints==null) {
+//        	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
+//        }else {
+//        	edge.childNode.dirtyBreakPoints.or(rangeToAdd);
+//        }
         
-        edge.makeDirty(Tree.IS_DIRTY); 
+        edge.makeDirty(Tree.IS_FILTHY); 
 
 
         if (edge.isRootEdge())

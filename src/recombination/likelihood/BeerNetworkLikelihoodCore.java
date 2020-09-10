@@ -64,7 +64,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have exactly known states (e.g. for leaves).
      */
     protected void calculateStatesStatesPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
-    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) {
         
     	
         // compute the breakpoints that are on both edges or only on either edge
@@ -144,7 +144,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when one child has states and one has partials.
      */
     protected void calculateStatesPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
-    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) { 
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) { 
         
         double[] mat1 = this.matrix.get(edge1.ID);
         double[] mat2 = this.matrix.get(edge2.ID);
@@ -215,7 +215,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have partials.
      */
     protected void calculatePartialsPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
-    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) {
     	
     	
         
@@ -266,7 +266,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     /**
      * Calculates partial likelihoods at a node when both children have exactly known states (e.g. for leaves).
      */
-    protected void calculateStatesPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node) {
+    protected void calculateStatesPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node, boolean[] computeForPatterns) {
     	
         double[] mat = this.matrix.get(edge.ID);
         
@@ -314,7 +314,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     /**
      * Calculates partial likelihoods at a node when both children have partials.
      */
-    protected void calculatePartialsPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints oldEdgePointer) {
+    protected void calculatePartialsPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints oldEdgePointer, boolean[] computeForPatterns) {
 
     	
         double[] mat = matrix.get(edge.ID);
@@ -364,13 +364,22 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
 	protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials, Alignment data, List<BreakPoints> rootBreaks) {
+		int[] offset = new int[nrOfMatrices];
+        for (int l = 1; l < nrOfMatrices; l++) {
+        	offset[l] = l*nrOfStates*nrOfPatterns;
+        }
+       
+    
+
         for (BreakPoints bp : rootBreaks){
             double[] inPartials = partialsNew.getPartials(node.ID, bp);
             for (int j = 0; j< bp.size();j++) {
 
         		for (int m = bp.getRange(j).from; m <= bp.getRange(j).to; m++) {
-		            int u = m*nrOfStates;
-		            int v = data.getPatternIndex(m)*nrOfStates;
+        			int stateStart = m*nrOfStates;
+        			int patternStart = data.getPatternIndex(m)*nrOfStates;
+		            int u = stateStart;
+		            int v = patternStart;
 		            
 	                for (int i = 0; i < nrOfStates; i++) {
 	                	outPartials[u] = inPartials[v] * proportions[0];
@@ -379,8 +388,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	                }		
 		
 		            for (int l = 1; l < nrOfMatrices; l++) {
-		                u = m*nrOfStates;	
-		                v = data.getPatternIndex(m)*nrOfStates+(l*nrOfStates*nrOfPatterns);
+		                u = stateStart;	
+		                v = patternStart+offset[l];
 	                    for (int i = 0; i < nrOfStates; i++) {
 
 	                    	outPartials[u] += inPartials[v] * proportions[l];
@@ -437,7 +446,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         
         nrOfNodes=50;
         
-        partialsNew = new Partials(nrOfNodes*3,20,nrOfMatrices*nrOfPatterns*nrOfStates);
+        partialsNew = new Partials(nrOfNodes*3,50,nrOfMatrices*nrOfPatterns*nrOfStates);
         
         
     }
@@ -469,20 +478,21 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * @param nodeIndex3 the 'parent' node
      */
     @Override
-	public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2) {
+	public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, 
+			BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) {
     	
 
         if (states.containsKey(edge1.childNode.getTaxonLabel())) {
             if (states.containsKey(edge2.childNode.getTaxonLabel())) {
-                calculateStatesStatesPruning(edge1,edge2,node,computeFor,compute1,compute2);
+                calculateStatesStatesPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns);
             } else {
-                calculateStatesPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
+                calculateStatesPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns);
             }
         } else {
             if (states.containsKey(edge2.childNode.getTaxonLabel())) {
-                calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute2,compute1);
+                calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute2,compute1,computeForPatterns);
             } else {
-                calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2);
+                calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns);
             }
         }
         ensureLables(node, computeFor);
@@ -493,12 +503,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     }
     
     @Override
-	public void calculatePartialsRecombination(RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints compute1, BreakPoints computeFor) {
+	public void calculatePartialsRecombination(RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints compute1, BreakPoints computeFor, boolean[] computeForPatterns) {
     	// check if this computation may have already been solved
         if (states.containsKey(edge.childNode.getTaxonLabel())) {
-        	calculateStatesPruning(compute1, edge, node);
+        	calculateStatesPruning(compute1, edge, node,computeForPatterns);
         } else {
-        	calculatePartialsPruning(compute1, edge, node, computeFor);
+        	calculatePartialsPruning(compute1, edge, node, computeFor,computeForPatterns);
         }
         
         ensureLables(node, compute1);
@@ -746,13 +756,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 					}				
 				}
 			}
-		}		
-		
-//		if (node.getHeight()==2.549370337249723) {
-//			System.out.println("......................");
-//			System.out.println(partialsNew.getPartials(node.ID, breaks.get(0))[0]);
-//		}
-
+		}	
 		
 	}
 	
@@ -761,14 +765,19 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
 		
+//		System.out.println("--------------------");
 //		if (node.getHeight()==2.549370337249723) {
 //			System.out.println("......................");
 //			System.out.println(partialsNew.getPartials(node.ID, breaks.get(0))[0] + " " + node.ID);
 //		}
 		
-		if (breaks.contains(computeFor))
+//		System.out.println("--------------------");
+//        System.out.println(breaks + " " + computeFor);
+
+        if (breaks.contains(computeFor))
 			return;
-		
+
+
 		
 //		if (node.getHeight()==2.549370337249723)
 //			System.out.println("......................");
@@ -798,13 +807,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	protected int reassignLabels(RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints dirtyEdges) {
 		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
 		
-		
-//		if (node.getHeight()==2.549370337249723) {
-//			System.out.println("......................");
-//			System.out.println(partialsNew.getPartials(node.ID, breaks.get(0))[0]);
-//		}
-
-
 		if (breaks.contains(computeFor))
 			return 0;
 
@@ -814,9 +816,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		if (cp.isEmpty()) {
 			throw new IllegalArgumentException("caching issue with dirty edges");
 		}
-		
-//		if (node.getHeight()==2.549370337249723)
-//			System.out.println("......................");
 
 		
 		for (BreakPoints bp : breaks) {
@@ -828,7 +827,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 				        if (!touched.contains(node.ID)) {
 				        	touched.add(node.ID);
 				        }
-						partialsNew.replaceBreaks(node.ID, bp, computeFor.copy());
+				        partialsNew.replaceBreaks(node.ID, bp, computeFor.copy());
 					}			
 				}
 			}
@@ -843,5 +842,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		
 	}
 
+	
 
 } // class BeerLikelihoodCore
