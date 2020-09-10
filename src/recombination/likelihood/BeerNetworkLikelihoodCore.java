@@ -437,7 +437,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         
         nrOfNodes=50;
         
-        partialsNew = new Partials(nrOfNodes*3,50,nrOfMatrices*nrOfPatterns*nrOfStates);
+        partialsNew = new Partials(nrOfNodes*3,20,nrOfMatrices*nrOfPatterns*nrOfStates);
         
         
     }

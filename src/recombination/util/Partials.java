@@ -8,13 +8,20 @@ import recombination.network.BreakPoints;
 
 public class Partials {
 	
+	double[][][] patterns;
+
+	
 	List<Integer> ID;
 	List<List<BreakPoints>> breaks;
-	double[][][] patterns;
 	
 	List<Integer> storeID;
 	List<List<BreakPoints>> storedBreaks;	
 	double[][][] storedPatterns;
+	
+	boolean[][][] patternIndices;
+	boolean[][][] storedPatternIndices;
+	
+	
 
 	
 	public Partials(int nrNodes, int nrBreaks, int nrPatterns){
@@ -130,7 +137,6 @@ public class Partials {
 
 	public void store() {
 //		System.out.println("store");
-
 		storeID = new ArrayList<>(ID);
 		storedBreaks = new ArrayList<>();
 		for (int i = 0; i < breaks.size(); i++) {
@@ -142,29 +148,33 @@ public class Partials {
 					storedBreaks.get(i).add(bp.copy());
 			}
 		}
+
+		copyPartials();
+	}
+	
+	private void copyPartials() {		
+//		for (int i = 0; i < storeID.size(); i++) {
+//			if (storeID.get(i)!=null) {
+//				for (int j = 0; j < storedBreaks.get(i).size();j++) {
+//					if (!storedBreaks.get(i).get(j).isEmpty()) {
+//						System.arraycopy(patterns[i][j], 0, storedPatterns[i][j], 0, patterns[i][j].length);
+//					}
+//				}
+//			}
+//		}
 		for (int i = 0; i < storeID.size(); i++) {
 			if (storeID.get(i)!=null) {
 				for (int j = 0; j < storedBreaks.get(i).size();j++) {
 					if (!storedBreaks.get(i).get(j).isEmpty()) {
-						System.arraycopy(patterns[i][j], 0, storedPatterns[i][j], 0, patterns[i][j].length);
+						for (int k = 0; k < patterns[i][j].length; k++) {
+							storedPatterns[i][j][k] = patterns[i][j][k];
+						}
+//						System.arraycopy(patterns[i][j], 0, storedPatterns[i][j], 0, patterns[i][j].length);
 					}
 				}
 			}
 		}
-		
-//		int i = storeID.indexOf(661898545);
-//		if (i!=-1) {
-//			int j = storedBreaks.get(i).indexOf(new BreakPoints(0,9999));
-//			if (j!=-1) {
-//				System.out.println(ID);
-//				System.out.println(i + " " + j);
-//				System.out.println(breaks.get(i));
-//				System.out.println(storedBreaks.get(i));
-//				System.out.println(patterns[i][j][0]);
-//				System.out.println(storedPatterns[i][j][0]);
-//			}
-//		}
-//		System.out.println("end store");
+
 	}
 	
 	public void restore() {
