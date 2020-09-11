@@ -31,9 +31,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     protected int[] currentPartialsIndex;
     protected int[] storedPartialsIndex;
     
-    public HashMap<Integer, HashMap<BreakPoints, double[]>> partials;
-    protected HashMap<Integer, HashMap<BreakPoints, double[]>> storedPartials;
-    
     protected Partials partialsNew;
 
     protected HashMap<Integer, double[]> matrix;
@@ -54,7 +51,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     public BeerNetworkLikelihoodCore(int nrOfStates) {
         this.nrOfStates = nrOfStates;
         matrix = new HashMap<>();
-        partials = new HashMap<>();
         states = new HashMap<>();
         
     } // c'tor
@@ -437,16 +433,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * @param integrateCategories whether sites are being integrated over all matrices
      */
     @Override
-	public void initialize(int patternCount, int matrixCount, boolean integrateCategories, boolean useAmbiguities) {
+	public void initialize(int patternCount, int matrixCount, boolean integrateCategories, boolean useAmbiguities, int nrOfNodes) {
         this.nrOfPatterns = patternCount;
         this.nrOfMatrices = matrixCount;
         this.integrateCategories = integrateCategories;
         matrixSize = nrOfStates * nrOfStates;
-        storedPartials = new HashMap<>(); 
-        
-        nrOfNodes=50;
-        
-        partialsNew = new Partials(nrOfNodes*3,50,nrOfMatrices*nrOfPatterns*nrOfStates);
+        partialsNew = new Partials(nrOfNodes*5,nrOfMatrices*nrOfPatterns*nrOfStates);
         
         
     }
@@ -633,7 +625,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     @Override
     public void store() {
     	storeMatrix();
-    	storePartials();
     	partialsNew.store();
     }
     
@@ -647,20 +638,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     	}
     }
     
-    private void storePartials() {
-    	storedPartials = new HashMap<>();
-    	for (Integer n : partials.keySet()) {
-    		HashMap<BreakPoints, double[]> tmp =  new HashMap<>();
-    		for (BreakPoints bp : partials.get(n).keySet()) {
-          		double[] oldp = partials.get(n).get(bp);
-                double[] newp = new double[oldp.length];
-        		System.arraycopy(oldp, 0, newp, 0, oldp.length);
-        		tmp.put(bp, newp);
-    		}
-    		storedPartials.put(n, tmp);
-    	}
-    }
-
     
    	@Override
 	public void setEdgeMatrix(RecombinationNetworkEdge edge, int matrixIndex, double[] matrix) {
@@ -705,15 +682,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 	@Override
 	public void cleanPartials(List<Integer> nodeIDs) {
-		List<Integer> remove = new ArrayList<>();
-		for (Integer n : partials.keySet()) {
-			if (!nodeIDs.contains(n))
-				remove.add(n);
-		}
-		for (Integer n : remove)
-			partials.remove(n);
 				
-		remove = new ArrayList<>();
+		List<Integer> remove = new ArrayList<>();
 		for (Integer n : partialsNew.keySet()) {
 			if (!nodeIDs.contains(n))
 				remove.add(n);
@@ -732,7 +702,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 	@Override
 	protected void cleanPartialsNode(RecombinationNetworkNode node) {
-		partials.replace(node.ID, new HashMap<>());
 		partialsNew.removeBreaks(node.ID);
 	}
 

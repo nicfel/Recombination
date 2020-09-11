@@ -218,7 +218,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         likelihoodCore.initialize(
                 dataInput.get().getPatternCount(),
                 m_siteModel.getCategoryCount(),
-                true, m_useAmbiguities.get()
+                true, m_useAmbiguities.get(),
+                networkInput.get().getLeafNodes().size()
         );
         
         initPartials();

@@ -1,7 +1,6 @@
 package recombination.util;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import recombination.network.BreakPoints;
@@ -9,42 +8,54 @@ import recombination.network.BreakPoints;
 public class Partials {
 	
 
-	double[][][][] fancyPatterns;
-	
-//	double[][][] patterns;
-//	double[][][] storedPatterns;
-
+	double[][][] fancyPatterns;
 	
 	List<Integer> ID;
 	List<List<BreakPoints>> breaks;
+	List<List<Integer>> startPoint;
 	
 	List<Integer> storeID;
-	List<List<BreakPoints>> storedBreaks;	
+	List<List<BreakPoints>> storedBreaks;
+	List<List<Integer>> storedStartPoint;
 	
-	boolean[][] patternIndices;
-	boolean[][] storedPatternIndices;
+	boolean[] patternIndices;
+	boolean[] storedPatternIndices;
+	
+	boolean[] nextNr;
+	boolean[] storedNextNr;
+	
+	int currentSize;
+	int nrPatterns;
 	
 	
-
-	
-	public Partials(int nrNodes, int nrBreaks, int nrPatterns){
+	public Partials(int initSize, int nrPatterns){
 		ID = new ArrayList<>();
 		breaks = new ArrayList<>();
+		startPoint = new ArrayList<>();
+		
+		currentSize = initSize;
+		this.nrPatterns = nrPatterns;
 	
-		patternIndices = new boolean[nrNodes][nrBreaks];
-		storedPatternIndices = new boolean[nrNodes][nrBreaks];
-		fancyPatterns = new double[nrNodes][nrBreaks][2][nrPatterns];
-
+		patternIndices = new boolean[currentSize];
+		storedPatternIndices = new boolean[currentSize];
+		
+		nextNr = new boolean[currentSize];	
+		storedNextNr = new boolean[currentSize];
+		
+		fancyPatterns = new double[currentSize][2][nrPatterns];		
+		
 	}
 	
 	public void addNode(Integer new_id) {
 		int i=ID.indexOf(null);
 		if (i!=-1) {
 			ID.set(i,new_id);
-			breaks.set(i,new ArrayList<>());			
+			breaks.set(i,new ArrayList<>());		
+			startPoint.set(i,new ArrayList<>());			
 		}else {
 			ID.add(new_id);
 			breaks.add(new ArrayList<>());
+			startPoint.add(new ArrayList<>());
 		}
 	}
 	
@@ -54,11 +65,13 @@ public class Partials {
 
 		int i=ID.indexOf(null);
 		if (i!=-1) {
-			ID.set(i,new_id);
-			breaks.set(i,new ArrayList<>());			
+			ID.set(i, new_id);
+			breaks.set(i, new ArrayList<>());
+			startPoint.set(i, new ArrayList<>());			
 		}else {
 			ID.add(new_id);
 			breaks.add(new ArrayList<>());
+			startPoint.add(new ArrayList<>());
 		}		
 	}
 
@@ -68,13 +81,27 @@ public class Partials {
 			return;
 
 		int i = ID.indexOf(new_id);
-		ID.set(i, null);
+		ID.set(i, null);		
 		breaks.set(i, null);
+
+		for (Integer rem : startPoint.get((i)))
+			if (rem!=null)
+				nextNr[rem] = false;
+				
+		startPoint.set(i, null);
 	}
 	
 	public void removeBreaks(Integer new_id) {
 		int i = ID.indexOf(new_id);
+		
 		breaks.set(i, new ArrayList<>());
+		
+		if (startPoint.get(i)!=null)
+			for (Integer rem : startPoint.get((i)))
+				if (rem!=null)
+					nextNr[rem] = false;
+
+		startPoint.set(i, new ArrayList<>());
 	}
 	
 
@@ -82,18 +109,22 @@ public class Partials {
 		int i=ID.indexOf(null);
 		int j=breaks.get(i).indexOf(new BreakPoints());
 		if (j!=-1) {
-			breaks.get(i).set(j,bp);			
+			breaks.get(i).set(j,bp);
+			startPoint.get(i).set(j, nextEmpty());
 		}else {
 			breaks.get(i).add(bp);			
+			startPoint.get(i).add(nextEmpty());
 		}		
 	}
 	
 	public void addBreaksFast(Integer i, BreakPoints bp) {
 		int j=breaks.get(i).indexOf(new BreakPoints());
 		if (j!=-1) {
-			breaks.get(i).set(j,bp);			
+			breaks.get(i).set(j,bp);
+			startPoint.get(i).set(j,nextEmpty());
 		}else {
 			breaks.get(i).add(bp);			
+			startPoint.get(i).add(nextEmpty());
 		}		
 	}
 
@@ -102,6 +133,11 @@ public class Partials {
 		int i = ID.indexOf(new_id);
 		int j = breaks.get(i).indexOf(old_bp);
 		breaks.get(i).set(j, new_bp);
+		if (new_bp.isEmpty()) {
+			nextNr[startPoint.get(i).get(j)] = false;
+			startPoint.get(i).set(j, null);
+		}
+	
 		
 	}
 	
@@ -115,10 +151,10 @@ public class Partials {
 		int j = breaks.get(i).indexOf(bp);
 		
 		
-		if (patternIndices[i][j]) {
-			return fancyPatterns[i][j][0];
+		if (patternIndices[startPoint.get(i).get(j)]) {
+			return fancyPatterns[startPoint.get(i).get(j)][0];
 		}else
-			return fancyPatterns[i][j][1];
+			return fancyPatterns[startPoint.get(i).get(j)][1];
 	}
 	
 	public double[] getPartialsAdd(Integer new_id, BreakPoints bp) {
@@ -129,10 +165,10 @@ public class Partials {
 			j = breaks.get(i).indexOf(bp);
 		}
 
-		if (patternIndices[i][j])
-			return fancyPatterns[i][j][0];
+		if (patternIndices[startPoint.get(i).get(j)])
+			return fancyPatterns[startPoint.get(i).get(j)][0];
 		else
-			return fancyPatterns[i][j][1];
+			return fancyPatterns[startPoint.get(i).get(j)][1];
 	}
 	
 	public double[] getPartialsOperation(Integer new_id, BreakPoints bp) {
@@ -143,12 +179,12 @@ public class Partials {
 			j = breaks.get(i).indexOf(bp);
 		}
 		
-		patternIndices[i][j] = !patternIndices[i][j];
+		patternIndices[startPoint.get(i).get(j)] = !patternIndices[startPoint.get(i).get(j)];
 
-		if (patternIndices[i][j])
-			return fancyPatterns[i][j][0];
+		if (patternIndices[startPoint.get(i).get(j)])
+			return fancyPatterns[startPoint.get(i).get(j)][0];
 		else
-			return fancyPatterns[i][j][1];
+			return fancyPatterns[startPoint.get(i).get(j)][1];
 	}
 
 	
@@ -158,6 +194,7 @@ public class Partials {
 
 	public void store() {
 		storeID = new ArrayList<>(ID);
+		
 		storedBreaks = new ArrayList<>();
 		for (int i = 0; i < breaks.size(); i++) {
 			if (breaks.get(i)==null) {
@@ -168,21 +205,29 @@ public class Partials {
 					storedBreaks.get(i).add(bp.copy());
 			}
 		}
-		for (int i = 0; i < storeID.size(); i++) {
-			if (storeID.get(i)!=null) {
-				for (int j = 0; j < storedBreaks.get(i).size();j++) {
-					System.arraycopy(patternIndices[i], 0, storedPatternIndices[i], 0, patternIndices[i].length);
-				}
+		
+		
+		storedStartPoint = new ArrayList<>();
+		for (int i = 0; i < startPoint.size(); i++) {
+			if (startPoint.get(i)==null) {
+				storedStartPoint.add(new ArrayList<>());
+			}else {
+				storedStartPoint.add(new ArrayList<>());
+				for (Integer bp : startPoint.get(i))
+					storedStartPoint.get(i).add(bp);
 			}
 		}
+
+		
+		System.arraycopy(patternIndices, 0, storedPatternIndices, 0, patternIndices.length);
+		
+		System.arraycopy(nextNr, 0, storedNextNr, 0, nextNr.length);
+
+		
 	}
 	
 	
 	public void restore() {
-//        double[][][] tmp1 = patterns;
-//        patterns = storedPatterns;
-//        storedPatterns = tmp1;
-                
     	List<Integer> tmp2 = ID;
     	ID = storeID;
     	storeID = tmp2;
@@ -191,29 +236,78 @@ public class Partials {
         breaks = storedBreaks;
         storedBreaks = tmp3;
         
+        List<List<Integer>> tmp4 = startPoint;
+        startPoint = storedStartPoint;
+        storedStartPoint = tmp4;        
         
-		for (int i = 0; i < ID.size(); i++) {
-			if (storeID.get(i)!=null) {
-				for (int j = 0; j < breaks.get(i).size();j++) {
-					System.arraycopy(storedPatternIndices[i], 0, patternIndices[i], 0, patternIndices[i].length);
-				}
-			}
-		}
-
-        
-//		System.out.println("restore");
-//		int i = ID.indexOf(661898545);
-//		if (i!=-1) {
-//			int j = breaks.get(i).indexOf(new BreakPoints(0,9999));
-//			if (j!=-1)
-//				System.out.println(patterns[i][j][0]);
-//		}
+		System.arraycopy(storedPatternIndices, 0, patternIndices, 0, patternIndices.length);		
+		System.arraycopy(storedNextNr, 0, nextNr, 0, storedNextNr.length);        
 	}
 
 	public boolean containsKey(Integer new_id, BreakPoints computeFor) {
 		return breaks.get(ID.indexOf(new_id)).contains(computeFor);
 	}
 
+	
+	private int nextEmpty() {
+		for (int i = 0; i < nextNr.length; i++) {
+			if (!nextNr[i]) {
+				nextNr[i] = true;
+				return i;
+			}
+		}
+		System.out.println(fancyPatterns[0][0][0]);
+		resize();
+		System.out.println(fancyPatterns[0][0][0]);
+		return nextEmpty();		
+	}
+	
+	/**
+	 * resizes the partials etc.
+	 */
+	private void resize() {
+		int c=0;
+		for (int i = 0; i < breaks.size(); i++) {
+			if (breaks.get(i)!=null) {
+				for (BreakPoints bp : breaks.get(i)) {
+					if (!bp.isEmpty()) {
+						c++;						
+					}				
+				}			
+			}
+		}
+		
+		System.err.println("resize matrices to allow for more nodes curr size = " + currentSize + " " + c);
+		int newsize = (int) (currentSize*1.5);
+		currentSize = newsize;
+		
+		boolean[] newPatternIndices = new boolean[newsize];
+		System.arraycopy(patternIndices, 0, newPatternIndices, 0, patternIndices.length);
+		patternIndices = newPatternIndices;
+		
+		
+		boolean[] newStoredPatternIndices = new boolean[newsize];
+		System.arraycopy(storedPatternIndices, 0, newStoredPatternIndices, 0, storedPatternIndices.length);
+		storedPatternIndices = newStoredPatternIndices;
+
+		boolean[] newNextNr = new boolean[newsize];
+		System.arraycopy(nextNr, 0, newNextNr, 0, nextNr.length);
+		nextNr = newNextNr;
+
+		boolean[] newStoredNextNr = new boolean[newsize];
+		System.arraycopy(storedNextNr, 0, newStoredNextNr, 0, storedNextNr.length);
+		storedNextNr = newStoredNextNr;
+
+		double[][][] newFancyPatterns = new double[newsize][2][nrPatterns];
+		for (int i = 0; i <fancyPatterns.length;i++) {
+			for (int j= 0; i <fancyPatterns[i].length;i++) {
+				System.arraycopy(fancyPatterns[i][j], 0, newFancyPatterns[i][j], 0, fancyPatterns[i][j].length);
+			}
+		}			
+		fancyPatterns = newFancyPatterns;
+		
+		
+	}
 	
 	
 }
