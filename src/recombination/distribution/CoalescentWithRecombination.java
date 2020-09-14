@@ -46,6 +46,7 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 
     	// Calculate tree intervals
     	List<RecombinationNetworkEvent> networkEventList = intervals.getRecombinationNetworkEventList();
+//    	System.out.println(intervals.recombinationNetworkInput.get());
 
     	RecombinationNetworkEvent prevEvent = null;
 
@@ -70,8 +71,8 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
        			break;
 
         	prevEvent = event;
-        }
-    	
+        }    	
+//    	System.exit(0);
 		return logP;
     }
     
@@ -88,6 +89,8 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 
         result += -recombinationRate.getArrayValue() * prevEvent.totalRecombinationObsProb
                 * (event.time - prevEvent.time);          
+        
+//        System.out.println(result + " " + prevEvent.totalRecombinationObsProb + " " + (event.time - prevEvent.time));
         
 		result += -0.5*prevEvent.lineages*(prevEvent.lineages-1)
                 * populationFunction.getIntegral(prevEvent.time, event.time);

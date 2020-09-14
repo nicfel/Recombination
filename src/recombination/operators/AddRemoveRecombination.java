@@ -3,6 +3,7 @@ package recombination.operators;
 import beast.core.Input;
 import beast.util.Randomizer;
 import recombination.network.BreakPoints;
+import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
 
@@ -15,6 +16,8 @@ public class AddRemoveRecombination extends DivertLociOperator {
             "Mean of exponential used for choosing root attachment times.",
             Input.Validate.REQUIRED);
 
+    final public Input<Boolean> optimiseInput = new Input<>("optimise", "flag to indicate that the scale factor is automatically changed in order to achieve a good acceptance rate (default true)", true);
+
     private double alpha;
 
     @Override
@@ -25,23 +28,12 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
     @Override
     public double networkProposal() {
-//    	System.out.println();
-//    	System.out.println(network);
         double logHR;
         if (Randomizer.nextBoolean()) {
             logHR = addRecombination();
-//        	System.out.println(network);
-//        	System.out.println("a "+logHR);
         }else {
             logHR = removeRecombination();
-//        	System.out.println(network);
-//        	System.out.println("r "+logHR);
         }
-//        System.out.println(network);
-//
-//        System.out.println(logHR);
-//        if (stop)
-//        	System.exit(0);
 
         return logHR;
     }
@@ -286,4 +278,29 @@ public class AddRemoveRecombination extends DivertLociOperator {
     	}    
     	return rangeToDivert;
     }
+    
+//    /**
+//     * automatic parameter tuning *
+//     */
+//    @Override
+//    public void optimize(final double logAlpha) {
+//        if (optimiseInput.get()) {
+//            double delta = calcDelta(logAlpha);
+//            delta += Math.log(alpha);
+//            final double f = Math.exp(delta);
+//            if( alpha > 0 ) {
+//                final RecombinationNetwork network = networkInput.get();
+//                final double h = network.getRootEdge().childNode.getHeight();
+//                final double k = Math.log(network.getLeafNodes().size()) / Math.log(2);
+//                final double lim = (h / k) * alpha;
+//                if( f <= lim ) {
+//                	alpha = f;
+//                }
+//            } else {
+//            	alpha = f;
+//            }
+//        }
+//    }
+
+    
 }

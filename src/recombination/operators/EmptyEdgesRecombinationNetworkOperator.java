@@ -40,6 +40,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 
     @Override
     public double proposal() {
+//    	System.out.println();
        
     	double logHR = 0.0;
         // Adds empty network edges
@@ -53,6 +54,9 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         
         // calls the operator
         logHR += networkProposal();
+        
+    	
+
         
         
         if (logHR == Double.NEGATIVE_INFINITY)
@@ -105,8 +109,11 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 			System.out.println(network);
 			throw new IllegalArgumentException("BreakPoints error");
 		}
-
-                		
+		
+//
+//    	System.out.println(network);
+//    	System.out.println(logHR);
+		
         return logHR;
     }
     

@@ -6,6 +6,9 @@ import beast.core.parameter.RealParameter;
 import beast.evolution.tree.coalescent.PopulationFunction;
 import beast.util.Package;
 import beast.util.Randomizer;
+import recombination.network.BreakPoints;
+import recombination.network.RecombinationNetworkEdge;
+import recombination.network.RecombinationNetworkNode;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -15,24 +18,20 @@ import java.util.stream.Collectors;
 
 public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
-    public Input<RealParameter> reassortmentRateInput = new Input<>("reassortmentRate",
-            "Rate of reassortment (per lineage per unit time)", Validate.REQUIRED);
+    public Input<RealParameter> recombinationRateInput = new Input<>("recombinationRate",
+            "Rate of recombination (per lineage per unit time)", Validate.REQUIRED);
 
     public Input<PopulationFunction> populationFunctionInput = new Input<>("populationModel",
             "Population model to use.", Validate.REQUIRED);
 
-    private int nSegments;
     
     private PopulationFunction populationFunction;
-    private RealParameter reassortmentRate;
+    private RealParameter recombinationRate;
 
     @Override
-    public void initAndValidate() {
-    	nSegments = segmentTreesInput.get().size();
-    	
+    public void initAndValidate() {    	
         populationFunction = populationFunctionInput.get();
-        reassortmentRate = reassortmentRateInput.get();
-
+        recombinationRate = recombinationRateInput.get();
     	
         super.initAndValidate();
     }
@@ -45,30 +44,23 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
     double resimulate() {
     	network.startEditing(this);
-    	
     	// get the place where to cut
-    	double maxHeight = getMaxSegmentMRCA();
+    	double maxHeight = getMaxLociMRCA(network.getRootEdge());
 
     	// get all network edges 
-        List<NetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
+        List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
 
         // keep only those that coexist at the time of maxHeight
-        List<NetworkEdge> startingEdges = networkEdges.stream()
+        List<RecombinationNetworkEdge> startingEdges = networkEdges.stream()
                 .filter(e -> !e.isRootEdge())
                 .filter(e -> e.parentNode.getHeight()>maxHeight)
                 .filter(e -> e.childNode.getHeight()<=maxHeight)
                .collect(Collectors.toList());
         
-//        System.out.println("max " + maxHeight);
-//        for (int i = 0; i < startingEdges.size(); i++)
-//        	System.out.println(startingEdges.get(i).childNode.getHeight());
         
         if (startingEdges.size()==0)
-        	return Double.NEGATIVE_INFINITY;
-        
-        
+        	return Double.NEGATIVE_INFINITY;        
                 
-//        System.out.println(network.getExtendedNewick());
        // simulate the rest of the network starting from mxHeight
         double currentTime = maxHeight;
         double timeUntilNextSample = Double.POSITIVE_INFINITY;
@@ -82,7 +74,7 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
             double timeToNextCoal = populationFunction.getInverseIntensity(
                     transformedTimeToNextCoal + currentTransformedTime) - currentTime;
 
-            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*reassortmentRate.getValue()) : Double.POSITIVE_INFINITY;
+            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*(networkInput.get().totalLength-1)) : Double.POSITIVE_INFINITY;
 
             // next event time
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
@@ -91,110 +83,99 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
                 if (timeUntilNextEvent == timeToNextCoal)
                     coalesce(currentTime, startingEdges);
                 else
-                    reassort(currentTime, startingEdges);
+                    recombine(currentTime, startingEdges);
             }
 
         }
         while (startingEdges.size() > 1);
         
         network.setRootEdge(startingEdges.get(0));
-//        System.out.println(network.getExtendedNewick());
-
-        
+                
         return Double.POSITIVE_INFINITY;
-
-        
-
     }
 
-    double getMaxSegmentMRCA(){
-    	double maxHeight = 0.0;
-    	for (int i = 0; i < segmentTreesInput.get().size(); i++){
-    		double height = segmentTreesInput.get().get(i).getRoot().getHeight();
-    		if (height>maxHeight)
-    			maxHeight=height;
-    	}
-    	
-    	return maxHeight;
+    double getMaxLociMRCA(RecombinationNetworkEdge edge){
+    	RecombinationNetworkNode node = edge.childNode;
+    	if (node.isCoalescence()) {
+    		BreakPoints bp1 = node.getChildEdges().get(0).breakPoints.copy();
+    		bp1.and(node.getChildEdges().get(1).breakPoints);
+    		if (!bp1.isEmpty()) {
+    			return node.getHeight();
+    		}
+    		return Math.max(getMaxLociMRCA(node.getChildEdges().get(0)), getMaxLociMRCA(node.getChildEdges().get(1)));
+    	}else if (node.isRecombination()) {
+    		return getMaxLociMRCA(node.getChildEdges().get(0));
+    	}else {
+    		return -1.0;
+    	}    	
     }
     
-    private void coalesce(double coalescentTime, List<NetworkEdge> extantLineages) {
+    private void coalesce(double coalescentTime, List<RecombinationNetworkEdge> extantLineages) {
         // Sample the pair of lineages that are coalescing:
-        NetworkEdge lineage1 = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
-        NetworkEdge lineage2;
+    	RecombinationNetworkEdge lineage1 = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
+    	RecombinationNetworkEdge lineage2;
         do {
             lineage2 = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
         } while (lineage1 == lineage2);
-
+        
         // Create coalescent node
-        NetworkNode coalescentNode = new NetworkNode();
+        RecombinationNetworkNode coalescentNode = new RecombinationNetworkNode();
         coalescentNode.setHeight(coalescentTime)
                 .addChildEdge(lineage1)
                 .addChildEdge(lineage2);
         lineage1.parentNode = coalescentNode;
-        lineage2.parentNode = coalescentNode;
+        lineage2.parentNode = coalescentNode;       
 
+        
         // Merge segment flags:
-        BitSet hasSegments = new BitSet();
-        hasSegments.or(lineage1.hasSegments);
-        hasSegments.or(lineage2.hasSegments);
+        BreakPoints breakPoints = lineage1.breakPoints.copy();
+        breakPoints.or(lineage2.breakPoints);
+        
+
 
         // Create new lineage
-        NetworkEdge lineage = new NetworkEdge(null, coalescentNode, hasSegments);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints);
         coalescentNode.addParentEdge(lineage);
 
         extantLineages.remove(lineage1);
         extantLineages.remove(lineage2);
         extantLineages.add(lineage);
-    }
-    
-    private void sample(List<NetworkNode> remainingSampleNodes, List<NetworkEdge> extantLineages) {
-        // sample the network node
-        NetworkNode n = remainingSampleNodes.get(0);
+        
+        
 
-        // Create corresponding lineage
-        BitSet hasSegs = new BitSet();
-        hasSegs.set(0, nSegments);
-        NetworkEdge lineage = new NetworkEdge(null, n, hasSegs);
-        extantLineages.add(lineage);
-        n.addParentEdge(lineage);
-
-        remainingSampleNodes.remove(0);
     }
 
-
-    private void reassort(double reassortmentTime, List<NetworkEdge> extantLineages) {
-        NetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
-
-        BitSet hasSegs_left = new BitSet();
-        BitSet hasSegs_right = new BitSet();
-
-        for (int segIdx = lineage.hasSegments.nextSetBit(0);
-             segIdx != -1; segIdx = lineage.hasSegments.nextSetBit(segIdx+1)) {
-            if (Randomizer.nextBoolean()) {
-                hasSegs_left.set(segIdx);
-            } else {
-                hasSegs_right.set(segIdx);
-            }
-        }
-
-        // Stop here if reassortment event is unobservable
-        if (hasSegs_left.cardinality() == 0 || hasSegs_right.cardinality() == 0)
-            return;
-
+    private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages) {
+    	RecombinationNetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
+    	    	
+    	int breakpoint = Randomizer.nextInt(network.totalLength-1);
+    	
+   	
+    	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
+    	if (!lineage.breakPoints.withinLimits(breakpoint)) {
+    		return;
+    	}    	
+    	
+    	lineage.breakPoints.computeLeftAndRight(breakpoint);
+    	
         // Create reassortment node
-        NetworkNode node = new NetworkNode();
+        RecombinationNetworkNode node = new RecombinationNetworkNode();
         node.setHeight(reassortmentTime).addChildEdge(lineage);
 
         // Create reassortment lineages
-        NetworkEdge leftLineage = new NetworkEdge(null, node, hasSegs_left);
-        NetworkEdge rightLineage = new NetworkEdge(null, node, hasSegs_right);
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft());
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight());
+            
+        // add the breakPoints to the edges
+        leftLineage.setPassingRange(0, breakpoint);
+        rightLineage.setPassingRange(breakpoint+1, network.totalLength-1);
+        
         node.addParentEdge(leftLineage);
         node.addParentEdge(rightLineage);
 
         extantLineages.remove(lineage);
         extantLineages.add(leftLineage);
-        extantLineages.add(rightLineage);
+        extantLineages.add(rightLineage);        
     }
     
 }

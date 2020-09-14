@@ -112,14 +112,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         
     	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
 
-        edge.breakPoints.andNot(rangeToRemove.copy());       
-//        if (edge.childNode.dirtyBreakPoints==null) {
-//        	edge.childNode.dirtyBreakPoints = rangeToRemove.copy();
-//        }else {
-//        	edge.childNode.dirtyBreakPoints.or(rangeToRemove);
-//        }
-
-                       
+        edge.breakPoints.andNot(rangeToRemove.copy());                      
         
         edge.makeDirty(Tree.IS_FILTHY); 
 
@@ -148,13 +141,11 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
             }else {
             	// check if the parts of the removed breakpoints are between the breakpoints of the two edges
             	BreakPoints betweenBP = new BreakPoints(Math.min(max1, max2), Math.max(min1, min2));
-            	betweenBP.and(rangeToRemove);
+            	betweenBP.and(rangeToRemove);           	
             	if (!betweenBP.isEmpty()) {
             		logP += Math.log(1.0/(betweenBP.getLength()+1));
-            	}
-            	
+            	}            	
             }  
-
         } else {
         	rangeToRemove.andNot(getSisterEdge(edge).breakPoints);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
@@ -186,11 +177,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
 
         edge.breakPoints.or(rangeToAdd);
-//        if (edge.childNode.dirtyBreakPoints==null) {
-//        	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
-//        }else {
-//        	edge.childNode.dirtyBreakPoints.or(rangeToAdd);
-//        }
         
         edge.makeDirty(Tree.IS_FILTHY); 
 
@@ -227,8 +213,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 		int max1 = edge1.breakPoints.getMax();
 		
 		int min2 = edge2.breakPoints.getMin();
-		int max2 = edge2.breakPoints.getMax();		
-		
+		int max2 = edge2.breakPoints.getMax();				
 
 		
 		if (min1==-1 && min2==-1) { 
@@ -257,6 +242,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 	}
     
     private void sampleNullRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2) {
+
 		int start = Randomizer.nextInt(totalLength);
 		if (start==0) {
 			edge1.setPassingRange(start, totalLength-1);
@@ -269,7 +255,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
     
     private double sampleBetweenRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, int min1, int max2) {
     	int diff = min1-max2;
-		int newBreakPoint = Randomizer.nextInt(diff)+max2;
+		int newBreakPoint = Randomizer.nextInt(diff)+max2;		
 		edge1.setPassingRange(newBreakPoint+1, totalLength-1);
 		edge2.setPassingRange(0, newBreakPoint);
 		return Math.log(1.0/(diff));
@@ -298,8 +284,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 				edge1.setPassingRange(0,start);
 			}else {
 				logHR += Math.log(1.0/(min+1));
-				int end = Randomizer.nextInt(min+1)-1;
-				
+				int end = Randomizer.nextInt(min+1)-1;				
 				if (end==-1)
 					edge2.passingRange = null;
 				else
