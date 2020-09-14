@@ -438,7 +438,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         this.nrOfMatrices = matrixCount;
         this.integrateCategories = integrateCategories;
         matrixSize = nrOfStates * nrOfStates;
-        partialsNew = new Partials(nrOfNodes*5,nrOfMatrices*nrOfPatterns*nrOfStates);
+        partialsNew = new Partials(nrOfNodes+50,nrOfMatrices*nrOfPatterns*nrOfStates);
         
         
     }

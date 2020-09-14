@@ -256,9 +256,7 @@ public class Partials {
 				return i;
 			}
 		}
-		System.out.println(fancyPatterns[0][0][0]);
 		resize();
-		System.out.println(fancyPatterns[0][0][0]);
 		return nextEmpty();		
 	}
 	
@@ -300,7 +298,7 @@ public class Partials {
 
 		double[][][] newFancyPatterns = new double[newsize][2][nrPatterns];
 		for (int i = 0; i <fancyPatterns.length;i++) {
-			for (int j= 0; i <fancyPatterns[i].length;i++) {
+			for (int j= 0; j <fancyPatterns[i].length;j++) {
 				System.arraycopy(fancyPatterns[i][j], 0, newFancyPatterns[i][j], 0, fancyPatterns[i][j].length);
 			}
 		}			
