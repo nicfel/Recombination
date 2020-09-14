@@ -116,15 +116,15 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 // 3.1.1 if creating a new root
                 if (newChildEdge.isRootEdge()) {
 
-                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
                 	destNode.setHeight(newHeight);
                 	
-                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
@@ -156,17 +156,17 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 }
                 // 3.1.2 no new root
                 else {
-                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
                 	destNode.setHeight(newHeight);
                 	
-                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	newParent.removeChildEdge(newChildEdge);
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
@@ -229,10 +229,10 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 
                 // 4.1.1 if p was root
                 if (ipEdge.isRootEdge()) {
-                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
                 	destNode.setHeight(newHeight);
                 	
-                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	newParent.removeChildEdge(newChildEdge);
                 	newParent.addChildEdge(newIpEdge);
@@ -240,7 +240,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	destNode.addChildEdge(newChildEdge);
                 	
                 	
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
@@ -263,17 +263,17 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	network.setRootEdge(jEdge);
 
                 } else {
-                	RecombinationNetworkNode destNode = new RecombinationNetworkNode();
+                	RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
                 	destNode.setHeight(newHeight);
                 	
-                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	newParent.removeChildEdge(newChildEdge);
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
 
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge();
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);

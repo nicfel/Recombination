@@ -104,14 +104,14 @@ public class AddRemoveRecombination extends DivertLociOperator {
     	
     	logHR -= Math.log(0.5) + Math.log(1/(sourceEdge.breakPoints.getLength()-1));
     	    	    	    	    	
-		RecombinationNetworkNode sourceNode = new RecombinationNetworkNode();
+		RecombinationNetworkNode sourceNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
 		sourceNode.setHeight(sourceTime);		
 		
 		RecombinationNetworkNode oldSourceEdgeParent = sourceEdge.parentNode;
 		oldSourceEdgeParent.removeChildEdge(sourceEdge);
 		sourceNode.addChildEdge(sourceEdge);		
 		
-		RecombinationNetworkEdge newEdge1 = new RecombinationNetworkEdge();
+		RecombinationNetworkEdge newEdge1 = new RecombinationNetworkEdge(network.nodeEdgeIDs);
 		sourceNode.addParentEdge(newEdge1);
 		oldSourceEdgeParent.addChildEdge(newEdge1);
 		
@@ -120,7 +120,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
 		if (destEdge == sourceEdge)
 			destEdge = newEdge1;
 		
-		RecombinationNetworkNode destNode = new RecombinationNetworkNode();
+		RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
 		destNode.setHeight(destTime);
 		
 		RecombinationNetworkNode oldDestEdgeParent = destEdge.parentNode;
@@ -130,7 +130,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
 		
 		destNode.addChildEdge(destEdge);
 		
-		RecombinationNetworkEdge newEdge2 = new RecombinationNetworkEdge();
+		RecombinationNetworkEdge newEdge2 = new RecombinationNetworkEdge(network.nodeEdgeIDs);
 		destNode.addParentEdge(newEdge2);
 		
 		if (oldDestEdgeParent == null) {
@@ -142,7 +142,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
 		newEdge2.breakPoints = destEdge.breakPoints.copy();
 		
 		
-		RecombinationNetworkEdge reassortmentEdge = new RecombinationNetworkEdge();
+		RecombinationNetworkEdge reassortmentEdge = new RecombinationNetworkEdge(network.nodeEdgeIDs);
 		sourceNode.addParentEdge(reassortmentEdge);
 		destNode.addChildEdge(reassortmentEdge);
 		reassortmentEdge.breakPoints = new BreakPoints();	

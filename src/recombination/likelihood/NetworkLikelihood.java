@@ -129,8 +129,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
     @Override
     public void initAndValidate() {
-
-//        int nodeCount = networkInput.get().getNodeCount();
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
         	throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
         }
@@ -144,11 +142,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
             branchRateModel = new StrictClockModel();
         }
         
-//        m_branchLengths = new double[nodeCount];
-//        storedBranchLengths = new double[nodeCount];
-
         int stateCount = dataInput.get().getMaxStateCount();
-        int patterns = dataInput.get().getPatternCount();
         
         if (stateCount == 4) {
             likelihoodCore = new BeerNetworkLikelihood4();
@@ -270,8 +264,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
                 .collect(Collectors.toList());
     	
     	Alignment data = dataInput.get();
-    	for (RecombinationNetworkNode l : leafs) {
-            
+    	for (RecombinationNetworkNode l : leafs) {            
             int i;
             int[] states = new int[patternCount];
             int taxonIndex = getTaxonIndex(l.getTaxonLabel(), data);
@@ -364,6 +357,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         		
         List<Integer> nodeIDs = new ArrayList<>();
         List<Integer> edgeIDs = new ArrayList<>();
+        
+        
         for (RecombinationNetworkNode node : nodes) 
         	nodeIDs.add(node.ID);
         for (RecombinationNetworkEdge edge : edges) 

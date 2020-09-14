@@ -14,6 +14,7 @@ import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
+import recombination.util.NodeEdgeID;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -55,6 +56,8 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     private Function binomialProb;
 
     public void initAndValidate() {
+    	
+    	nodeEdgeIDs = new NodeEdgeID();
 
         populationFunction = populationFunctionInput.get();
         binomialProb = binomialProbInput.get();
@@ -90,7 +93,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         for (int taxonIndex=0; taxonIndex<taxonSet.getTaxonCount(); taxonIndex++) {
             String taxonName = taxonSet.getTaxonId(taxonIndex);
 
-            RecombinationNetworkNode sampleNode = new RecombinationNetworkNode();
+            RecombinationNetworkNode sampleNode = new RecombinationNetworkNode(nodeEdgeIDs);
             sampleNode.setTaxonLabel(taxonName);
             sampleNode.setTaxonIndex(taxonIndex);
 
@@ -182,7 +185,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         // Create corresponding lineage
         BreakPoints breakPoints = new BreakPoints(totalLength);        
         
-        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, n, breakPoints);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, n, breakPoints, nodeEdgeIDs);
         
         extantLineages.add(lineage);
         n.addParentEdge(lineage);
@@ -199,7 +202,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         } while (lineage1 == lineage2);
 
         // Create coalescent node
-        RecombinationNetworkNode coalescentNode = new RecombinationNetworkNode();
+        RecombinationNetworkNode coalescentNode = new RecombinationNetworkNode(nodeEdgeIDs);
         coalescentNode.setHeight(coalescentTime)
                 .addChildEdge(lineage1)
                 .addChildEdge(lineage2);
@@ -213,7 +216,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
 
         // Create new lineage
-        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints, nodeEdgeIDs);
         coalescentNode.addParentEdge(lineage);
 
         extantLineages.remove(lineage1);
@@ -237,12 +240,12 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     	lineage.breakPoints.computeLeftAndRight(breakpoint);
     	
         // Create reassortment node
-        RecombinationNetworkNode node = new RecombinationNetworkNode();
+        RecombinationNetworkNode node = new RecombinationNetworkNode(nodeEdgeIDs);
         node.setHeight(reassortmentTime).addChildEdge(lineage);
 
         // Create reassortment lineages
-        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft());
-        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight());
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), nodeEdgeIDs);
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), nodeEdgeIDs);
             
         // add the breakPoints to the edges
         leftLineage.setPassingRange(0, breakpoint);

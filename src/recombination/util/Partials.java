@@ -307,5 +307,12 @@ public class Partials {
 		
 	}
 	
+	public void purge() {
+		ID = new ArrayList<>();
+		breaks = new ArrayList<>();
+		startPoint = new ArrayList<>();
+		patternIndices = new boolean[currentSize];
+		nextNr = new boolean[currentSize];	
+	}
 	
 }

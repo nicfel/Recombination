@@ -21,17 +21,17 @@ public class RecombinationNetworkEdge {
 
     public boolean visited;
    
-    public RecombinationNetworkEdge() { 
-        ID = NodeEdgeID.getNewEdgeID();
+    public RecombinationNetworkEdge(NodeEdgeID nodeEdgeIDs) { 
+        ID = nodeEdgeIDs.getNewEdgeID();
         isDirty = Tree.IS_FILTHY;
     }
 
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
-    		BreakPoints breakPoints) {
+    		BreakPoints breakPoints, NodeEdgeID nodeEdgeIDs) {
         this.parentNode = parentNode;
         this.childNode = childNode;
         this.breakPoints = breakPoints;
-        ID = NodeEdgeID.getNewEdgeID();
+        ID = nodeEdgeIDs.getNewEdgeID();
         isDirty = Tree.IS_FILTHY;
     }
     

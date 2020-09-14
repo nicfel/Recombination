@@ -119,7 +119,7 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
         } while (lineage1 == lineage2);
         
         // Create coalescent node
-        RecombinationNetworkNode coalescentNode = new RecombinationNetworkNode();
+        RecombinationNetworkNode coalescentNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
         coalescentNode.setHeight(coalescentTime)
                 .addChildEdge(lineage1)
                 .addChildEdge(lineage2);
@@ -134,7 +134,7 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
 
         // Create new lineage
-        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints, network.nodeEdgeIDs);
         coalescentNode.addParentEdge(lineage);
 
         extantLineages.remove(lineage1);
@@ -159,12 +159,12 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
     	lineage.breakPoints.computeLeftAndRight(breakpoint);
     	
         // Create reassortment node
-        RecombinationNetworkNode node = new RecombinationNetworkNode();
+        RecombinationNetworkNode node = new RecombinationNetworkNode(network.nodeEdgeIDs);
         node.setHeight(reassortmentTime).addChildEdge(lineage);
 
         // Create reassortment lineages
-        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft());
-        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight());
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), network.nodeEdgeIDs);
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), network.nodeEdgeIDs);
             
         // add the breakPoints to the edges
         leftLineage.setPassingRange(0, breakpoint);

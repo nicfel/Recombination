@@ -31,6 +31,9 @@ public class RecombinationNetwork extends StateNode {
         
     public Integer totalLength = null;
     
+    public NodeEdgeID nodeEdgeIDs;
+    
+    
     public RecombinationNetwork() {
     }
 
@@ -251,6 +254,7 @@ public class RecombinationNetwork extends StateNode {
         rootEdge = builder.visit(tree);
 
         List<RecombinationNetworkNode> leafNodes = new ArrayList<>(getLeafNodes());
+    	nodeEdgeIDs = new NodeEdgeID();
     }
 
     /** StateNode implementation: **/
@@ -289,6 +293,7 @@ public class RecombinationNetwork extends StateNode {
         otherRecombinationNetwork.rootEdge = rootEdge;
         otherRecombinationNetwork.storedRootEdge = null;
         otherRecombinationNetwork.totalLength = totalLength;
+        nodeEdgeIDs = new NodeEdgeID();
     }
 
     @Override
@@ -335,9 +340,9 @@ public class RecombinationNetwork extends StateNode {
         for (RecombinationNetworkEdge edge : getEdges()) 
         	edgeIDs.add(edge.ID);
         
-        NodeEdgeID.purgeNodeIDs(nodeIDs);
-        NodeEdgeID.purgeEdgeIDs(edgeIDs);
-    	NodeEdgeID.store();
+        nodeEdgeIDs.purgeNodeIDs(nodeIDs);
+        nodeEdgeIDs.purgeEdgeIDs(edgeIDs);
+        nodeEdgeIDs.store();
     }
     
    
@@ -354,7 +359,7 @@ public class RecombinationNetwork extends StateNode {
            	e.isDirty = Tree.IS_CLEAN;
     	
     	// restore id mapping
-    	NodeEdgeID.restore();
+    	nodeEdgeIDs.restore();
     }
 
     @Override
@@ -479,11 +484,11 @@ public class RecombinationNetwork extends StateNode {
                 if (seenHybrids.containsKey(hybridID)) {
                     node = seenHybrids.get(hybridID);
                 } else {
-                    node = new RecombinationNetworkNode();
+                    node = new RecombinationNetworkNode(nodeEdgeIDs);
                     seenHybrids.put(hybridID, node);
                 }
             } else {
-                node = new RecombinationNetworkNode();
+                node = new RecombinationNetworkNode(nodeEdgeIDs);
             }
 
             if (ctx.post().label() != null)
@@ -528,7 +533,7 @@ public class RecombinationNetwork extends StateNode {
             
             BreakPoints bp = new BreakPoints();
             bp.init(breakPoints);
-            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, bp);
+            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, bp, nodeEdgeIDs);
             if (splitPoints.size()>0)
             	edge.setPassingRange(splitPoints.get(0), splitPoints.get(1));
             node.addParentEdge(edge);

@@ -208,14 +208,14 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		
 		network.startEditing(this);
 		
-		RecombinationNetworkNode sourceNode = new RecombinationNetworkNode();
+		RecombinationNetworkNode sourceNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
 		sourceNode.setHeight(sourceTime);
 		
 		RecombinationNetworkNode oldSourceEdgeParent = sourceEdge.parentNode;
 		oldSourceEdgeParent.removeChildEdge(sourceEdge);
 		sourceNode.addChildEdge(sourceEdge);
 		
-		RecombinationNetworkEdge newEdge1 = new RecombinationNetworkEdge();
+		RecombinationNetworkEdge newEdge1 = new RecombinationNetworkEdge(network.nodeEdgeIDs);
 		sourceNode.addParentEdge(newEdge1);
 		oldSourceEdgeParent.addChildEdge(newEdge1);
 		
@@ -226,7 +226,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		if (destEdge == sourceEdge)
 			destEdge = newEdge1;
 		
-		RecombinationNetworkNode destNode = new RecombinationNetworkNode();
+		RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
 		destNode.setHeight(destTime);
 		
 		RecombinationNetworkNode oldDestEdgeParent = destEdge.parentNode;
@@ -236,7 +236,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		
 		destNode.addChildEdge(destEdge);
 		
-		RecombinationNetworkEdge newEdge2 = new RecombinationNetworkEdge();
+		RecombinationNetworkEdge newEdge2 = new RecombinationNetworkEdge(network.nodeEdgeIDs);
 		destNode.addParentEdge(newEdge2);
 		
 		if (oldDestEdgeParent == null) {
@@ -247,7 +247,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		
 		newEdge2.breakPoints = destEdge.breakPoints.copy();
 		
-		RecombinationNetworkEdge reassortmentEdge = new RecombinationNetworkEdge();
+		RecombinationNetworkEdge reassortmentEdge = new RecombinationNetworkEdge(network.nodeEdgeIDs);
 		sourceNode.addParentEdge(reassortmentEdge);
 		destNode.addChildEdge(reassortmentEdge);
 		reassortmentEdge.breakPoints = new BreakPoints();	

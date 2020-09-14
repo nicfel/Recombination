@@ -59,8 +59,8 @@ public class RecombinationNetworkNode {
     List<RecombinationNetworkEdge> children = new ArrayList<>();
     List<RecombinationNetworkEdge> parents = new ArrayList<>();
 
-    public RecombinationNetworkNode() {
-    	ID = NodeEdgeID.getNewNodeID();
+    public RecombinationNetworkNode(NodeEdgeID nodeEdgeIDs) {
+    	ID = nodeEdgeIDs.getNewNodeID();
     }
     
     public RecombinationNetworkNode(int id) {   	
