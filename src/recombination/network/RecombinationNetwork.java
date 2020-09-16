@@ -243,6 +243,7 @@ public class RecombinationNetwork extends StateNode {
     }
 
     public void fromExtendedNewick(String newickStr) {
+    	nodeEdgeIDs = new NodeEdgeID();
 
         CharStream inputStream = CharStreams.fromString(newickStr);
         NetworkLexer lexer = new NetworkLexer(inputStream);
@@ -254,7 +255,10 @@ public class RecombinationNetwork extends StateNode {
         rootEdge = builder.visit(tree);
 
         List<RecombinationNetworkNode> leafNodes = new ArrayList<>(getLeafNodes());
-    	nodeEdgeIDs = new NodeEdgeID();
+        totalLength = -1;
+        for (RecombinationNetworkNode l : leafNodes) {
+        	totalLength = Math.max(totalLength, l.getParentEdges().get(0).breakPoints.getMax()+1);
+        }
     }
 
     /** StateNode implementation: **/

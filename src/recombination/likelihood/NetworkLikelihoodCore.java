@@ -94,7 +94,7 @@ abstract public class NetworkLikelihoodCore {
     /**
      * integrate partials over categories (if any). *
      */
-    abstract public void integratePartials(RecombinationNetworkEdge edge, double[] proportions, double[] outPartials, Alignment data, List<BreakPoints> rootBreaks);
+    abstract public void integratePartials(double[] proportions, double[] outPartials, Alignment data, HashMap<Integer, BreakPoints> rootBreaks);
 
     /**
      * calculate log likelihoods at the root of the tree,
@@ -108,7 +108,7 @@ abstract public class NetworkLikelihoodCore {
     public void processStack() {
     }
 
-    abstract protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials, Alignment data, List<BreakPoints> rootBreaks);
+    abstract protected void calculateIntegratePartials(double[] proportions, double[] outPartials, Alignment data, HashMap<Integer, BreakPoints> rootBreaks);
 
     abstract public void setEdgeMatrix(RecombinationNetworkEdge edge, int i, double[] matrix);
     

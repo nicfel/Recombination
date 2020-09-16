@@ -359,44 +359,81 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * @param outPartials an array into which the partials will go
      */
     @Override
-	protected void calculateIntegratePartials(RecombinationNetworkNode node, double[] proportions, double[] outPartials, Alignment data, List<BreakPoints> rootBreaks) {
+	protected void calculateIntegratePartials(double[] proportions, double[] outPartials, Alignment data, HashMap<Integer, BreakPoints> rootBreaks) {
 		int[] offset = new int[nrOfMatrices];
         for (int l = 1; l < nrOfMatrices; l++) {
         	offset[l] = l*nrOfStates*nrOfPatterns;
-        }
-       
-    
-
-        for (BreakPoints bp : rootBreaks){
-            double[] inPartials = partialsNew.getPartials(node.ID, bp);
-            for (int j = 0; j< bp.size();j++) {
-
-        		for (int m = bp.getRange(j).from; m <= bp.getRange(j).to; m++) {
-        			int stateStart = m*nrOfStates;
-        			int patternStart = data.getPatternIndex(m)*nrOfStates;
-		            int u = stateStart;
-		            int v = patternStart;
-		            
-	                for (int i = 0; i < nrOfStates; i++) {
-	                	outPartials[u] = inPartials[v] * proportions[0];
-	                    u++;
-	                    v++;
-	                }		
+        }       
+        
+        
+        for (Integer i : rootBreaks.keySet()) {
+        	for (BreakPoints bp : partialsNew.getBreaks(i)) {
+        		if (!bp.isEmpty()) {
+	        		BreakPoints bp1 = bp.copy();
+	        		bp1.and(rootBreaks.get(i));
+	        		if (!bp1.isEmpty()) {
+	                    double[] inPartials = partialsNew.getPartials(i, bp);
+	                    for (int j = 0; j < bp.size();j++) {
+		            		for (int m = bp1.getRange(j).from; m <= bp1.getRange(j).to; m++) {
+		            			int stateStart = m*nrOfStates;
+		            			int patternStart = data.getPatternIndex(m)*nrOfStates;
+		    		            int u = stateStart;
+		    		            int v = patternStart;
+		    		            
+		    	                for (int k = 0; k < nrOfStates; k++) {
+		    	                	outPartials[u] = inPartials[v] * proportions[0];
+		    	                    u++;
+		    	                    v++;
+		    	                }		
+		    		
+		    		            for (int l = 1; l < nrOfMatrices; l++) {
+		    		                u = stateStart;	
+		    		                v = patternStart+offset[l];
+		    	                    for (int k = 0; k < nrOfStates; k++) {
 		
-		            for (int l = 1; l < nrOfMatrices; l++) {
-		                u = stateStart;	
-		                v = patternStart+offset[l];
-	                    for (int i = 0; i < nrOfStates; i++) {
-
-	                    	outPartials[u] += inPartials[v] * proportions[l];
-	                        u++;
-	                        v++;
+		    	                    	outPartials[u] += inPartials[v] * proportions[l];
+		    	                        u++;
+		    	                        v++;
+		    	                    }
+		    		                
+		    		            }
+		    	        	}
 	                    }
-		                
-		            }
-	        	}
-        	}
+	        		}     
+        		}        		
+        	}        	
         }
+
+//        for (BreakPoints bp : rootBreaks){
+//            double[] inPartials = partialsNew.getPartials(node.ID, bp);
+//            for (int j = 0; j< bp.size();j++) {
+//
+//        		for (int m = bp.getRange(j).from; m <= bp.getRange(j).to; m++) {
+//        			int stateStart = m*nrOfStates;
+//        			int patternStart = data.getPatternIndex(m)*nrOfStates;
+//		            int u = stateStart;
+//		            int v = patternStart;
+//		            
+//	                for (int i = 0; i < nrOfStates; i++) {
+//	                	outPartials[u] = inPartials[v] * proportions[0];
+//	                    u++;
+//	                    v++;
+//	                }		
+//		
+//		            for (int l = 1; l < nrOfMatrices; l++) {
+//		                u = stateStart;	
+//		                v = patternStart+offset[l];
+//	                    for (int i = 0; i < nrOfStates; i++) {
+//
+//	                    	outPartials[u] += inPartials[v] * proportions[l];
+//	                        u++;
+//	                        v++;
+//	                    }
+//		                
+//		            }
+//	        	}
+//        	}
+//        }
         
         
     }
@@ -514,8 +551,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 
 	@Override
-	public void integratePartials(RecombinationNetworkEdge edge, double[] proportions, double[] outPartials, Alignment data, List<BreakPoints> rootBreaks) {
-        calculateIntegratePartials(edge.childNode, proportions, outPartials, data, rootBreaks);
+	public void integratePartials(double[] proportions, double[] outPartials, Alignment data, HashMap<Integer, BreakPoints> rootBreaks) {
+        calculateIntegratePartials(proportions, outPartials, data, rootBreaks);
     }
 
 

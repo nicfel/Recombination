@@ -11,6 +11,7 @@ import beast.evolution.substitutionmodel.HKY;
 import beast.evolution.substitutionmodel.JukesCantor;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
+import beast.util.Randomizer;
 import beast.util.TreeParser;
 import junit.framework.TestCase;
 import recombination.alignment.RecombinationAlignment;
@@ -35,6 +36,8 @@ public class NetworklikelihoodTest extends TestCase {
     
     @Test
     public void testHKYGammaLikelihood() throws Exception {
+    	Randomizer.setSeed(1);
+    	
         // Set up JC69 model: uniform freqs, kappa = 1, 0 gamma categories
     	Alignment data = getAlignmentShort();
         RecombinationNetwork network = getNetworkShort();
@@ -49,7 +52,7 @@ public class NetworklikelihoodTest extends TestCase {
         hky.initByName("kappa", "2.739445", "frequencies", freqs);
 
         SiteModel siteModel = new SiteModel();
-        siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 4, "shape", "2.0", "substModel", hky);
+        siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 4, "shape", "10.0", "substModel", hky);
 
         NetworkLikelihood likelihood = newNetworkLikelihood();
         likelihood.initByName("data", data, "recombinationNetwork", network, "siteModel", siteModel);
