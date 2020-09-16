@@ -48,7 +48,8 @@ public class RecombinationNetworkNode {
      */
     public List<BreakPoints> dummy;
     public List<BreakPoints> dummy2;
-    public List<Integer> computeOnwards;
+    public List<Double> prevLength;
+    public List<RecombinationNetworkEdge> prevPointer;
     public BreakPoints dirtyBreakPoints;
     
     

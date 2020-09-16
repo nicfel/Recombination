@@ -60,7 +60,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have exactly known states (e.g. for leaves).
      */
     protected void calculateStatesStatesPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
-    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) {
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
+    		boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
         
     	
         // compute the breakpoints that are on both edges or only on either edge
@@ -140,7 +141,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when one child has states and one has partials.
      */
     protected void calculateStatesPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
-    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) { 
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
+    		boolean[] computeForPatterns, double[] matrices1, double[] matrices2) { 
         
         double[] mat1 = this.matrix.get(edge1.ID);
         double[] mat2 = this.matrix.get(edge2.ID);
@@ -211,7 +213,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      * Calculates partial likelihoods at a node when both children have partials.
      */
     protected void calculatePartialsPartialsPruning(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node,
-    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) {
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
+    		boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
     	
     	
         
@@ -508,20 +511,21 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
 	public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, 
-			BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns) {
+			BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
+			boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
     	
 
         if (states.containsKey(edge1.childNode.getTaxonLabel())) {
             if (states.containsKey(edge2.childNode.getTaxonLabel())) {
-                calculateStatesStatesPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns);
+                calculateStatesStatesPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns, matrices1, matrices2);
             } else {
-                calculateStatesPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns);
+                calculateStatesPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns, matrices1, matrices2);
             }
         } else {
             if (states.containsKey(edge2.childNode.getTaxonLabel())) {
-                calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute2,compute1,computeForPatterns);
+                calculateStatesPartialsPruning(edge2,edge1,node,computeFor,compute2,compute1,computeForPatterns, matrices2, matrices1);
             } else {
-                calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns);
+                calculatePartialsPartialsPruning(edge1,edge2,node,computeFor,compute1,compute2,computeForPatterns, matrices1, matrices2);
             }
         }
         ensureLables(node, computeFor);
@@ -771,23 +775,9 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
 		
-//		System.out.println("--------------------");
-//		if (node.getHeight()==2.549370337249723) {
-//			System.out.println("......................");
-//			System.out.println(partialsNew.getPartials(node.ID, breaks.get(0))[0] + " " + node.ID);
-//		}
-		
-//		System.out.println("--------------------");
-//        System.out.println(breaks + " " + computeFor);
-
         if (breaks.contains(computeFor))
 			return;
 
-
-		
-//		if (node.getHeight()==2.549370337249723)
-//			System.out.println("......................");
-		
 		for (BreakPoints bp : breaks) {
 			if (!bp.isEmpty()) {
 				if (!computeFor.equals(bp)) {

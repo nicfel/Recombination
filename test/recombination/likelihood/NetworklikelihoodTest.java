@@ -34,52 +34,6 @@ public class NetworklikelihoodTest extends TestCase {
         return new TreeLikelihood();
     }
     
-    @Test
-    public void testHKYGammaLikelihood() throws Exception {
-    	Randomizer.setSeed(1);
-    	
-        // Set up JC69 model: uniform freqs, kappa = 1, 0 gamma categories
-    	Alignment data = getAlignmentShort();
-        RecombinationNetwork network = getNetworkShort();
-                       
-    	Alignment data_freqs = getNormalAlignment();
-       
-        Frequencies freqs = new Frequencies();
-        freqs.initByName("data", data_freqs);
-
-        
-        HKY hky = new HKY();
-        hky.initByName("kappa", "2.739445", "frequencies", freqs);
-
-        SiteModel siteModel = new SiteModel();
-        siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 4, "shape", "10.0", "substModel", hky);
-
-        NetworkLikelihood likelihood = newNetworkLikelihood();
-        likelihood.initByName("data", data, "recombinationNetwork", network, "siteModel", siteModel);
-        double logP = 0;
-        logP = likelihood.calculateLogP();
-        
-        
-        // compute the tree likelihoods for each positions individually
-        double treeLog = 0.0;
-        for (int i = 0; i < 4; i++) {
-            Alignment data_pos = getAlignmentPosition(i);
-            Node root = network.getLocusChildren(network.getRootEdge().childNode, i);
-            TreeParser t = new TreeParser();
-
-            t.initByName("taxa", data_pos,
-                    "newick", root.toNewick(false),
-                    "IsLabelledNewick", true);            
-           
-            TreeLikelihood treelikelihood = newTreeLikelihood();
-            treelikelihood.initByName("data", data_pos, "tree", t, "siteModel", siteModel);
-            treeLog += treelikelihood.calculateLogP();
-        }    
-        
-        
-        assertEquals(logP, treeLog, BEASTTestCase.PRECISION);
-    }
-
 
 
 
@@ -168,6 +122,54 @@ public class NetworklikelihoodTest extends TestCase {
         
         assertEquals(logP, treeLog, BEASTTestCase.PRECISION);
     }
+    
+    @Test
+    public void testHKYGammaLikelihood() throws Exception {
+    	Randomizer.setSeed(1);
+    	
+        // Set up JC69 model: uniform freqs, kappa = 1, 0 gamma categories
+    	Alignment data = getAlignmentShort();
+        RecombinationNetwork network = getNetworkShort();
+                       
+    	Alignment data_freqs = getNormalAlignment();
+       
+        Frequencies freqs = new Frequencies();
+        freqs.initByName("data", data_freqs);
+
+        
+        HKY hky = new HKY();
+        hky.initByName("kappa", "2.739445", "frequencies", freqs);
+
+        SiteModel siteModel = new SiteModel();
+        siteModel.initByName("mutationRate", "1.0", "gammaCategoryCount", 4, "shape", "10.0", "substModel", hky);
+
+        NetworkLikelihood likelihood = newNetworkLikelihood();
+        likelihood.initByName("data", data, "recombinationNetwork", network, "siteModel", siteModel);
+        double logP = 0;
+        logP = likelihood.calculateLogP();
+        
+        
+        // compute the tree likelihoods for each positions individually
+        double treeLog = 0.0;
+        for (int i = 0; i < 4; i++) {
+            Alignment data_pos = getAlignmentPosition(i);
+            Node root = network.getLocusChildren(network.getRootEdge().childNode, i);
+            TreeParser t = new TreeParser();
+
+            t.initByName("taxa", data_pos,
+                    "newick", root.toNewick(false),
+                    "IsLabelledNewick", true);            
+           
+            TreeLikelihood treelikelihood = newTreeLikelihood();
+            treelikelihood.initByName("data", data_pos, "tree", t, "siteModel", siteModel);
+            treeLog += treelikelihood.calculateLogP();
+        }    
+        
+        
+        assertEquals(logP, treeLog, BEASTTestCase.PRECISION);
+    }
+
+
     
 
     

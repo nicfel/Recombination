@@ -108,6 +108,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
      */
     protected double[] probabilities;
 
+    protected int matrixSizeExtended;
     protected int matrixSize;
 
     /**
@@ -168,7 +169,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         
         patternLogLikelihoods = new double[dataInput.get().getSiteCount()];
         m_fRootPartials = new double[dataInput.get().getSiteCount() * stateCount];
-        matrixSize = (stateCount + 1) * (stateCount + 1);
+        matrixSizeExtended = (stateCount + 1) * (stateCount + 1);
+        matrixSize = stateCount * stateCount;
         probabilities = new double[(stateCount + 1) * (stateCount + 1)];
         Arrays.fill(probabilities, 1.0);
 
@@ -368,7 +370,9 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         likelihoodCore.cleanMatrix(edgeIDs);
 
         for (RecombinationNetworkEdge e : edges) 
-    		e.visited = false;
+    		e.visited = false;        
+        
+//        System.out.println(network);
     	
       	// init partials that have not yet been initialized
     	initPartials();
@@ -377,7 +381,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> !e.isLeaf()).collect(Collectors.toList())) {
     		n.dummy = new ArrayList<>();
     		n.dummy2 = new ArrayList<>();
-    		n.computeOnwards = new ArrayList<>();
+    		n.prevLength = new ArrayList<>();
+    		n.prevPointer = new ArrayList<>();
     	}
     	
     	// check where the roots of local trees are
@@ -396,7 +401,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
     	try {
 	    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isLeaf()).collect(Collectors.toList())) {
-	    		upwardsTraversalBP(n, n.getParentEdges().get(0).breakPoints, null, n.getParentEdges().get(0).breakPoints);
+	    		upwardsTraversalBP(n, n.getParentEdges().get(0).breakPoints, null, n.getParentEdges().get(0).breakPoints, 0.0);
 	    	}
 
     		calcLogP(network.getRootEdge());
@@ -509,42 +514,22 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	}
 
 
-	void upwardsTraversalBP(RecombinationNetworkNode node, BreakPoints computeFor_BP, RecombinationNetworkEdge prev_edge, BreakPoints prev_Pointer) {    	
+	void upwardsTraversalBP(RecombinationNetworkNode node, BreakPoints computeFor_BP, 
+			RecombinationNetworkEdge prev_edge, BreakPoints prev_Pointer, double old_time) {    
+		
     	if (computeFor_BP.isEmpty())
     		return;    	
       
         if (node.isLeaf()) {        	
-        	upwardsTraversalBP(node.getParentEdges().get(0).parentNode, computeFor_BP, node.getParentEdges().get(0), computeFor_BP);
+        	upwardsTraversalBP(node.getParentEdges().get(0).parentNode, computeFor_BP, node.getParentEdges().get(0), computeFor_BP, old_time + node.getParentEdges().get(0).getLength());
         }else if (node.isRecombination()) {
         	BreakPoints computeFor = computeFor_BP.copy();
-        	computeFor.and(node.dirtyBreakPoints);
-        	
-        	
-        	if (computeFor.equals(computeFor_BP)) {
-        		
-        		computeForPatterns(computeFor_BP);
-        		if (m_siteModel.integrateAcrossCategories()) {
-            		likelihoodCore.calculatePartialsRecombination(prev_edge, node, computeFor_BP, prev_Pointer, computeForPatterns);
-	            } else {
-	                throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
-	                //m_pLikelihoodCore->calculatePartials(childNum1, childNum2, nodeNum, siteCategories);
-	            }
-        	}else if (computeFor.isEmpty()) {
-        		// there is already information present about the
-//        		System.out.println("a");
-                likelihoodCore.checkLabels(node, computeFor_BP);
-        	}else {
-//        		System.out.println("a2");
-//        		System.out.println(computeFor);
-//        		System.out.println(node.getHeight());
-				// check label overlap
-                likelihoodCore.reassignLabels(node, computeFor_BP, node.dirtyBreakPoints);
-        	}
+        	computeFor.and(node.dirtyBreakPoints); 
        	
         	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
         		BreakPoints bp = computeFor_BP.copy();
         		bp.and(edge.breakPoints);                
-            	upwardsTraversalBP(edge.parentNode, bp, edge, computeFor_BP);
+            	upwardsTraversalBP(edge.parentNode, bp, prev_edge, prev_Pointer, old_time + edge.getLength());
         	}
         	
         }else {
@@ -560,37 +545,12 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		BreakPoints cf_only = computeFor.copy();
     		cf_only.andNot(overlap);
     		
-    		if (!cf_only.isEmpty()) {
-            	BreakPoints cp = cf_only.copy();
-            	cp.and(node.dirtyBreakPoints);
-
-    			if (cp.equals(cf_only)) {
-    				computeForPatterns(cf_only);
-//            		System.out.println(node.getHeight());
-//            		System.out.println(Arrays.toString(computeForPatterns));
-
-	                if (m_siteModel.integrateAcrossCategories()) {
-	                    likelihoodCore.calculatePartialsRecombination(prev_edge, node, cf_only, prev_Pointer, computeForPatterns);
-	                } else {
-	                    throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
-	                    //m_pLikelihoodCore->calculatePartials(childNum1, childNum2, nodeNum, siteCategories);
-	                }      
-        		}else if (cp.isEmpty()) { 
-//        			System.out.println("b");
-                    likelihoodCore.checkLabels(node, cf_only);
-        		}else {
-//        			System.out.println("b2");
-//        			System.out.println(node.dirtyBreakPoints);
-  				// check label overlap
-                    likelihoodCore.reassignLabels(node, cf_only, node.dirtyBreakPoints);
-        		}
-    			
+    		if (!cf_only.isEmpty()) {    			
                 if (!edge.isRootEdge()) {                	
-                	upwardsTraversalBP(edge.parentNode, cf_only, edge, cf_only);
+                	upwardsTraversalBP(edge.parentNode, cf_only, prev_edge, prev_Pointer, old_time + edge.getLength());
             	}
                 // see "how" much is left of the compute for BP
     			computeFor.andNot(cf_only);
-
     		}
 
     		BreakPoints bp_in = computeFor.copy();
@@ -600,14 +560,19 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         		bp_here.and(bp_in);       		
         		if (!bp_here.isEmpty()) {     
                 	BreakPoints cp = bp_here.copy();
-                	cp.and(node.dirtyBreakPoints);                	
+                	cp.and(node.dirtyBreakPoints);        
+                	
+                	
 	        		if (cp.equals(bp_here)) {
 		                if (m_siteModel.integrateAcrossCategories()) {
-		                	computeForPatterns(bp_here);
-			        		if (prev_edge.ID==node.getChildEdges().get(0).ID)
-			        			likelihoodCore.calculatePartials(node.getChildEdges().get(0), node.getChildEdges().get(1), node, bp_here, prev_Pointer, node.dummy2.get(i), computeForPatterns);
-			        		else
-			        			likelihoodCore.calculatePartials(node.getChildEdges().get(0), node.getChildEdges().get(1), node, bp_here, node.dummy2.get(i), prev_Pointer,computeForPatterns);
+//		                	System.out.println(node.getHeight());
+		                	computeForPatterns(bp_here);		  
+		        			double[] mat1 = getLengthMatrix(old_time);
+		        			double[] mat2 = getLengthMatrix(node.prevLength.get(i));     			
+		        			
+		        			likelihoodCore.calculatePartials(prev_edge, node.prevPointer.get(i), 
+		        					node, bp_here, prev_Pointer, node.dummy2.get(i), 
+		        					computeForPatterns, mat1, mat2);
 		                } else {
 		                    throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
 		                    //m_pLikelihoodCore->calculatePartials(childNum1, childNum2, nodeNum, siteCategories);
@@ -619,22 +584,23 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	        		
 	        		computeFor.andNot(bp_here);
 	                if (!edge.isRootEdge()) {
-	                	BreakPoints passOn = bp_here.copy();
-	                	
+	                	BreakPoints passOn = bp_here.copy();	                	
 	                	// only pass on loci for which the root has not been reached yet.
 	                	if (rootBreaks.containsKey(node.ID)) {
 	                		passOn.andNot(rootBreaks.get(node.ID));
 	                	}
-	                	upwardsTraversalBP(edge.parentNode, passOn, edge, passOn);
+	                	upwardsTraversalBP(edge.parentNode, passOn, edge, passOn, edge.getLength());
 	                }
 
         		}  
         	}
+    		// save the info for when the node is passed again.
     		node.dummy2.add(prev_Pointer.copy());
     		node.dummy.add(computeFor);
+    		node.prevLength.add(old_time);
+    		node.prevPointer.add(prev_edge);
 		}        
     }
-    
     
     void upwardsTraversalDirtyEdges(RecombinationNetworkNode node, BreakPoints dirtyEdges_tmp) {
     	BreakPoints dirtyEdges = dirtyEdges_tmp.copy();   
@@ -678,9 +644,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
 		}        
     }
-    
 
-	private BreakPoints updateEdgeMatrixBP(RecombinationNetworkEdge edge) {
+    private BreakPoints updateEdgeMatrixBP(RecombinationNetworkEdge edge) {
 				
 		if (edge.isDirty()==Tree.IS_FILTHY || hasDirt!=Tree.IS_CLEAN) {
 	    	if (!edge.visited) {
@@ -698,6 +663,20 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 		}
 	    return new BreakPoints();
 	}
+	
+	private double[] getLengthMatrix(double length) {
+        double[] newmat = new double[m_siteModel.getCategoryCount()*matrixSize];
+
+	    final double branchRate = branchRateModel.getRateForBranch(dummyNode);
+	    for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
+	    	
+	        final double jointBranchRate = m_siteModel.getRateForCategory(i, dummyNode) * branchRate;
+	        substitutionModel.getTransitionProbabilities(dummyNode, length, 0, jointBranchRate, probabilities);
+	        System.arraycopy(probabilities, 0, newmat, i * matrixSize, matrixSize);
+	    }	    
+	    return newmat;
+	}
+
 
     
 	private int updateEdgeMatrix(RecombinationNetworkEdge edge) {

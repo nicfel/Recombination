@@ -88,7 +88,9 @@ abstract public class NetworkLikelihoodCore {
      * NB Depending on whether the child nodes contain states or partials, the
      * calculation differs-*
      */
-    abstract public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, boolean[] computeForPatterns);
+    abstract public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, 
+    		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
+    		boolean[] computeForPatterns, double[] matrices1, double[] matrices2);
     //abstract public void calculatePartials(int node1, int node2Index, int node3, int[] matrixMap);
 
     /**
