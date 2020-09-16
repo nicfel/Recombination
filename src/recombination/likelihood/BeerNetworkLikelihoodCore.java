@@ -832,11 +832,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 		return 0;
 	}
-	
-	protected void dummy(RecombinationNetworkNode node, BreakPoints bp) {
-		System.out.println(node.getHeight() + " " + bp + " " + partials.get(node.ID).get(bp)[50]);
-		
-	}
 
 	
 

@@ -371,8 +371,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
         for (RecombinationNetworkEdge e : edges) 
     		e.visited = false;        
-        
-//        System.out.println(network);
     	
       	// init partials that have not yet been initialized
     	initPartials();
@@ -391,8 +389,9 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	
     	// check which edges and break points need recomputation
     	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isLeaf()).collect(Collectors.toList())) {
-    		upwardsTraversalDirtyEdges(n, new BreakPoints());
+    		upwardsTraversalDirtyEdges(n.getParentEdges().get(0), false);
     	}    	
+    	
 
     	if (hasDirt==Tree.IS_FILTHY)
     		likelihoodCore.debug=true;
@@ -602,66 +601,32 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 		}        
     }
     
-    void upwardsTraversalDirtyEdges(RecombinationNetworkNode node, BreakPoints dirtyEdges_tmp) {
-    	BreakPoints dirtyEdges = dirtyEdges_tmp.copy();   
-    	if (node.isLeaf()) {       
-        	RecombinationNetworkEdge edge = node.getParentEdges().get(0); 
-        	dirtyEdges.or(updateEdgeMatrixBP(edge));
-        	upwardsTraversalDirtyEdges(edge.parentNode, dirtyEdges);
-        }else if (node.isRecombination()) {
-        	if (node.dirtyBreakPoints==null)
-        		node.dirtyBreakPoints=dirtyEdges.copy();
-        	else
-        		node.dirtyBreakPoints.or(dirtyEdges);        	        	
-        	
-        	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
-        		dirtyEdges = node.dirtyBreakPoints.copy();
-        		dirtyEdges.or(updateEdgeMatrixBP(edge));
-            	upwardsTraversalDirtyEdges(edge.parentNode, dirtyEdges);
-        	}        	
-        }else {
-        	RecombinationNetworkEdge edge = node.getParentEdges().get(0);     
-        	
-        	if (edge.isRootEdge()) {
-            	if (node.dirtyBreakPoints==null)
-            		node.dirtyBreakPoints=dirtyEdges.copy();
-            	else
-            		node.dirtyBreakPoints.or(dirtyEdges);
-            	
-            	return;
-        	}
-        	        	
-        	BreakPoints edgeBP = updateEdgeMatrixBP(edge).copy();
-        	
-        	dirtyEdges.or(edgeBP);
-        	    		
-        	if (node.dirtyBreakPoints==null)
-        		node.dirtyBreakPoints=dirtyEdges.copy();
-        	else
-        		node.dirtyBreakPoints.or(dirtyEdges);
-       	
-        	upwardsTraversalDirtyEdges(edge.parentNode, node.dirtyBreakPoints);
+    void upwardsTraversalDirtyEdges(RecombinationNetworkEdge edge, boolean dirty) {
+    	if (edge.visited)
+    		return;
+    	
+    	if (edge.isRootEdge()) {        	
+        	return;
+    	}
+    	
+    	dirty = updateEdgeMatrixBP(edge) ? true : dirty;
+    	
+		if (dirty) {    
+       		edge.parentNode.dirtyBreakPoints = new BreakPoints(networkInput.get().totalLength);
+		}    	
+    	
+    	for (RecombinationNetworkEdge e : edge.parentNode.getParentEdges()) {       
+        	upwardsTraversalDirtyEdges(e, dirty);        	
+    	}       	
 
-		}        
     }
 
-    private BreakPoints updateEdgeMatrixBP(RecombinationNetworkEdge edge) {
-				
-		if (edge.isDirty()==Tree.IS_FILTHY || hasDirt!=Tree.IS_CLEAN) {
-	    	if (!edge.visited) {
-	            final double branchRate = branchRateModel.getRateForBranch(dummyNode);
-	            for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
-	            	
-	                final double jointBranchRate = m_siteModel.getRateForCategory(i, dummyNode) * branchRate;
-	                substitutionModel.getTransitionProbabilities(dummyNode, edge.parentNode.getHeight(), edge.childNode.getHeight(), jointBranchRate, probabilities);
-	                likelihoodCore.setEdgeMatrix(edge, i, probabilities);
-	            }
-	            edge.visited = true;
-	            
-	    	}	    	
-	    	return edge.breakPoints;
+    private boolean updateEdgeMatrixBP(RecombinationNetworkEdge edge) {				
+		if (edge.isDirty()!=Tree.IS_CLEAN || hasDirt!=Tree.IS_CLEAN) {
+			edge.visited = true;
+	    	return true;
 		}
-	    return new BreakPoints();
+	    return false;
 	}
 	
 	private double[] getLengthMatrix(double length) {
