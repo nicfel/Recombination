@@ -17,7 +17,7 @@ public class BreakPoints {
 	public List<Range> breakPoints;	
 	private BreakPoints leftBreakPoints;
 	private BreakPoints rightBreakPoints;   
-	private int hashCode = -1;
+//	private int hashCode = -1;
 	
 	final static RangeComparator rc = new RangeComparator();
 
@@ -26,7 +26,7 @@ public class BreakPoints {
 		breakPoints = new ArrayList<>();
 		breakPoints.add(new Range(0, totalLength-1));
 		
-		updateHashCode();
+//		updateHashCode();
 	}
 
 	
@@ -34,7 +34,7 @@ public class BreakPoints {
 		breakPoints = new ArrayList<>();
 		breakPoints.add(new Range(start, end));
 		
-		updateHashCode();
+//		updateHashCode();
 	}
 	
 	public BreakPoints() { }
@@ -44,14 +44,14 @@ public class BreakPoints {
 		for (int i = 0; i < breakPoints.size(); i=i+2)
 			this.breakPoints.add(new Range(breakPoints.get(i), breakPoints.get(i+1)));
 		
-		updateHashCode();
+//		updateHashCode();
 	}
 	
 	public BreakPoints(List<Range> breakPoints) { 
 		if (breakPoints!=null)
 			this.breakPoints = new ArrayList<>(breakPoints);
 		
-		updateHashCode();
+//		updateHashCode();
 	}
 
 		
@@ -334,7 +334,7 @@ public class BreakPoints {
 			}
 		}
 		this.breakPoints = new ArrayList<>(newBreaks);
-		updateHashCode();
+//		updateHashCode();
 	}
 	
 	/**
@@ -349,7 +349,7 @@ public class BreakPoints {
 			}
 		}
 		this.breakPoints = new ArrayList<>(newBreaks);
-		updateHashCode();
+//		updateHashCode();
 	}
 
 	@Override
@@ -383,22 +383,22 @@ public class BreakPoints {
         return true;
 	}
 	
-	public void updateHashCode() {
-		// TODO more unique hashcode
-		hashCode = 0;
-		for (int i = 0; i < size(); i++) {
-			hashCode += (getRange(i).to*getLength() + getRange(i).from*getLength())*(i+13)+ getLength();
-		}
-	}
+//	public void updateHashCode() {
+//		// TODO more unique hashcode
+//		hashCode = 0;
+//		for (int i = 0; i < size(); i++) {
+//			hashCode += (getRange(i).to*getLength() + getRange(i).from*getLength())*(i+13)+ getLength();
+//		}
+//	}
 
 	
-	@Override
-	public int hashCode() {
-		if (hashCode==-1)
-			updateHashCode();
-		
-		return hashCode;
-	}
+//	@Override
+//	public int hashCode() {
+//		if (hashCode==-1)
+//			updateHashCode();
+//		
+//		return hashCode;
+//	}
 
 
 
@@ -439,7 +439,7 @@ public class BreakPoints {
 		newBreaks.add(new Range(lastfrom, nextto));				
 					
 		this.breakPoints = new ArrayList<>(newBreaks);	
-		updateHashCode();
+//		updateHashCode();
 	}
 	
 	public int getMin() {
