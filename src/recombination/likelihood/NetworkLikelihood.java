@@ -349,7 +349,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     double m_fScale = 1.01;
     int m_nScale = 0;
     int X = 100;
-
+    
     @Override
     public double calculateLogP() {
         final RecombinationNetwork network = networkInput.get();
@@ -387,11 +387,11 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	rootBreaks = new HashMap<>();    	
     	traversalRoots(network.getRootEdge(), new BreakPoints(network.totalLength));
     	
-    	// check which edges and break points need recomputation
-    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isLeaf()).collect(Collectors.toList())) {
-    		upwardsTraversalDirtyEdges(n.getParentEdges().get(0), false);
-    	}    	
     	
+    	setDirty(network);
+    	
+//    	System.out.println(network);
+//    	System.exit(0);
 
     	if (hasDirt==Tree.IS_FILTHY)
     		likelihoodCore.debug=true;
@@ -503,7 +503,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         }
     }    
     
-    
     private void computeForPatterns(BreakPoints computeFor) {
     	computeForPatterns = new boolean[dataInput.get().getPatternCount()];
     	for (int i=0; i < computeFor.size();i++) {
@@ -511,7 +510,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     			computeForPatterns[dataInput.get().getPatternIndex(j)] = true;
     	}
 	}
-
 
 	void upwardsTraversalBP(RecombinationNetworkNode node, BreakPoints computeFor_BP, 
 			RecombinationNetworkEdge prev_edge, BreakPoints prev_Pointer, double old_time) {    
@@ -567,8 +565,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 //		                	System.out.println(node.getHeight());
 		                	computeForPatterns(bp_here);		  
 		        			double[] mat1 = getLengthMatrix(old_time);
-		        			double[] mat2 = getLengthMatrix(node.prevLength.get(i));     			
-		        			
+		        			double[] mat2 = getLengthMatrix(node.prevLength.get(i));     	
+	        			
 		        			likelihoodCore.calculatePartials(prev_edge, node.prevPointer.get(i), 
 		        					node, bp_here, prev_Pointer, node.dummy2.get(i), 
 		        					computeForPatterns, mat1, mat2);
@@ -601,29 +599,38 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 		}        
     }
     
-    void upwardsTraversalDirtyEdges(RecombinationNetworkEdge edge, boolean dirty) {
-    	if (edge.visited)
-    		return;
-    	
-    	if (edge.isRootEdge()) {        	
-        	return;
-    	}
-    	
-    	dirty = updateEdgeMatrixBP(edge) ? true : dirty;
-    	
-		if (dirty) {    
-       		edge.parentNode.dirtyBreakPoints = new BreakPoints(networkInput.get().totalLength);
-		}    	
-    	
-    	for (RecombinationNetworkEdge e : edge.parentNode.getParentEdges()) {       
-        	upwardsTraversalDirtyEdges(e, dirty);        	
+	
+	void setDirty(RecombinationNetwork network) {
+		if (hasDirt==Tree.IS_FILTHY) {
+	    	// check which edges and break points need recomputation
+	    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isCoalescence()).collect(Collectors.toList())) {
+       			n.dirtyBreakPoints = new BreakPoints(networkInput.get().totalLength);
+	    	}
+	    	return;
+		}			
+		
+    	// check which edges and break points need recomputation
+    	for (RecombinationNetworkEdge e : network.getEdges().stream().filter(e -> e.isDirty()==Tree.IS_FILTHY).collect(Collectors.toList())) {
+    		upwardsTraversalDirtyEdges(e);
+    	}    	
+
+	}	
+    void upwardsTraversalDirtyEdges(RecombinationNetworkEdge edge) {
+    	if (edge.isRootEdge())        	
+        	return;    
+
+    	edge.parentNode.dirtyBreakPoints = new BreakPoints(networkInput.get().totalLength);
+
+    	for (RecombinationNetworkEdge e : edge.parentNode.getParentEdges()) {  
+    		if (e.isDirty()!=Tree.IS_FILTHY)
+    			upwardsTraversalDirtyEdges(e);        	
     	}       	
 
     }
 
     private boolean updateEdgeMatrixBP(RecombinationNetworkEdge edge) {				
+		edge.visited = true;
 		if (edge.isDirty()!=Tree.IS_CLEAN || hasDirt!=Tree.IS_CLEAN) {
-			edge.visited = true;
 	    	return true;
 		}
 	    return false;

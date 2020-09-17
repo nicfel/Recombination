@@ -16,9 +16,7 @@ import beast.util.Randomizer;
 
 
 @Description("Randomly moves tip dates on a tree by randomly selecting one from (a subset of) taxa")
-public class MultiTipDatesRandomWalker extends TreeOperator {
-    // perhaps multiple trees may be necessary if they share the same taxon?
-     public Input<List<Tree>> m_treesInput = new Input<>("trees" ,"tree to operate on", new ArrayList<>(), Validate.REQUIRED);
+public class NetworkTipDatesRandomWalker extends RecombinationNetworkOperator {
 
     final public Input<Double> windowSizeInput =
             new Input<>("windowSize", "the size of the window both up and down when using uniform interval OR standard deviation when using Gaussian", Input.Validate.REQUIRED);
@@ -188,4 +186,10 @@ public class MultiTipDatesRandomWalker extends TreeOperator {
             return "Try setting window size to about " + formatter.format(newWindowSize);
         } else return "";
     }
+
+	@Override
+	protected double networkProposal() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }
