@@ -556,11 +556,14 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         		// get the overlap
         		bp_here.and(bp_in);       		
         		if (!bp_here.isEmpty()) {     
-                	BreakPoints cp = bp_here.copy();
-                	cp.and(node.dirtyBreakPoints);        
+//                	BreakPoints cp = bp_here.copy();
+//                	cp.and(node.dirtyBreakPoints);        
                 	
                 	
-	        		if (cp.equals(bp_here)) {
+//	        		if (cp.equals(bp_here)) {
+                	if (node.getChildEdges().get(0).isDirty()==Tree.IS_FILTHY ||
+                			node.getChildEdges().get(1).isDirty()==Tree.IS_FILTHY) {
+	        			
 		                if (m_siteModel.integrateAcrossCategories()) {
 //		                	System.out.println(node.getHeight());
 		                	computeForPatterns(bp_here);		  
@@ -603,6 +606,10 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	void setDirty(RecombinationNetwork network) {
 		if (hasDirt==Tree.IS_FILTHY) {
 	    	// check which edges and break points need recomputation
+	    	for (RecombinationNetworkEdge e : network.getEdges().stream().collect(Collectors.toList())) {
+	    		e.makeDirty(Tree.IS_FILTHY);
+	    	}    	
+
 	    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isCoalescence()).collect(Collectors.toList())) {
        			n.dirtyBreakPoints = new BreakPoints(networkInput.get().totalLength);
 	    	}
@@ -615,11 +622,13 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	}    	
 
 	}	
-    void upwardsTraversalDirtyEdges(RecombinationNetworkEdge edge) {
+   
+	void upwardsTraversalDirtyEdges(RecombinationNetworkEdge edge) {
     	if (edge.isRootEdge())        	
         	return;    
 
     	edge.parentNode.dirtyBreakPoints = new BreakPoints(networkInput.get().totalLength);
+    	edge.makeDirty(Tree.IS_FILTHY);
 
     	for (RecombinationNetworkEdge e : edge.parentNode.getParentEdges()) {  
     		if (e.isDirty()!=Tree.IS_FILTHY)
@@ -627,14 +636,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	}       	
 
     }
-
-    private boolean updateEdgeMatrixBP(RecombinationNetworkEdge edge) {				
-		edge.visited = true;
-		if (edge.isDirty()!=Tree.IS_CLEAN || hasDirt!=Tree.IS_CLEAN) {
-	    	return true;
-		}
-	    return false;
-	}
 	
 	private double[] getLengthMatrix(double length) {
         double[] newmat = new double[m_siteModel.getCategoryCount()*matrixSize];

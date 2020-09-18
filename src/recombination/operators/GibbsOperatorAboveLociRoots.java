@@ -49,6 +49,10 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
     	// get all network edges 
         List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
+        
+        for (RecombinationNetworkEdge e : networkEdges) 
+    		e.visited = false;        
+
 
         // keep only those that coexist at the time of maxHeight
         List<RecombinationNetworkEdge> startingEdges = networkEdges.stream()
@@ -95,6 +99,11 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
     }
 
     double getMaxLociMRCA(RecombinationNetworkEdge edge){
+    	if (edge.visited)
+    		return -1;
+    	
+    	edge.visited=true;
+    	
     	RecombinationNetworkNode node = edge.childNode;
     	if (node.isCoalescence()) {
     		BreakPoints bp1 = node.getChildEdges().get(0).breakPoints.copy();
