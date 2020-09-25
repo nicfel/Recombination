@@ -10,7 +10,7 @@ import recombination.network.RecombinationNetworkNode;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class AddRemoveRecombination extends DivertLociOperator {
+public class LocalAddRemoveRecombination extends DivertLociOperator {
 
     public Input<Double> alphaInput = new Input<>("alpha",
             "Mean of exponential used for choosing root attachment times.",
@@ -34,8 +34,10 @@ public class AddRemoveRecombination extends DivertLociOperator {
         }else {
             logHR = removeRecombination();
         }
+        
+        throw new IllegalArgumentException("oeprator has wrong HR");
 
-        return logHR;
+//        return logHR;
     }
 
     double addRecombination() {
@@ -54,22 +56,26 @@ public class AddRemoveRecombination extends DivertLociOperator {
         logHR -= Math.log(1.0/(double)possibleSourceEdges.size())
                 + Math.log(1.0/sourceEdge.getLength());
 
-        RecombinationNetworkEdge destEdge = networkEdges.get(Randomizer.nextInt(networkEdges.size()));
-        logHR -= Math.log(1.0/networkEdges.size());
-
-        if (!destEdge.isRootEdge() && destEdge.parentNode.getHeight() < sourceTime)
-            return Double.NEGATIVE_INFINITY;
-
-        double minDestTime = Math.max(destEdge.childNode.getHeight(), sourceTime);
-
         double destTime;
-        if (destEdge.isRootEdge()) {
-            destTime = minDestTime + Randomizer.nextExponential(1.0/alpha);
-            logHR -= -(1.0/alpha)*(destTime-minDestTime) + Math.log(1.0/alpha);
-        } else {
-            destTime = Randomizer.nextDouble()*(destEdge.parentNode.getHeight()-minDestTime) + minDestTime;
-            logHR -= Math.log(1.0/(destEdge.parentNode.getHeight()-minDestTime));
+        destTime = sourceTime + Randomizer.nextExponential(1.0/alpha);
+        logHR -= -(1.0/alpha)*(destTime-sourceTime) + Math.log(1.0/alpha);
+        
+        List<RecombinationNetworkEdge> possibleDestEdges = new ArrayList<>();
+        
+        if (destTime>network.getRootEdge().childNode.getHeight()) {
+        	possibleDestEdges.add(network.getRootEdge());
+        }else {       
+	        possibleDestEdges = networkEdges.stream()
+	                .filter(e -> !e.isRootEdge())
+	                .filter(e -> e.parentNode.getHeight()>destTime)
+	                .filter(e -> e.childNode.getHeight()<destTime)
+	                .collect(Collectors.toList());
         }
+
+
+        RecombinationNetworkEdge destEdge = possibleDestEdges.get(Randomizer.nextInt(possibleDestEdges.size()));
+        logHR -= Math.log(1.0/possibleDestEdges.size());
+
         
 
         // Create new reassortment edge
@@ -201,14 +207,20 @@ public class AddRemoveRecombination extends DivertLociOperator {
         logHR += Math.log(1.0/(double)nPossibleSourceEdges)
                 + Math.log(1.0/sourceEdge.getLength());
 
-        logHR += Math.log(1.0/finalNetworkEdges.size());
-
-        double minDestTime = Math.max(destEdge.childNode.getHeight(), sourceTime);
 
         if (destEdge.isRootEdge()) {
-            logHR += -(1.0/alpha)*(destTime-minDestTime) + Math.log(1.0/alpha);
+            logHR += -(1.0/alpha)*(destTime-sourceTime) + Math.log(1.0/alpha);
         } else {
-            logHR += Math.log(1.0/(destEdge.parentNode.getHeight()-minDestTime));
+            logHR += Math.log(1.0/(destEdge.parentNode.getHeight()-sourceTime));
+            
+            // HR contribution for reverse move
+            int nDestEdges = (int) network.getEdges().stream()
+                    .filter(e -> !e.isRootEdge())
+                    .filter(e -> e.parentNode.getHeight()>sourceTime)
+                    .filter(e -> e.childNode.getHeight()<sourceTime)
+                    .count();
+            
+            logHR += Math.log(1.0/nDestEdges);
         }
 
         return logHR;
@@ -274,13 +286,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
     	BreakPoints rangeToDivert = new BreakPoints();
     	
     	int newBreakPoint = Randomizer.nextInt((int) sourceEdge.breakPoints.getLength()-1) + 
-    			sourceEdge.breakPoints.getMin();
-    	
-//    	System.out.println(newBreakPoint);
-//    	System.out.println(sourceEdge.breakPoints.getLength());
-//    	System.out.println(sourceEdge.breakPoints);
-//    	System.out.println(newBreakPoint);
-    	
+    			sourceEdge.breakPoints.getMin();    	
     	
     	if (Randomizer.nextBoolean()) {
     		rangeToDivert = new BreakPoints(0,newBreakPoint);
@@ -289,29 +295,5 @@ public class AddRemoveRecombination extends DivertLociOperator {
     	}    
     	return rangeToDivert;
     }
-    
-//    /**
-//     * automatic parameter tuning *
-//     */
-//    @Override
-//    public void optimize(final double logAlpha) {
-//        if (optimiseInput.get()) {
-//            double delta = calcDelta(logAlpha);
-//            delta += Math.log(alpha);
-//            final double f = Math.exp(delta);
-//            if( alpha > 0 ) {
-//                final RecombinationNetwork network = networkInput.get();
-//                final double h = network.getRootEdge().childNode.getHeight();
-//                final double k = Math.log(network.getLeafNodes().size()) / Math.log(2);
-//                final double lim = (h / k) * alpha;
-//                if( f <= lim ) {
-//                	alpha = f;
-//                }
-//            } else {
-//            	alpha = f;
-//            }
-//        }
-//    }
-
     
 }

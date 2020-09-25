@@ -72,12 +72,11 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 
         	prevEvent = event;
         }    	
-//    	System.exit(0);
 		return logP;
     }
     
 	private double recombination(RecombinationNetworkEvent event) {
-        return Math.log(recombinationRate.getArrayValue() * event.lociToSort) + Math.log(1/event.lociToSort);
+        return Math.log(recombinationRate.getArrayValue() * event.lociToSort) + Math.log(1/(event.lociToSort));
 	}
 
 	private double coalesce(RecombinationNetworkEvent event) {
@@ -89,8 +88,6 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 
         result += -recombinationRate.getArrayValue() * prevEvent.totalRecombinationObsProb
                 * (event.time - prevEvent.time);          
-        
-//        System.out.println(result + " " + prevEvent.totalRecombinationObsProb + " " + (event.time - prevEvent.time));
         
 		result += -0.5*prevEvent.lineages*(prevEvent.lineages-1)
                 * populationFunction.getIntegral(prevEvent.time, event.time);

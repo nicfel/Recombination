@@ -99,6 +99,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
      */
     public double removeLociFromAncestors(RecombinationNetworkEdge edge, BreakPoints rangeToRemove) {
         double logP = 0.0;
+        
 
         rangeToRemove = rangeToRemove.copy();
         
@@ -109,43 +110,44 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         
         if (edge.isRootEdge())
             return logP;
-        
-    	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
 
-        edge.breakPoints.andNot(rangeToRemove.copy());                      
+        edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
+
+        edge.breakPoints.andNot(rangeToRemove);                      
         
         edge.makeDirty(Tree.IS_FILTHY); 
 
         if (edge.parentNode.isRecombination()) {
         	
-        	// get the breakpoints before the operation
-        	int old_max1 = edge.parentNode.getParentEdges().get(0).breakPoints.getMax();
-        	int old_max2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMax();
+//        	// get the breakpoints before the operation
+//        	int old_max1 = edge.parentNode.getParentEdges().get(0).breakPoints.getMax();
+//        	int old_max2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMax();
         	
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(1), rangeToRemove);
-                      
-    		int min1 = edge.parentNode.getParentEdges().get(0).breakPoints.getMin();
-    		int max1 = edge.parentNode.getParentEdges().get(0).breakPoints.getMax();
-    		
-    		int min2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMin();
-    		int max2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMax();
-    		
-            if (min1==-1 && min2==-1) {
-            	// both passing ranges are null
-            	logP += Math.log(0.5) + Math.log(1.0/(totalLength));
-            }else if (min1==-1){
-            	logP += getProbNewPassingRange(min2,max2, old_max1);
-            }else if(min2==-1) {
-            	logP += getProbNewPassingRange(min1,max1, old_max2);
-            }else {
-            	// check if the parts of the removed breakpoints are between the breakpoints of the two edges
-            	BreakPoints betweenBP = new BreakPoints(Math.min(max1, max2), Math.max(min1, min2));
-            	betweenBP.and(rangeToRemove);           	
-            	if (!betweenBP.isEmpty()) {
-            		logP += Math.log(1.0/(betweenBP.getLength()+1));
-            	}            	
-            }  
+            
+//    		int min1 = edge.parentNode.getParentEdges().get(0).breakPoints.getMin();
+//    		int max1 = edge.parentNode.getParentEdges().get(0).breakPoints.getMax();
+//    		
+//    		int min2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMin();
+//    		int max2 = edge.parentNode.getParentEdges().get(1).breakPoints.getMax();
+//    		
+//            if (min1==-1 && min2==-1) {
+//            	// both passing ranges are null
+//            	logP += Math.log(0.5) + Math.log(1.0/(totalLength));
+////            	return Double.NEGATIVE_INFINITY;
+//            }else if (min1==-1){ //corr
+//            	logP += getProbNewPassingRange(min2, max2, old_max1, rangeToRemove);
+////            	return Double.NEGATIVE_INFINITY;
+//            }else if(min2==-1) { //corr
+//            	logP += getProbNewPassingRange(min1, max1, old_max2, rangeToRemove);
+////            	return Double.NEGATIVE_INFINITY;
+//            }else {
+//            	// check if the parts of the removed breakpoints are between the breakpoints of the two edges
+////            	BreakPoints bp = new BreakPoints(Math.min(max1, max2), Math.max(min1, min2));
+////            	int diff = Math.max(min1, min2) - Math.min(max1, max2);
+////            	logP += Math.log(1.0/(diff));            	     	
+//            }  
         } else {
         	rangeToRemove.andNot(getSisterEdge(edge).breakPoints);
             logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
@@ -174,7 +176,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (rangeToAdd.isEmpty())
             return logP;        
 
-    	edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
 
         edge.breakPoints.or(rangeToAdd);
         
@@ -186,8 +187,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         
         if (edge.parentNode.isRecombination()) {        	
         	// resample the passing Range between the boundries given by the left and right breakpoints
-        	logP += resamplePassingRange(edge.parentNode.getParentEdges().get(0),
-        			edge.parentNode.getParentEdges().get(1), rangeToAdd);  
+//        	logP += resamplePassingRange(edge.parentNode.getParentEdges().get(0),
+//        			edge.parentNode.getParentEdges().get(1), rangeToAdd);  
 
             BreakPoints rangeToAddLeft = rangeToAdd.copy();
             BreakPoints rangeToAddRight = rangeToAdd.copy();
@@ -213,9 +214,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 		int max1 = edge1.breakPoints.getMax();
 		
 		int min2 = edge2.breakPoints.getMin();
-		int max2 = edge2.breakPoints.getMax();				
+		int max2 = edge2.breakPoints.getMax();	
 
-		
 		if (min1==-1 && min2==-1) { 
 			// both passing ranges are null
 			if (Randomizer.nextBoolean()) {
@@ -230,19 +230,18 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 		}else if(min2==-1) {
 			// 2 is null
 			logHR += sampleNewPassingRange(edge1,edge2,min1,max1);
-		}else {			
-			// resample between the two edges
-			if (max1 > max2) {
-				logHR += sampleBetweenRange(edge1, edge2, min1, max2);
-			}else {
-				logHR += sampleBetweenRange(edge2, edge1, min2, max1);
-			}
+		}else {		
+//			// resample between the two edges
+//			if (max1 > max2) {
+//				logHR += sampleBetweenRange(edge1, edge2, min1, max2, rangeToAdd);
+//			}else {
+//				logHR += sampleBetweenRange(edge2, edge1, min2, max1, rangeToAdd);
+//			}
 		}   
 		return logHR;
 	}
     
     private void sampleNullRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2) {
-
 		int start = Randomizer.nextInt(totalLength);
 		if (start==0) {
 			edge1.setPassingRange(start, totalLength-1);
@@ -253,46 +252,38 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 		}    	
     }
     
-    private double sampleBetweenRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, int min1, int max2) {
-    	int diff = min1-max2;
-		int newBreakPoint = Randomizer.nextInt(diff)+max2;		
+    private double sampleBetweenRange(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, 
+    		int min1, int max2, BreakPoints rangeToAdd) {
+    	int diff = min1 - max2;
+		int newBreakPoint = Randomizer.nextInt(diff)+max2;
+	
 		edge1.setPassingRange(newBreakPoint+1, totalLength-1);
 		edge2.setPassingRange(0, newBreakPoint);
-		return Math.log(1.0/(diff));
+    	return Math.log(1.0/(diff));
     }
         
     private double sampleNewPassingRange(RecombinationNetworkEdge edge1,
 			RecombinationNetworkEdge edge2, int min, int max) {
     	double logHR = 0.0;
 
+    	
 		if (min==0 && max==totalLength-1) {
 			// passing range 2 is null
 			edge1.setPassingRange(0, totalLength-1);
 			edge2.passingRange=null;
-    	}else if (min>0 && max<totalLength-1) {
-    		logHR += Math.log(0.5);
-			if (Randomizer.nextBoolean()) {		
-				int diff = totalLength-max;
-				logHR += Math.log(1.0/diff);				
-				int start = Randomizer.nextInt(diff)+max;
-
-				if (start==(totalLength-1)) 
-					edge2.passingRange = null;
-				else
-					edge2.setPassingRange(start+1, totalLength-1);
+		}else if(min==0) {
+			
+			int diff = totalLength-max;
+			logHR += Math.log(1.0/diff);				
+			int start = Randomizer.nextInt(diff)+max;
 				
-				edge1.setPassingRange(0,start);
-			}else {
-				logHR += Math.log(1.0/(min+1));
-				int end = Randomizer.nextInt(min+1)-1;				
-				if (end==-1)
-					edge2.passingRange = null;
-				else
-					edge2.setPassingRange(0, end);
-				
-				edge1.setPassingRange(end+1,totalLength-1);
-			}			
-		}else if (min>0){
+			if (start==(totalLength-1)) 
+				edge2.passingRange = null;
+			else
+				edge2.setPassingRange(start+1, totalLength-1);
+			
+			edge1.setPassingRange(0,start);
+		}else if(max==totalLength-1) {
 			logHR += Math.log(1.0/(min+1));
 
 			int end = Randomizer.nextInt(min+1)-1;
@@ -301,30 +292,46 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 			else 
 				edge2.setPassingRange(0, end);			
 
-			edge1.setPassingRange(end+1,totalLength-1);
-		}else {		
-			int diff = totalLength-max;
-			logHR += Math.log(1.0/diff);				
-			int start = Randomizer.nextInt(diff)+max;
-
-			if (start==(totalLength-1)) 
-				edge2.passingRange = null;
-			else
-				edge2.setPassingRange(start+1, totalLength-1);
-			
-			edge1.setPassingRange(0,start);
+			edge1.setPassingRange(end+1,totalLength-1);						
+    	}else {
+    		logHR += Math.log(0.5);
+			if (Randomizer.nextBoolean()) {		
+				int diff = totalLength-max;
+				logHR += Math.log(1.0/diff);				
+				
+				int start = Randomizer.nextInt(diff)+max;
+				
+				if (start==(totalLength-1)) 
+					edge2.passingRange = null;
+				else
+					edge2.setPassingRange(start+1, totalLength-1);
+				
+				edge1.setPassingRange(0,start);
+			}else {
+				logHR += Math.log(1.0/(min+1));
+				int end = Randomizer.nextInt(min+1)-1;			
+				
+				if (end==-1)
+					edge2.passingRange = null;
+				else
+					edge2.setPassingRange(0, end);
+				
+				edge1.setPassingRange(end+1,totalLength-1);
+			}	
+		
 		}   
 
     	return logHR;
     }
 
-    private double getProbNewPassingRange(double min, double max, double old_max) {    	
+    private double getProbNewPassingRange(double min, double max, double old_max , BreakPoints bp) {
+
 		if (min==0 && max==totalLength-1) {
 			return 0.0;
-		}else if (max==totalLength-1) {
-			return Math.log(1.0/(min+1));
     	}else if (min==0) {
     		return Math.log(1.0/(totalLength-max));
+		}else if (max==totalLength-1) {
+			return Math.log(1.0/(min+1));
     	}else {
         	if (old_max>=max) {
         		return Math.log(0.5) + Math.log(1.0/(totalLength-max));

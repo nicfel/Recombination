@@ -47,16 +47,20 @@ public class LocusStatsLogger extends BEASTObject implements Loggable {
 
         String prefix = network.getID() == null ? "" : network.getID() + ".";
         
-    	out.print(prefix + "locus." + locus + ".height\t" +
-                prefix + "locus." + locus + ".length\t");
+//    	out.print(prefix + "locus." + locus + ".height\t" +
+//                prefix + "locus." + locus + ".length\t");
+    	out.print(           prefix + "locus." + locus + ".length\t");
+
 
     }
 
     @Override
     public void log(long sample, PrintStream out) {
         	
-    	out.print(getLocusHeight(network, locus) + "\t" +
-    			getLocusLength(network, locus) + "\t");
+//    	out.print(getLocusHeight(network, locus) + "\t" +
+//    			getLocusLength(network, locus) + "\t");
+    	out.print(getLocusHeight(network, locus) + "\t");
+
         
     }
 

@@ -78,23 +78,23 @@ public class RecombinationNetworkIntervals extends CalculationNode {
             switch(event.type) {
                 case SAMPLE:
                     lineages += 1;
-                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength()-1;
+                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength();
                     break;
 
                 case RECOMBINATION:
                     lineages += 1;
-                    totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationLength()-1;
-                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength()-1;
-                    totalReassortmentObsProb += event.node.getParentEdges().get(1).getRecombinationLength()-1;
+                    totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationLength();
+                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength();
+                    totalReassortmentObsProb += event.node.getParentEdges().get(1).getRecombinationLength();
 
-                    event.lociToSort = event.node.getChildEdges().get(0).getRecombinationLength()-1;
+                    event.lociToSort = event.node.getChildEdges().get(0).getRecombinationLength();
                     break;
 
                 case COALESCENCE:
                     lineages -= 1;
-                    totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationLength()-1;
-                    totalReassortmentObsProb -= event.node.getChildEdges().get(1).getRecombinationLength()-1;
-                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength()-1;
+                    totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationLength();
+                    totalReassortmentObsProb -= event.node.getChildEdges().get(1).getRecombinationLength();
+                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength();
                     break;
             }
             event.lineages = lineages;

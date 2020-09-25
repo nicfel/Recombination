@@ -184,11 +184,8 @@ public class BreakPoints {
 			val = val + "," + this.breakPoints.get(i).toString();
 		}
 				
-		return val.substring(1);
-		
+		return val.substring(1);		
 	}
-	
-	
 	
 	public static class RangeComparator implements Comparator<Range> {
 	    final int lessThan = -1;
@@ -202,7 +199,6 @@ public class BreakPoints {
 	    		return greaterThan;
 	    	
 	    }
-
 	}
 
 	/**
@@ -216,6 +212,9 @@ public class BreakPoints {
 			return;
 		}
 
+		
+		if (this.equals(breakPoints))
+			return;
 		
 		int j = 0;
 		
@@ -248,6 +247,8 @@ public class BreakPoints {
 		}
 		setBreakPointsAnd(newBreaks);
 	}
+
+
 
 	
 	/**

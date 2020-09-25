@@ -33,6 +33,9 @@ public class RecombinationNetwork extends StateNode {
     
     public NodeEdgeID nodeEdgeIDs;
     
+    // keeps track of whether the last operator was the gibbs operator, meaning the likelihood does not requrie updating;
+    public boolean wasGibbs;
+    
     
     public RecombinationNetwork() {
     }
@@ -218,9 +221,17 @@ public class RecombinationNetwork extends StateNode {
         
         result.append("loci={").append(currentEdge.breakPoints);
         result.append("}");
-        result.append(",dirty=").append(currentEdge.isDirty);
-        result.append(",dirtyEdges={").append(currentEdge.childNode.dirtyBreakPoints);
+        result.append(",pr={").append(currentEdge.passingRange);
         result.append("}");
+
+        
+//        for (int i =0; i < totalLength; i++)
+//            result.append(",").append(i).append("=").append(currentEdge.breakPoints.contains(i));
+
+        	
+//        result.append(",dirty=").append(currentEdge.isDirty);
+//        result.append(",dirtyEdges={").append(currentEdge.childNode.dirtyBreakPoints);
+//        result.append("}");
 
         
 

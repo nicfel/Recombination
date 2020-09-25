@@ -23,6 +23,10 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
     public Input<PopulationFunction> populationFunctionInput = new Input<>("populationModel",
             "Population model to use.", Validate.REQUIRED);
+    
+    public Input<Double> maxHeightRatioInput = new Input<>("maxHeightRatio",
+            "set's a maximum ratio of the 'invisible height' to the rest.", Double.POSITIVE_INFINITY);
+    
 
     
     private PopulationFunction populationFunction;
@@ -46,6 +50,8 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
     	network.startEditing(this);
     	// get the place where to cut
     	double maxHeight = getMaxLociMRCA(network.getRootEdge());
+    	if (maxHeight == network.getRootEdge().childNode.getHeight())
+    		return Double.NEGATIVE_INFINITY;
 
     	// get all network edges 
         List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
@@ -61,18 +67,20 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
                 .filter(e -> e.childNode.getHeight()<=maxHeight)
                .collect(Collectors.toList());
         
-        
+
         if (startingEdges.size()==0)
-        	return Double.NEGATIVE_INFINITY;        
+        	throw new IllegalArgumentException("should not arrive here");
+        
+        int recombEvents = 0;
                 
        // simulate the rest of the network starting from mxHeight
         double currentTime = maxHeight;
-        double timeUntilNextSample = Double.POSITIVE_INFINITY;
+        double maxRecombHeight = maxHeight * maxHeightRatioInput.get();
         do {
 
             // get the current propensities
             int k = startingEdges.size();
-
+            
             double currentTransformedTime = populationFunction.getIntensity(currentTime);
             double transformedTimeToNextCoal = k>=2 ? Randomizer.nextExponential(0.5*k*(k-1)) : Double.POSITIVE_INFINITY;
             double timeToNextCoal = populationFunction.getInverseIntensity(
@@ -82,19 +90,19 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
             // next event time
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
-            if (timeUntilNextEvent < timeUntilNextSample) {
-                currentTime += timeUntilNextEvent;
-                if (timeUntilNextEvent == timeToNextCoal)
-                    coalesce(currentTime, startingEdges);
-                else
-                    recombine(currentTime, startingEdges);
+            currentTime += timeUntilNextEvent;
+            if (timeUntilNextEvent == timeToNextCoal) {
+                coalesce(currentTime, startingEdges);
+            }else {
+            	if (currentTime<maxRecombHeight)
+            		recombine(currentTime, startingEdges);
             }
 
         }
         while (startingEdges.size() > 1);
         
         network.setRootEdge(startingEdges.get(0));
-                
+        
         return Double.POSITIVE_INFINITY;
     }
 
@@ -139,11 +147,9 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
         // Merge segment flags:
         BreakPoints breakPoints = lineage1.breakPoints.copy();
         breakPoints.or(lineage2.breakPoints);
-        
-
 
         // Create new lineage
-        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints, network.nodeEdgeIDs);
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, coalescentNode, breakPoints, null, network.nodeEdgeIDs);
         coalescentNode.addParentEdge(lineage);
 
         extantLineages.remove(lineage1);
@@ -156,10 +162,9 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
     private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages) {
     	RecombinationNetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
-    	    	
+    	
     	int breakpoint = Randomizer.nextInt(network.totalLength-1);
     	
-   	
     	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
     	if (!lineage.breakPoints.withinLimits(breakpoint)) {
     		return;
@@ -172,8 +177,8 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
         node.setHeight(reassortmentTime).addChildEdge(lineage);
 
         // Create reassortment lineages
-        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), network.nodeEdgeIDs);
-        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), network.nodeEdgeIDs);
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), new BreakPoints(0,breakpoint), network.nodeEdgeIDs);
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), new BreakPoints(breakpoint+1, network.totalLength-1), network.nodeEdgeIDs);
             
         // add the breakPoints to the edges
         leftLineage.setPassingRange(0, breakpoint);

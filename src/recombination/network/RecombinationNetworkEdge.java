@@ -27,19 +27,21 @@ public class RecombinationNetworkEdge {
     }
 
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
-    		BreakPoints breakPoints, NodeEdgeID nodeEdgeIDs) {
+    		BreakPoints breakPoints, BreakPoints passingRange, NodeEdgeID nodeEdgeIDs) {
         this.parentNode = parentNode;
         this.childNode = childNode;
         this.breakPoints = breakPoints;
+        this.passingRange = passingRange;
         ID = nodeEdgeIDs.getNewEdgeID();
         isDirty = Tree.IS_FILTHY;
     }
     
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
-    		BreakPoints breakPoints, int id) {
+    		BreakPoints breakPoints, BreakPoints passingRange, int id) {
         this.parentNode = parentNode;
         this.childNode = childNode;
         this.breakPoints = breakPoints;
+        this.passingRange = passingRange;
         ID = id;
         isDirty = Tree.IS_FILTHY;
     }
@@ -68,7 +70,7 @@ public class RecombinationNetworkEdge {
         // There are always two reassortment configurations that
         // produce an unobserved reassortment: 1111 and 0000
         // (assuming 4 segs on lineage)
-        return breakPoints.getLength();
+        return breakPoints.getLength()-1;
     }
 
     public double getLength() {
@@ -89,7 +91,10 @@ public class RecombinationNetworkEdge {
 
     public RecombinationNetworkEdge getCopy(Map<RecombinationNetworkNode,RecombinationNetworkNode> seenNodes) {
         RecombinationNetworkEdge edgeCopy;
-       	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), ID);
+        if (passingRange!=null)
+        	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), passingRange.copy(), ID);
+        else
+        	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), null, ID);
        
         RecombinationNetworkNode childNodeCopy;
         boolean traverse = true;

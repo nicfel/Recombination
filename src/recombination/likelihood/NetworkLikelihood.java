@@ -376,12 +376,19 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	initPartials();
     	
     	// set dummy nodes
-    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> !e.isLeaf()).collect(Collectors.toList())) {
-    		n.dummy = new ArrayList<>();
-    		n.dummy2 = new ArrayList<>();
-    		n.prevLength = new ArrayList<>();
-    		n.prevPointer = new ArrayList<>();
+    	for (RecombinationNetworkNode n : nodes) {
+    		if (!n.isLeaf()) {
+	    		n.dummy = new ArrayList<>();
+	    		n.dummy2 = new ArrayList<>();
+	    		n.prevLength = new ArrayList<>();
+	    		n.prevPointer = new ArrayList<>();
+    		}
     	}
+    	
+    	double lociMRCA = getMaxLociMRCA(network.getRootEdge());
+        for (RecombinationNetworkEdge e : edges) 
+    		e.visited = false;        
+
     	
     	// check where the roots of local trees are
     	rootBreaks = new HashMap<>();    	
@@ -452,6 +459,28 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		return;
     	}		
 	}
+    
+    double getMaxLociMRCA(RecombinationNetworkEdge edge){
+    	if (edge.visited)
+    		return -1;
+    	
+    	edge.visited=true;
+    	
+    	RecombinationNetworkNode node = edge.childNode;
+    	if (node.isCoalescence()) {
+    		BreakPoints bp1 = node.getChildEdges().get(0).breakPoints.copy();
+    		bp1.and(node.getChildEdges().get(1).breakPoints);
+    		if (!bp1.isEmpty()) {
+    			return node.getHeight();
+    		}
+    		return Math.max(getMaxLociMRCA(node.getChildEdges().get(0)), getMaxLociMRCA(node.getChildEdges().get(1)));
+    	}else if (node.isRecombination()) {
+    		return getMaxLociMRCA(node.getChildEdges().get(0));
+    	}else {
+    		return -1.0;
+    	}    	
+    }
+
 
 
 	void calcLogP() {
@@ -477,30 +506,30 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
                     substitutionModel.getFrequencies();
 
             final double[] proportions = m_siteModel.getCategoryProportions(dummyNode);
-            likelihoodCore.integratePartials(proportions, m_fRootPartials, dataInput.get(), rootBreaks);
-            
-
-            if (constantPattern != null) { // && !SiteModel.g_bUseOriginal) {
-                proportionInvariant = m_siteModel.getProportionInvariant();
-                // some portion of sites is invariant, so adjust root partials for this
-                for (final int i : constantPattern) {
-                    m_fRootPartials[i] += proportionInvariant;
-                }
-            }
-            likelihoodCore.calculateLogLikelihoods(m_fRootPartials, frequencies, patternLogLikelihoods);
+            logP = likelihoodCore.integratePartials(proportions, frequencies, dataInput.get(), rootBreaks);
+//            
+//
+//            if (constantPattern != null) { // && !SiteModel.g_bUseOriginal) {
+//                proportionInvariant = m_siteModel.getProportionInvariant();
+//                // some portion of sites is invariant, so adjust root partials for this
+//                for (final int i : constantPattern) {
+//                    m_fRootPartials[i] += proportionInvariant;
+//                }
+//            }
+//            likelihoodCore.calculateLogLikelihoods(m_fRootPartials, frequencies, patternLogLikelihoods);
         }    	
     	
-        logP = 0.0;
-        if (useAscertainedSitePatterns) {
-            final double ascertainmentCorrection = dataInput.get().getAscertainmentCorrection(patternLogLikelihoods);
-            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
-                logP += (patternLogLikelihoods[i] - ascertainmentCorrection) * dataInput.get().getPatternWeight(i);
-            }
-        } else {
-            for (int i = 0; i < patternLogLikelihoods.length; i++) {
-                logP += patternLogLikelihoods[i];
-            }
-        }
+//        logP = 0.0;
+//        if (useAscertainedSitePatterns) {
+//            final double ascertainmentCorrection = dataInput.get().getAscertainmentCorrection(patternLogLikelihoods);
+//            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
+//                logP += (patternLogLikelihoods[i] - ascertainmentCorrection) * dataInput.get().getPatternWeight(i);
+//            }
+//        } else {
+//            for (int i = 0; i < patternLogLikelihoods.length; i++) {
+//                logP += patternLogLikelihoods[i];
+//            }
+//        }
     }    
     
     private void computeForPatterns(BreakPoints computeFor) {

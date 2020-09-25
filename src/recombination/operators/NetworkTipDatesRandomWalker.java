@@ -1,4 +1,4 @@
-package recombination.operators;
+package beast.evolution.operators;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -6,17 +6,16 @@ import java.util.List;
 
 import beast.core.Description;
 import beast.core.Input;
-import beast.core.Input.Validate;
 import beast.evolution.alignment.TaxonSet;
-import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
-import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 
 
 
 @Description("Randomly moves tip dates on a tree by randomly selecting one from (a subset of) taxa")
 public class NetworkTipDatesRandomWalker extends RecombinationNetworkOperator {
+    // perhaps multiple trees may be necessary if they share the same taxon?
+    // public Input<List<Tree>> m_treesInput = new Input<>("tree" ,"tree to operate on", new ArrayList<>(), Validate.REQUIRED);
 
     final public Input<Double> windowSizeInput =
             new Input<>("windowSize", "the size of the window both up and down when using uniform interval OR standard deviation when using Gaussian", Input.Validate.REQUIRED);
@@ -45,7 +44,7 @@ public class NetworkTipDatesRandomWalker extends RecombinationNetworkOperator {
         // determine taxon set to choose from
         if (m_taxonsetInput.get() != null) {
             List<String> taxaNames = new ArrayList<>();
-            for (String taxon : m_treesInput.get().get(0).getTaxaNames()) {
+            for (RecombinationNetworkNode taxon : network.getLeafNodes()) {
                 taxaNames.add(taxon);
             }
 
@@ -70,34 +69,32 @@ public class NetworkTipDatesRandomWalker extends RecombinationNetworkOperator {
 
     @Override
     public double proposal() {
-    	double difference;
-    	// get the scaler
+        // randomly select leaf node
+        int i = Randomizer.nextInt(taxonIndices.length);
+        Node node = treeInput.get().getNode(taxonIndices[i]);
+
+        double value = node.getHeight();
+        double newValue = value;
         if (useGaussian) {
-        	difference = Randomizer.nextGaussian() * windowSize;
+            newValue += Randomizer.nextGaussian() * windowSize;
         } else {
-        	difference = Randomizer.nextDouble() * 2 * windowSize - windowSize;
+            newValue += Randomizer.nextDouble() * 2 * windowSize - windowSize;
         }
 
-    	
-    	for (int treeNr = 0; treeNr < m_treesInput.get().size(); treeNr++){
-	        int i = Randomizer.nextInt(taxonIndices.length);
-	        Node node = m_treesInput.get().get(treeNr).getNode(taxonIndices[i]);
-	
-	        double value = node.getHeight();
-	        double newValue = value+difference;
-	
-	
-	        if (newValue > node.getParent().getHeight()) { // || newValue < 0.0) {
+
+        if (newValue > node.getParent().getHeight()) { // || newValue < 0.0) {
+            if (reflectValue) {
+                newValue = reflectValue(newValue, 0.0, node.getParent().getHeight());
+            } else {
                 return Double.NEGATIVE_INFINITY;
-	            
-	        }
-	        if (newValue == value) {
-	            // this saves calculating the posterior
-	            return Double.NEGATIVE_INFINITY;
-	        }
-	        node.setHeight(newValue);
-	
-    	}
+            }
+        }
+        if (newValue == value) {
+            // this saves calculating the posterior
+            return Double.NEGATIVE_INFINITY;
+        }
+        node.setHeight(newValue);
+
         return 0.0;
     }
 
@@ -186,10 +183,4 @@ public class NetworkTipDatesRandomWalker extends RecombinationNetworkOperator {
             return "Try setting window size to about " + formatter.format(newWindowSize);
         } else return "";
     }
-
-	@Override
-	protected double networkProposal() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 }
