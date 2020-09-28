@@ -37,11 +37,6 @@ public class TipReheight extends RecombinationNetworkOperator {
     public final Input<TaxonSet> taxonsetInput = new Input<>("taxonset",
             "set of taxa for which prior information is available");
     
-    public final Input<ParametricDistribution> distInput = new Input<>("distr",
-            "distribution used to calculate prior over MRCA time, "
-                    + "e.g. normal, beta, gamma. If not specified, monophyletic must be true");
-    
-    public Input<RealParameter> dateOffset = new Input<>("dateOffset", "keeps track of how much the dates have change", Validate.REQUIRED);
 
     // shadows size
     double size;
@@ -97,9 +92,6 @@ public class TipReheight extends RecombinationNetworkOperator {
                 	for (RecombinationNetworkNode node : network.getNodes())
                 		node.setHeight(node.getHeight()-diff);  
                 	
-                	dateOffset.get().startEditing(this);
-                	dateOffset.get().setValue(dateOffset.get().getValue()+diff);
-                	
                 }else if (oldHeight==0){
                 	// get the second lowest height    
                 	double minHeight = Double.POSITIVE_INFINITY;
@@ -114,10 +106,7 @@ public class TipReheight extends RecombinationNetworkOperator {
                 	if (newHeight>minHeight){
                     	for (RecombinationNetworkNode node : network.getNodes())
                     		node.setHeight(node.getHeight()-minHeight);                	
-                	}
-                	
-                	dateOffset.get().startEditing(this);
-                	dateOffset.get().setValue(dateOffset.get().getValue()+minHeight);
+                	}                	
                 }
 
         		break;
