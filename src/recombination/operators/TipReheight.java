@@ -10,6 +10,7 @@ import beast.math.distributions.ParametricDistribution;
 import beast.util.Randomizer;
 import coalre.network.NetworkNode;
 import coalre.operators.NetworkOperator;
+import recombination.network.RecombinationNetworkNode;
 
 import java.text.DecimalFormat;
 import java.util.List;
@@ -27,7 +28,7 @@ import java.util.List;
         "If it moves up, it can exceed the root and become a new root. " +
         "If it moves down, it may need to make a choice which branch to " +
         "slide down into.")
-public class TipReheight extends NetworkOperator {
+public class TipReheight extends RecombinationNetworkOperator {
 
     final public Input<Double> sizeInput = new Input<>("size", "size of the slide, default 0.1", 0.1);
     final public Input<Boolean> gaussianInput = new Input<>("gaussian", "Gaussian (=true=default) or uniform delta", true);
@@ -35,16 +36,16 @@ public class TipReheight extends NetworkOperator {
     
     public final Input<TaxonSet> taxonsetInput = new Input<>("taxonset",
             "set of taxa for which prior information is available");
-    public final Input<Boolean> isMonophyleticInput = new Input<>("monophyletic",
-            "whether the taxon set is monophyletic (forms a clade without other taxa) or nor. Default is false.", false);
+    
     public final Input<ParametricDistribution> distInput = new Input<>("distr",
             "distribution used to calculate prior over MRCA time, "
                     + "e.g. normal, beta, gamma. If not specified, monophyletic must be true");
+    
     public Input<RealParameter> dateOffset = new Input<>("dateOffset", "keeps track of how much the dates have change", Validate.REQUIRED);
 
     // shadows size
     double size;
-    NetworkNode operatingNode;
+    RecombinationNetworkNode operatingNode;
     List<Node> segmentTreeNodes;
 
 
@@ -58,9 +59,9 @@ public class TipReheight extends NetworkOperator {
         	throw new IllegalArgumentException("TipPrior expects the number of tips to be 1");
         }
         
-        for (final NetworkNode taxon : network.getLeafNodes()) {
+        for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
         	if (taxon.getTaxonLabel().equals(taxonsetInput.get().getTaxonId(0))){
-        		operatingNode = taxon;       		
+        		operatingNode = taxon;    		
         		
         		break;
         	}
@@ -72,10 +73,9 @@ public class TipReheight extends NetworkOperator {
 
 		double logHR = 0.0;
 		network.startEditing(this);
-//		System.out.println(network.getExtendedNewickVerbose());
 				
 		
-        for (final NetworkNode taxon : network.getLeafNodes()) {
+        for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
         	if (taxon.getTaxonLabel().equals(taxonsetInput.get().getTaxonId(0))){
         		operatingNode = taxon;
         		
@@ -94,7 +94,7 @@ public class TipReheight extends NetworkOperator {
                 // if the height drops below 0, reheight the whole network (probably inefficient, due to making nodes dirty)
                 if (newHeight < 0){
                 	double diff = newHeight;
-                	for (NetworkNode node : network.getNodes())
+                	for (RecombinationNetworkNode node : network.getNodes())
                 		node.setHeight(node.getHeight()-diff);  
                 	
                 	dateOffset.get().startEditing(this);
@@ -103,7 +103,7 @@ public class TipReheight extends NetworkOperator {
                 }else if (oldHeight==0){
                 	// get the second lowest height    
                 	double minHeight = Double.POSITIVE_INFINITY;
-                	for (NetworkNode node : network.getLeafNodes()){
+                	for (RecombinationNetworkNode node : network.getLeafNodes()){
                 		if (!node.equals(operatingNode)){
                 			if (node.getHeight()<minHeight)
                 				minHeight = node.getHeight();
@@ -112,7 +112,7 @@ public class TipReheight extends NetworkOperator {
                 	
                 	// rescale all internal nodes relative to the newest most recently sampled individual
                 	if (newHeight>minHeight){
-                    	for (NetworkNode node : network.getNodes())
+                    	for (RecombinationNetworkNode node : network.getNodes())
                     		node.setHeight(node.getHeight()-minHeight);                	
                 	}
                 	

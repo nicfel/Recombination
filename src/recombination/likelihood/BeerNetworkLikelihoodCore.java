@@ -209,7 +209,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         	for (BreakPoints bp : partialsNew.getBreaks(i)) {
         		if (!bp.isEmpty()) {
 	        		BreakPoints bp1 = bp.copy();
-	        		bp1.and(rootBreaks.get(i));
+	        		bp1.andFast(rootBreaks.get(i));
 	        		if (!bp1.isEmpty()) {
 	        			
 	        	        nrInPattern = new int[nrOfPatterns];      
@@ -475,7 +475,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 			if (!bp.isEmpty()) {
 				if (!computeFor.equals(bp)) {
 					BreakPoints cp = computeFor.copy();
-					cp.and(bp);
+					cp.andFast(bp);
 					if (!cp.isEmpty()) {
 				        if (!touched.contains(node.ID)) {
 				        	touched.add(node.ID);
@@ -551,6 +551,13 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		ensureLables(node, computeFor);
 
 		return 0;
+	}
+
+
+	@Override
+	protected void dummy(RecombinationNetworkNode node, BreakPoints bp) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	

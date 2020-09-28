@@ -41,11 +41,12 @@ public class BreakPoints {
 	}
 	
 	public BreakPoints(List<Range> breakPoints) { 
-		if (breakPoints!=null)
+		if (breakPoints!=null) {
 			this.breakPoints = new ArrayList<>(breakPoints);
+				
+		}
 	}
-
-		
+	
 	
 	/**
 	 * computes new break points list based on a new break point introduced
@@ -200,6 +201,78 @@ public class BreakPoints {
 	    	
 	    }
 	}
+	
+	/**
+	 * compute the intersection between this.breakpoonts and breakpoints
+	 * @param breakPoints
+	 */
+	public void andFast(BreakPoints breakPoints) {		
+		List<Range> newBreaks = new ArrayList<>();
+		if (breakPoints==null || breakPoints.isEmpty() || isEmpty()) {
+			this.breakPoints = null;
+			return;
+		}
+
+		if (this.equals(breakPoints))
+			return;
+		
+		int i = 0, j = 0;
+		
+		while (i < this.breakPoints.size() && j < breakPoints.size()) {
+			if (getRange(i).from<breakPoints.getRange(j).from) {
+				
+				if (getRange(i).to<breakPoints.getRange(j).from) {
+					i++;
+				}else{
+					if (getRange(i).to>breakPoints.getRange(j).to) {
+						newBreaks.add(new Range(breakPoints.getRange(j).from, breakPoints.getRange(j).to));
+						j++;				
+					}else if (getRange(i).to<breakPoints.getRange(j).to){
+						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
+						i++;
+					}else {
+						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
+						i++;
+						j++;
+					}
+					
+				}
+			}else if (getRange(i).from>breakPoints.getRange(j).from) {
+				if (breakPoints.getRange(j).to<getRange(i).from) {
+					j++;
+				}else {					
+					if (breakPoints.getRange(j).to>getRange(i).to) {
+						newBreaks.add(new Range(getRange(i).from, getRange(i).to));
+						i++;				
+					}else if (breakPoints.getRange(j).to<getRange(i).to){
+						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
+						j++;
+					}else {
+						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
+						i++;
+						j++;
+					}
+				}
+			}else {
+				if (getRange(i).to<breakPoints.getRange(j).to) {
+					newBreaks.add(getRange(i).copy());
+					i++;
+				}else if (getRange(i).to>breakPoints.getRange(j).to) {
+					newBreaks.add(breakPoints.getRange(j).copy());
+					j++;
+				}else {
+					newBreaks.add(getRange(i).copy());
+					i++;
+					j++;
+				}				
+			}			
+		}
+		
+		this.breakPoints = new ArrayList<>(newBreaks);		
+
+			
+	}
+
 
 	/**
 	 * compute the intersection between this.breakpoonts and breakpoints
@@ -247,6 +320,53 @@ public class BreakPoints {
 		}
 		setBreakPointsAnd(newBreaks);
 	}
+	
+	/**
+	 * compute the intersection between this breakPoint and a passing range
+	 * @param breakPoints
+	 */
+	public void andPR(BreakPoints passingRange) {
+		
+		List<Range> newBreaks = new ArrayList<>();
+
+		if (passingRange.getRange(0).from==0) {
+			int i=0;
+			while (this.breakPoints.get(i).to <= passingRange.getRange(0).to) {
+				newBreaks.add(breakPoints.get(i).copy());
+				i++;
+				if (i>=size())
+					return;
+			}
+
+			if (this.breakPoints.get(i).from<passingRange.getRange(0).to) {
+				newBreaks.add(new Range(breakPoints.get(i).from, passingRange.getRange(0).to));
+				i++;
+			}
+			
+		}else {
+			int i=0;
+			while (this.breakPoints.get(i).to < passingRange.getRange(0).from) {
+				i++;
+				if (i>=size()) {
+					this.breakPoints=null;
+					return;
+				}
+			}
+			
+			if (this.breakPoints.get(i).from<passingRange.getRange(0).from) {
+				newBreaks.add(new Range(passingRange.getRange(0).from, breakPoints.get(i).to));
+				i++;
+			}
+			
+			while (i < size()) {
+				newBreaks.add(breakPoints.get(i).copy());
+				i++;
+			}
+		}
+		
+		this.breakPoints = new ArrayList<>(newBreaks);		
+	}
+
 
 
 
@@ -460,6 +580,19 @@ public class BreakPoints {
 				return true;
 			return false;
 		}
+		
+		public void setFrom(int from) {
+			this.from = from;
+		}
+		
+		public void setTo(int to) {
+			this.to = to;
+		}
+		
+		public Range copy() {
+			return new Range(from, to);
+		}
+		
 		
 		public Range getOverlap(Range range) {
 			int newfrom = Math.max(from, range.from);

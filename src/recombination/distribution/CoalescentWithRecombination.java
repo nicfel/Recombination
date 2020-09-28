@@ -7,6 +7,10 @@ import beast.evolution.tree.coalescent.PopulationFunction;
 import coalre.distribution.NetworkDistribution;
 import coalre.distribution.NetworkEvent;
 import coalre.distribution.NetworkIntervals;
+import recombination.network.BreakPoints;
+import recombination.network.RecombinationNetworkEdge;
+import recombination.network.RecombinationNetworkNode;
+import recombination.statistics.RecombinationNetworkStatsLogger;
 
 import java.util.List;
 
@@ -28,6 +32,12 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 	        "populationModel",
             "Population model.",
             Input.Validate.REQUIRED);
+	
+	public Input<Boolean> conditionOnCoalescentEventsInput = new Input<>(
+	        "conditionOnCoalescentEvents",
+            "if true, only coalescent events are allowed after the .",
+            true);
+
 
     private PopulationFunction populationFunction;
     private Function recombinationRate;
@@ -44,15 +54,17 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
     public double calculateLogP() {
     	logP = 0;
 
+    	// get the mrca of all loci trees
+    	double lociMRCA = conditionOnCoalescentEventsInput.get() ? RecombinationNetworkStatsLogger.getMaxLociMRCA(intervals.recombinationNetworkInput.get()) : Double.POSITIVE_INFINITY;
+    	
     	// Calculate tree intervals
     	List<RecombinationNetworkEvent> networkEventList = intervals.getRecombinationNetworkEventList();
-//    	System.out.println(intervals.recombinationNetworkInput.get());
 
     	RecombinationNetworkEvent prevEvent = null;
 
     	for (RecombinationNetworkEvent event : networkEventList) {
         	if (prevEvent != null)
-        		logP += intervalContribution(prevEvent, event);
+        		logP += intervalContribution(prevEvent, event, lociMRCA);
 
         	switch (event.type) {
 				case COALESCENCE:
@@ -63,7 +75,7 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 					break;
 
 				case RECOMBINATION:
-					logP += recombination(event);
+					logP += recombination(event, lociMRCA);
 					break;
 			}
 
@@ -75,23 +87,35 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 		return logP;
     }
     
-	private double recombination(RecombinationNetworkEvent event) {
-        return Math.log(recombinationRate.getArrayValue() * event.lociToSort) + Math.log(1/(event.lociToSort));
+	private double recombination(RecombinationNetworkEvent event, double lociMRCA) {
+        if (event.time<=lociMRCA) 
+        	return Math.log(recombinationRate.getArrayValue() * event.lociToSort) + Math.log(1/(event.lociToSort));
+    	else
+    		return Double.NEGATIVE_INFINITY;
+        		
 	}
 
 	private double coalesce(RecombinationNetworkEvent event) {
 		return Math.log(1.0/populationFunction.getPopSize(event.time));
 	}
 
-	private double intervalContribution(RecombinationNetworkEvent prevEvent, RecombinationNetworkEvent event) {
+	private double intervalContribution(RecombinationNetworkEvent prevEvent, RecombinationNetworkEvent event, double lociMRCA) {
         double result = 0.0;
 
-        result += -recombinationRate.getArrayValue() * prevEvent.totalRecombinationObsProb
-                * (event.time - prevEvent.time);          
+        if (event.time<lociMRCA) {
+            result += -recombinationRate.getArrayValue() * prevEvent.totalRecombinationObsProb
+                    * (event.time - prevEvent.time);          
+        }else {
+        	if (prevEvent.time < lociMRCA) {
+                result += -recombinationRate.getArrayValue() * prevEvent.totalRecombinationObsProb
+                        * (lociMRCA - prevEvent.time);          
+        	}
+        }
         
 		result += -0.5*prevEvent.lineages*(prevEvent.lineages-1)
                 * populationFunction.getIntegral(prevEvent.time, event.time);
 		
 		return result;
 	}
+
 }

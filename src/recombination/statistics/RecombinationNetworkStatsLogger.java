@@ -7,6 +7,7 @@ import beast.evolution.tree.Tree;
 import coalre.network.Network;
 import coalre.network.NetworkEdge;
 import coalre.network.NetworkNode;
+import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
@@ -23,6 +24,11 @@ public class RecombinationNetworkStatsLogger extends BEASTObject implements Logg
     public Input<RecombinationNetwork> networkInput = new Input<>("recombinationNetwork",
             "Network for which to log statistics.",
             Input.Validate.REQUIRED);
+    
+    public Input<Boolean> logObservableInput = new Input<>("logObservable",
+            "if true, it only logs events that happened more recent than the loci mrca.",
+            false);
+
 
 
     RecombinationNetwork network;
@@ -33,6 +39,7 @@ public class RecombinationNetworkStatsLogger extends BEASTObject implements Logg
     @Override
     public void initAndValidate() {
         network = networkInput.get();
+        logObservable = logObservableInput.get(); 
     }
 
     @Override
@@ -41,10 +48,9 @@ public class RecombinationNetworkStatsLogger extends BEASTObject implements Logg
         String prefix = network.getID() == null ? "networkStat." : network.getID() + ".";
 
         if (logObservable)
-        	throw new IllegalArgumentException("conditioning on only observed nodes not implemented yet");
-//	        out.print(prefix + "obsHeight\t" +
-//	                prefix + "obsTotalLength\t" +
-//	                prefix + "obsReassortmentNodeCount\t");
+	        out.print(prefix + "obsHeight\t" +
+	                prefix + "obsTotalLength\t" +
+	                prefix + "obsReassortmentNodeCount\t");
         else
         	out.print(prefix + "height\t" +
 	                prefix + "totalLength\t" +
@@ -55,14 +61,11 @@ public class RecombinationNetworkStatsLogger extends BEASTObject implements Logg
     @Override
     public void log(long sample, PrintStream out) {
         if (logObservable){
-        	throw new IllegalArgumentException("conditioning on only observed nodes not implemented yet");
-//    		double[] rootHeights = new double[segmentTreesInput.get().size()];
-//			for (int i = 0; i < segmentTreesInput.get().size(); i++)
-//				rootHeights[i] = segmentTreesInput.get().get(i).getRoot().getHeight();
-//			
-//        	out.print(getTotalHeight(network, rootHeights) + "\t" +
-//	                getTotalEdgeLength(network, rootHeights) + "\t" +
-//	                getReassortmentCount(network, rootHeights) + "\t");
+    		double rootHeight = getMaxLociMRCA(network);
+			
+        	out.print(rootHeight + "\t" +
+	                getTotalEdgeLength(network, rootHeight) + "\t" +
+	                getRecombinationCount(network, rootHeight) + "\t");
 
         	
         }else{   
@@ -90,48 +93,46 @@ public class RecombinationNetworkStatsLogger extends BEASTObject implements Logg
         return network.getRootEdge().childNode.getHeight();
     }
     
-//    public static int getReassortmentCount(Network network, double[] rootHeights) {
-//    	double maxHeight = 0.0;
-//    	for (int i = 0; i < rootHeights.length; i++)
-//    		if (rootHeights[i] > maxHeight)
-//    			maxHeight = rootHeights[i];
-//    	
-//    	final double finalMaxHeight = maxHeight;
-//
-//        return (int)network.getNodes().stream()
-//        		.filter(NetworkNode::isReassortment)
-//        		.filter(n -> n.getHeight() < finalMaxHeight)
-//        		.count();
-//    }
-//
-//    public static double getTotalEdgeLength(RecombinationNetwork network, double[] rootHeights) {
-//    	double totalLength = 0.0;
-//    	List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
-//        List<RecombinationNetworkEdge> nonRootEdges = networkEdges.stream()
-//        		.filter(e -> !e.isRootEdge())
-//                .collect(Collectors.toList());
-//        // check for each edge if it has at least one segment for which the root hasn't been reched yet
-//        for (int i = 0; i < nonRootEdges.size(); i++){
-//        	double childHeight = nonRootEdges.get(i).childNode.getHeight();
-//    		final BitSet hasSegment = nonRootEdges.get(i).hasSegments;
-//    		for (int j = 0; j < rootHeights.length; j++){
-//    			if (hasSegment.get(j) && childHeight < rootHeights[j]){
-//    				totalLength += nonRootEdges.get(i).parentNode.getHeight() - childHeight;
-//    				break;
-//    			}
-//    		}
-//        	
-//        }        	
-//    	
-//        return totalLength;
-//    }
-//
-//    public static double getTotalHeight(RecombinationNetwork network, double[] rootHeights) {
-//    	double maxHeight = 0.0;
-//    	for (int i = 0; i < rootHeights.length; i++)
-//    		if (rootHeights[i] > maxHeight)
-//    			maxHeight = rootHeights[i];
-//        return maxHeight;
-//    }
-//
+    public static double getMaxLociMRCA(RecombinationNetwork network){
+        for (RecombinationNetworkEdge e : network.getEdges()) 
+    		e.visited = false;     
+        
+        return getMaxLociMRCATraverse(network.getRootEdge());
+    }
+
+    
+    public static double getMaxLociMRCATraverse(RecombinationNetworkEdge edge){
+    	if (edge.visited)
+    		return -1;
+    	
+    	edge.visited=true;
+    	
+    	RecombinationNetworkNode node = edge.childNode;
+    	if (node.isCoalescence()) {
+    		BreakPoints bp1 = node.getChildEdges().get(0).breakPoints.copy();
+    		bp1.and(node.getChildEdges().get(1).breakPoints);
+    		if (!bp1.isEmpty()) {
+    			return node.getHeight();
+    		}
+    		return Math.max(getMaxLociMRCATraverse(node.getChildEdges().get(0)), getMaxLociMRCATraverse(node.getChildEdges().get(1)));
+    	}else if (node.isRecombination()) {
+    		return getMaxLociMRCATraverse(node.getChildEdges().get(0));
+    	}else {
+    		return -1.0;
+    	}    	
+    }
+    
+    public static int getRecombinationCount(RecombinationNetwork network, double rootHeight) {
+        return (int)network.getNodes().stream()
+        		.filter(e -> e.isRecombination())
+				.filter(e -> e.getHeight()<rootHeight)
+        		.count();
+    }
+
+    public static double getTotalEdgeLength(RecombinationNetwork network, double rootHeight) {
+        return network.getEdges().stream()
+        		.filter(e -> !e.isRootEdge())
+        		.filter(e -> e.parentNode.getHeight()<rootHeight).
+                map(RecombinationNetworkEdge::getLength).reduce((l1, l2) -> l1+l2).get();
+    }
 }

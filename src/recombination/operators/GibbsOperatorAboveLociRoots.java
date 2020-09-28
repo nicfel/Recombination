@@ -9,6 +9,7 @@ import beast.util.Randomizer;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
+import recombination.statistics.RecombinationNetworkStatsLogger;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -25,7 +26,7 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
             "Population model to use.", Validate.REQUIRED);
     
     public Input<Double> maxHeightRatioInput = new Input<>("maxHeightRatio",
-            "set's a maximum ratio of the 'invisible height' to the rest.", Double.POSITIVE_INFINITY);
+            "set's a maximum ratio of the 'invisible height' to the rest.", 1.0);
     
 
     
@@ -49,7 +50,10 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
     double resimulate() {
     	network.startEditing(this);
     	// get the place where to cut
-    	double maxHeight = getMaxLociMRCA(network.getRootEdge());
+    	double maxHeight = RecombinationNetworkStatsLogger.getMaxLociMRCA(network);
+    	
+  	
+    	
     	if (maxHeight == network.getRootEdge().childNode.getHeight())
     		return Double.NEGATIVE_INFINITY;
 
@@ -68,8 +72,11 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
                .collect(Collectors.toList());
         
 
-        if (startingEdges.size()==0)
+        if (startingEdges.size()==0) {
+        	System.out.println(maxHeight);
+        	System.out.println(network);
         	throw new IllegalArgumentException("should not arrive here");
+        }
         
         int recombEvents = 0;
                 
@@ -106,26 +113,6 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
         return Double.POSITIVE_INFINITY;
     }
 
-    double getMaxLociMRCA(RecombinationNetworkEdge edge){
-    	if (edge.visited)
-    		return -1;
-    	
-    	edge.visited=true;
-    	
-    	RecombinationNetworkNode node = edge.childNode;
-    	if (node.isCoalescence()) {
-    		BreakPoints bp1 = node.getChildEdges().get(0).breakPoints.copy();
-    		bp1.and(node.getChildEdges().get(1).breakPoints);
-    		if (!bp1.isEmpty()) {
-    			return node.getHeight();
-    		}
-    		return Math.max(getMaxLociMRCA(node.getChildEdges().get(0)), getMaxLociMRCA(node.getChildEdges().get(1)));
-    	}else if (node.isRecombination()) {
-    		return getMaxLociMRCA(node.getChildEdges().get(0));
-    	}else {
-    		return -1.0;
-    	}    	
-    }
     
     private void coalesce(double coalescentTime, List<RecombinationNetworkEdge> extantLineages) {
         // Sample the pair of lineages that are coalescing:

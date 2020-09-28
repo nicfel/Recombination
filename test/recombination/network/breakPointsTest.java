@@ -181,11 +181,24 @@ public class breakPointsTest {
     	bp2 = new BreakPoints();
     	bp2.init(bp2_list);
 
+    	bp.andNot(bp2);  	
     	
-    	System.out.println(bp);
-    	System.out.println(bp2);
-    	bp.andNot(bp2);
-    	System.out.println(bp);
+    	
+    	bp = new BreakPoints(10741, 29999);
+
+    	bp2_list = new ArrayList<>();
+    	bp2_list.add(0);
+    	bp2_list.add(12828);
+
+    	bp2_list.add(26830);
+    	bp2_list.add(28767);
+
+    	bp2 = new BreakPoints();
+    	bp2.init(bp2_list);
+    	
+    	bp.andFast(bp2);
+    	
+    	Assert.assertEquals(bp.toString(), "10741-12828,26830-28767");   
 
 
     
