@@ -219,7 +219,6 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
     		boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
     	
-                
         double[] partials3 = partialsNew.getPartialsOperation(node.ID, computeFor);
         
         
@@ -284,9 +283,8 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
 	
 	                v += 4;
 	            }else {
-            		partials3[v] = Double.NaN;
-	              	 v+=4;
-	               	 u+=4;
+	            	v+=4;
+               	 	u+=4;
                }
             }
         }

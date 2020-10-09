@@ -76,7 +76,6 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         if (logHR == Double.NEGATIVE_INFINITY)
         	return Double.NEGATIVE_INFINITY;
 
-//        System.out.println(network);
 
         // case there are empty edges, which can happen when addRemoveEmptyEdges is false
 		if (!allEdgesAncestral()){
@@ -108,7 +107,6 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 			System.out.println(network);
 			throw new IllegalArgumentException("BreakPoints error");
 		}
-
 //		System.out.println(logHR);
         return logHR;
     }
@@ -127,7 +125,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     	}      	
 
     	logHR -= Math.log(Math.pow(lambda, nrEmptyEdges)) - lambda - Math.log(factorial(nrEmptyEdges));
-    	
+      
+
     	return logHR;
     }
     

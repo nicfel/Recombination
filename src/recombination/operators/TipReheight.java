@@ -36,6 +36,7 @@ public class TipReheight extends RecombinationNetworkOperator {
     
     public final Input<TaxonSet> taxonsetInput = new Input<>("taxonset",
             "set of taxa for which prior information is available");
+
     
 
     // shadows size
@@ -78,6 +79,9 @@ public class TipReheight extends RecombinationNetworkOperator {
                 final double delta = getDelta();
                 final double oldHeight = operatingNode.getHeight();
                 final double newHeight = oldHeight + delta;
+                
+                if (newHeight<0)
+                	return Double.NEGATIVE_INFINITY;
                                 
                 // check if ne height is valid
                 if (operatingNode.getParentEdges().get(0).parentNode.getHeight()<=newHeight)

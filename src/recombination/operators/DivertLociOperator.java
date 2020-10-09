@@ -103,7 +103,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
 
         rangeToRemove = rangeToRemove.copy();
         
-        rangeToRemove.andFast(edge.breakPoints);
+        rangeToRemove.and(edge.breakPoints);
         
         if (rangeToRemove.isEmpty())
             return logP;

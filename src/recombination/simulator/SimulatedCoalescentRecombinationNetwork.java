@@ -10,6 +10,7 @@ import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.evolution.tree.coalescent.PopulationFunction;
 import beast.util.Randomizer;
+import cern.colt.Arrays;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
@@ -48,6 +49,9 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     
     public Input<Alignment> dataInput = new Input<>("data",
             "total length of the alignment");
+    
+    public Input<Boolean> IgnoreUnknownInput = new Input<>("IgnoreUnknown",
+            "if true, N and gap positions are completely ignored", false);
 
 
 
@@ -183,7 +187,12 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     	RecombinationNetworkNode n = remainingSampleNodes.get(0);
 
         // Create corresponding lineage
-        BreakPoints breakPoints = new BreakPoints(totalLength);        
+        BreakPoints breakPoints;
+        if (IgnoreUnknownInput.get() && dataInput.get()!=null)
+        	breakPoints= getGappedBreakPoints(dataInput.get(), n);
+        else
+        	breakPoints= new BreakPoints(totalLength);
+
         
         RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, n, breakPoints, null, nodeEdgeIDs);
         
@@ -193,7 +202,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         remainingSampleNodes.remove(0);
     }
 
-    private void coalesce(double coalescentTime, List<RecombinationNetworkEdge> extantLineages) {
+	private void coalesce(double coalescentTime, List<RecombinationNetworkEdge> extantLineages) {
         // Sample the pair of lineages that are coalescing:
     	RecombinationNetworkEdge lineage1 = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
     	RecombinationNetworkEdge lineage2;
@@ -221,10 +230,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
         extantLineages.remove(lineage1);
         extantLineages.remove(lineage2);
-        extantLineages.add(lineage);
-        
-        
-
+        extantLineages.add(lineage);       
     }
 
     private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages) {
@@ -259,4 +265,56 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         extantLineages.add(rightLineage);        
     }
 
+    private BreakPoints getGappedBreakPoints(Alignment data, RecombinationNetworkNode n) {
+        int taxonIndex = data.getTaxonIndex(n.getTaxonLabel());
+        if (taxonIndex == -1) {
+        	if (n.getTaxonLabel().startsWith("'") || n.getTaxonLabel().startsWith("\"")) {
+                taxonIndex = data.getTaxonIndex(n.getTaxonLabel().substring(1, n.getTaxonLabel().length() - 1));
+            }
+            if (taxonIndex == -1) {
+            	throw new RuntimeException("Could not find sequence " + n.getTaxonLabel() + " in the alignment");
+            }
+        }
+        
+        int code, states;
+        int[] statesForCode;
+        boolean on = false;
+        List<Integer> bp_list = new ArrayList<>();
+    	for (int i = 0; i < data.getSiteCount() ;i++) {
+            code = data.getPattern(taxonIndex, dataInput.get().getPatternIndex(i));
+            
+            statesForCode = data.getDataType().getStatesForCode(code);
+            if (statesForCode.length==1)
+                states = statesForCode[0];
+            else
+                states = code; // Causes ambiguous states to be ignored.
+
+            if (i==0 && states<data.getMaxStateCount()) {
+            	bp_list.add(i);
+            	on = true;
+            }
+            
+            if (on && states>=data.getMaxStateCount()) {
+            	bp_list.add(i-1);
+            	on = false;
+            }      
+            
+            if (!on && states<data.getMaxStateCount()) {
+            	bp_list.add(i);
+            	on = true;
+            }           
+            	
+    	}
+    	
+    	if (on) {
+        	bp_list.add(data.getSiteCount()-1);
+    	}    	
+    	
+    	
+    	BreakPoints bp = new BreakPoints();
+    	bp.init(bp_list);
+		return bp;
+	}
+
+    
 }

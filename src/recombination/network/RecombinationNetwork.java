@@ -5,6 +5,7 @@ import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
+import beast.util.Randomizer;
 import coalre.network.NetworkEdge;
 import coalre.network.NetworkNode;
 import coalre.network.parser.NetworkBaseVisitor;
@@ -223,6 +224,8 @@ public class RecombinationNetwork extends StateNode {
         result.append("}");
         result.append(",pr={").append(currentEdge.passingRange);
         result.append("}");
+        result.append(",dirty=").append(currentEdge.isDirty);
+
 
         
 //        for (int i =0; i < totalLength; i++)
@@ -265,11 +268,32 @@ public class RecombinationNetwork extends StateNode {
         RecombinationNetworkBuilderVisitor builder = new RecombinationNetworkBuilderVisitor();
         rootEdge = builder.visit(tree);
 
-        List<RecombinationNetworkNode> leafNodes = new ArrayList<>(getLeafNodes());
+        List<RecombinationNetworkNode> nodes = new ArrayList<>(getNodes());
         totalLength = -1;
-        for (RecombinationNetworkNode l : leafNodes) {
-        	totalLength = Math.max(totalLength, l.getParentEdges().get(0).breakPoints.getMax()+1);
-        }
+        for (RecombinationNetworkNode n : nodes) {
+        	if (n.isLeaf()) {
+        		totalLength = Math.max(totalLength, n.getParentEdges().get(0).breakPoints.getMax()+1);
+        	}
+        } 
+        for (RecombinationNetworkNode n : nodes) {
+        	if (n.isRecombination()) {
+        		// set passing range
+        		int min1 = n.getParentEdges().get(0).breakPoints.getMin();
+        		int max1 = n.getParentEdges().get(0).breakPoints.getMax();
+        		int min2 = n.getParentEdges().get(1).breakPoints.getMin();
+        		int max2 = n.getParentEdges().get(1).breakPoints.getMax();
+        		
+        		if (min1>max2) {
+        			int newBp = Randomizer.nextInt(min1-max2)+max2;
+        			n.getParentEdges().get(0).setPassingRange(newBp+1, totalLength-1);
+        			n.getParentEdges().get(1).setPassingRange(0, newBp);
+        		}else {
+        			int newBp = Randomizer.nextInt(min2-max1)+max1;
+        			n.getParentEdges().get(1).setPassingRange(newBp+1, totalLength-1);
+        			n.getParentEdges().get(0).setPassingRange(0, newBp);
+        		}
+        	}
+        }  
     }
 
     /** StateNode implementation: **/
@@ -548,9 +572,7 @@ public class RecombinationNetwork extends StateNode {
             
             BreakPoints bp = new BreakPoints();
             bp.init(breakPoints);
-            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, bp, nodeEdgeIDs);
-            if (splitPoints.size()>0)
-            	edge.setPassingRange(splitPoints.get(0), splitPoints.get(1));
+            RecombinationNetworkEdge edge = new RecombinationNetworkEdge(null, node, bp, null, nodeEdgeIDs);
             node.addParentEdge(edge);
 
             if (ctx.post().length == null) {
@@ -603,9 +625,7 @@ public class RecombinationNetwork extends StateNode {
         	treeNode.setHeight(networkNode.getHeight());
         	treeNode.setID(networkNode.getTaxonLabel());
         	return treeNode;
-        }   	
-        
-        
+        }       
     }    
 
     @Override

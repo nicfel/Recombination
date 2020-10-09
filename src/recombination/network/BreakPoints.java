@@ -202,76 +202,76 @@ public class BreakPoints {
 	    }
 	}
 	
-	/**
-	 * compute the intersection between this.breakpoonts and breakpoints
-	 * @param breakPoints
-	 */
-	public void andFast(BreakPoints breakPoints) {		
-		List<Range> newBreaks = new ArrayList<>();
-		if (breakPoints==null || breakPoints.isEmpty() || isEmpty()) {
-			this.breakPoints = null;
-			return;
-		}
-
-		if (this.equals(breakPoints))
-			return;
-		
-		int i = 0, j = 0;
-		
-		while (i < this.breakPoints.size() && j < breakPoints.size()) {
-			if (getRange(i).from<breakPoints.getRange(j).from) {
-				
-				if (getRange(i).to<breakPoints.getRange(j).from) {
-					i++;
-				}else{
-					if (getRange(i).to>breakPoints.getRange(j).to) {
-						newBreaks.add(new Range(breakPoints.getRange(j).from, breakPoints.getRange(j).to));
-						j++;				
-					}else if (getRange(i).to<breakPoints.getRange(j).to){
-						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
-						i++;
-					}else {
-						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
-						i++;
-						j++;
-					}
-					
-				}
-			}else if (getRange(i).from>breakPoints.getRange(j).from) {
-				if (breakPoints.getRange(j).to<getRange(i).from) {
-					j++;
-				}else {					
-					if (breakPoints.getRange(j).to>getRange(i).to) {
-						newBreaks.add(new Range(getRange(i).from, getRange(i).to));
-						i++;				
-					}else if (breakPoints.getRange(j).to<getRange(i).to){
-						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
-						j++;
-					}else {
-						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
-						i++;
-						j++;
-					}
-				}
-			}else {
-				if (getRange(i).to<breakPoints.getRange(j).to) {
-					newBreaks.add(getRange(i).copy());
-					i++;
-				}else if (getRange(i).to>breakPoints.getRange(j).to) {
-					newBreaks.add(breakPoints.getRange(j).copy());
-					j++;
-				}else {
-					newBreaks.add(getRange(i).copy());
-					i++;
-					j++;
-				}				
-			}			
-		}
-		
-		this.breakPoints = new ArrayList<>(newBreaks);		
-
-			
-	}
+//	/**
+//	 * compute the intersection between this.breakpoonts and breakpoints
+//	 * @param breakPoints
+//	 */
+//	public void andFast(BreakPoints breakPoints) {		
+//		List<Range> newBreaks = new ArrayList<>();
+//		if (breakPoints==null || breakPoints.isEmpty() || isEmpty()) {
+//			this.breakPoints = null;
+//			return;
+//		}
+//
+//		if (this.equals(breakPoints))
+//			return;
+//		
+//		int i = 0, j = 0;
+//		
+//		while (i < this.breakPoints.size() && j < breakPoints.size()) {
+//			if (getRange(i).from<breakPoints.getRange(j).from) {
+//				
+//				if (getRange(i).to<breakPoints.getRange(j).from) {
+//					i++;
+//				}else{
+//					if (getRange(i).to>breakPoints.getRange(j).to) {
+//						newBreaks.add(new Range(breakPoints.getRange(j).from, breakPoints.getRange(j).to));
+//						j++;				
+//					}else if (getRange(i).to<breakPoints.getRange(j).to){
+//						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
+//						i++;
+//					}else {
+//						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
+//						i++;
+//						j++;
+//					}
+//					
+//				}
+//			}else if (getRange(i).from>breakPoints.getRange(j).from) {
+//				if (breakPoints.getRange(j).to<getRange(i).from) {
+//					j++;
+//				}else {					
+//					if (breakPoints.getRange(j).to>getRange(i).to) {
+//						newBreaks.add(new Range(getRange(i).from, getRange(i).to));
+//						i++;				
+//					}else if (breakPoints.getRange(j).to<getRange(i).to){
+//						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
+//						j++;
+//					}else {
+//						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
+//						i++;
+//						j++;
+//					}
+//				}
+//			}else {
+//				if (getRange(i).to<breakPoints.getRange(j).to) {
+//					newBreaks.add(getRange(i).copy());
+//					i++;
+//				}else if (getRange(i).to>breakPoints.getRange(j).to) {
+//					newBreaks.add(breakPoints.getRange(j).copy());
+//					j++;
+//				}else {
+//					newBreaks.add(getRange(i).copy());
+//					i++;
+//					j++;
+//				}				
+//			}			
+//		}
+//		
+//		this.breakPoints = new ArrayList<>(newBreaks);		
+//
+//			
+//	}
 
 
 	/**
