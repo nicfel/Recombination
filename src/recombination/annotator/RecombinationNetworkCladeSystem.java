@@ -3,6 +3,8 @@ package recombination.annotator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +28,12 @@ import recombination.network.RecombinationNetworkNode;
  */
 public class RecombinationNetworkCladeSystem {
 
-    protected Map<Double, DummyClade> newCoalescentCladeMap;
-    protected List<Map<Double, DummyClade>> coalescentCladeMap;
+//    protected Map<Double, DummyClade> newCoalescentCladeMap;
+//    protected List<Map<Double, DummyClade>> coalescentCladeMap;
 //    protected Map<BitSetArray, ReassortmentClade> cladeMap = new HashMap<>();
+    
     protected List<DummyClade> cladeMap = new ArrayList<>();
+   
     protected Map<Double, DummyClade> newReassortmentCladeMap;
     protected Map<BitSetArray, ReassortmentClade> reassortmentCladeMap = new HashMap<>();
     public List<String> leafNodeMap;
@@ -39,7 +43,13 @@ public class RecombinationNetworkCladeSystem {
     
     private Map<Integer, List<BreakPoints>> visitedBP;
     private Map<Integer, List<BitSet>> visitedBits;
+    private Map<Integer, Double> nodeProbs;
+    
+    private Map<Integer, List<BreakPoints>> nodeBP;
+    private Map<Integer, List<BitSet>> nodeBits;
+    private Map<Integer, List<Double>> nodeHeights;
 
+    
     protected boolean started;
     
     public RecombinationNetworkCladeSystem() { 
@@ -51,7 +61,6 @@ public class RecombinationNetworkCladeSystem {
      * @param nrSegments
      */
     public void setLeafLabels(List<RecombinationNetworkNode> leafNodes, int totalLength){
-    	coalescentCladeMap = new ArrayList<>();
     	leafNodeMap = new ArrayList<String>();
     	for (RecombinationNetworkNode leaf : leafNodes)
     		leafNodeMap.add(leaf.getTaxonLabel());    	
@@ -66,36 +75,98 @@ public class RecombinationNetworkCladeSystem {
         // Recurse over the tree and add all the clades (or increment their
         // frequency if already present). The root clade is added too (for
         // annotation purposes).   
-    	newCoalescentCladeMap = new HashMap<>();
-		newReassortmentCladeMap = new HashMap<>();
-		
 		visitedBP = new HashMap<>(); 
 		visitedBits = new HashMap<>(); 
 		
 		for (RecombinationNetworkNode l : network.getLeafNodes())
 			addCladesUpwards(l, l.getParentEdges().get(0).breakPoints, new BitSet());
-			        
-		System.out.println(cladeMap.size());
-//    	System.exit(0);
-//    	
-//    	coalescentCladeMap.add(newCoalescentCladeMap);
-//		
-////		// build the reassortment clades with all segments
-//		buildCoalescentCladeMap();		
-//		buildReassortmentCladeMap(network.getSegmentCount());	
     } 
     
     private void addCladesUpwards(RecombinationNetworkNode node, BreakPoints computeFor_BP, BitSet bits) {
+    	if (computeFor_BP.isEmpty())
+    		return;    	
+    	
     	if (node.isLeaf()) {
             int index = getTaxonIndex(node);
    			bits.set(index);
    			BreakPoints computeFor = computeFor_BP.copy();
+   			
+			addCoalescentClade(bits, node, computeFor_BP);	       			
+
    			addCladesUpwards(node.getParentEdges().get(0).parentNode, computeFor, bits);
         }else if (node.isRecombination()) {
         	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
        			BreakPoints computeFor = computeFor_BP.copy();
        			computeFor.and(edge.breakPoints.copy());
-       			addCladesUpwards(edge.parentNode, computeFor, bits);
+       			BitSet biton = (BitSet) bits.clone();
+       			addCladesUpwards(edge.parentNode, computeFor, biton);
+        	}        	
+        }else {
+   			BreakPoints computeFor = computeFor_BP.copy();
+   			RecombinationNetworkEdge edge = node.getParentEdges().get(0);
+   			
+   			
+   			
+        	// compute with breakpoints are "visibly" coalescing at this node
+        	BreakPoints overlap = node.getChildEdges().get(0).breakPoints.copy();        	
+        	overlap.and(node.getChildEdges().get(1).breakPoints);	
+        	
+        	// test if compute for is visibly coalescing here
+    		BreakPoints cf_only = computeFor.copy();
+    		cf_only.andNot(overlap);
+    		
+    		if (!cf_only.isEmpty()) {    			
+                if (!edge.isRootEdge()) {        
+           			BitSet biton = (BitSet) bits.clone();
+           			addCladesUpwards(edge.parentNode, cf_only, biton);
+            	}
+                // see "how" much is left of the compute for BP
+    			computeFor.andNot(cf_only);
+    		}
+
+    		BreakPoints bp_in = computeFor.copy();
+    		if (visitedBP.get(node.ID)!=null) {
+	    		for (int i = 0; i < visitedBP.get(node.ID).size();i++) {
+	        		BreakPoints bp_here = visitedBP.get(node.ID).get(i).copy();
+	        		// get the overlap
+	        		bp_here.and(bp_in);       		
+	        		if (!bp_here.isEmpty()) {
+	           			BitSet biton = (BitSet) bits.clone();
+	           			biton.or(visitedBits.get(node.ID).get(i));
+	        			addCoalescentClade(biton, node, bp_here);	        			
+		        		computeFor.andNot(bp_here);
+		                if (!edge.isRootEdge()) {
+		                	bp_here.and(edge.breakPoints);
+
+		           			addCladesUpwards(edge.parentNode, bp_here, biton);
+		                }
+	        		}  
+	        	}
+    		}else{
+	    		visitedBP.put(node.ID, new ArrayList<>());
+	    		visitedBits.put(node.ID, new ArrayList<>());
+    		}
+    		visitedBP.get(node.ID).add(computeFor.copy());
+    		visitedBits.get(node.ID).add((BitSet) bits.clone());
+        }
+    }
+    
+    private void cladeProbsUpwards(RecombinationNetworkNode node, BreakPoints computeFor_BP, BitSet bits, int totalLength) {
+    	if (computeFor_BP.isEmpty())
+    		return;
+    	
+    	if (node.isLeaf()) {
+            int index = getTaxonIndex(node);
+   			bits.set(index);
+   			BreakPoints computeFor = computeFor_BP.copy();
+   			cladeProbsUpwards(node.getParentEdges().get(0).parentNode, computeFor, bits, totalLength);
+        }else if (node.isRecombination()) {
+        	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
+       			BreakPoints computeFor = computeFor_BP.copy();
+       			computeFor.and(edge.breakPoints.copy());
+       			BitSet biton = (BitSet) bits.clone();
+
+       			cladeProbsUpwards(edge.parentNode, computeFor, biton, totalLength);
         	}        	
         }else {
    			BreakPoints computeFor = computeFor_BP.copy();
@@ -110,8 +181,9 @@ public class RecombinationNetworkCladeSystem {
     		cf_only.andNot(overlap);
     		
     		if (!cf_only.isEmpty()) {    			
-                if (!edge.isRootEdge()) {                	
-           			addCladesUpwards(edge.parentNode, cf_only, bits);
+                if (!edge.isRootEdge()) {  
+           			BitSet biton = (BitSet) bits.clone();
+                	cladeProbsUpwards(edge.parentNode, cf_only, biton, totalLength);
             	}
                 // see "how" much is left of the compute for BP
     			computeFor.andNot(cf_only);
@@ -124,12 +196,13 @@ public class RecombinationNetworkCladeSystem {
 	        		// get the overlap
 	        		bp_here.and(bp_in);       		
 	        		if (!bp_here.isEmpty()) {
-	        			bits.or(visitedBits.get(node.ID).get(i));
-	        			addCoalescentClade(bits, node, bp_here);	        			
+	           			BitSet biton = (BitSet) bits.clone();
+	           			biton.or(visitedBits.get(node.ID).get(i));
+	        			getCoalescentCladeProb(biton, node, bp_here, totalLength);	        			
 		        		computeFor.andNot(bp_here);
 		                if (!edge.isRootEdge()) {
 		                	bp_here.and(edge.breakPoints);
-		           			addCladesUpwards(edge.parentNode, bp_here, bits);
+		                	cladeProbsUpwards(edge.parentNode, bp_here, biton, totalLength);
 		                }
 	        		}  
 	        	}
@@ -137,53 +210,63 @@ public class RecombinationNetworkCladeSystem {
 	    		visitedBP.put(node.ID, new ArrayList<>());
 	    		visitedBits.put(node.ID, new ArrayList<>());
     		}
-    		visitedBP.get(node.ID).add(computeFor);
-    		visitedBits.get(node.ID).add(bits);
-
-        }
+    		visitedBP.get(node.ID).add(computeFor.copy());
+    		visitedBits.get(node.ID).add((BitSet) bits.clone());
+		}
     }
     
-
-    private BitSet addClades(RecombinationNetworkNode node, boolean includeTips) {
-    	BitSet bits = new BitSet();       
-
-        if (node.isLeaf()) {
-            int index = getTaxonIndex(node);
-   			bits.set(index);
-        } else { 
-        	// get the children of that node
-            List<RecombinationNetworkEdge> childEdges = node.getChildEdges();
-            
-            // add all children to the bitset
-            for (RecombinationNetworkEdge childEdge : childEdges){
-    			bits.or(addClades(childEdge.childNode, includeTips));            	
-            }
-            
-            // if node is coalescent, add the bitset if the coalescent event is observed on a segment tree
-            if (node.isCoalescence()){
-       			addCoalescentClade(bits, node);
-            }else{
-           		addReassortmentClade(bits, node);
-            }
-        }
-        return bits;
-    }
-
     /**
      * adds a new dummy clade to a coalescent node in the network
      * @param bits
      * @param segment
-     **/ 	
-    	
+     **/    	
     private void addCoalescentClade(BitSet bits, RecombinationNetworkNode node, BreakPoints bp) {   	
-    	DummyClade clade = new DummyClade(bits, bp);
+    	DummyClade clade = new DummyClade(bits, bp);    	    	
     	int i = cladeMap.indexOf(clade);
+    	
         if (i != -1) {
-        	cladeMap.get(i).count++;
+        	cladeMap.get(i).bp.add(bp);
+        	cladeMap.get(i).attributeValues.add(null);
         }else{
+        	clade.attributeValues.add(null);
         	cladeMap.add(clade);
         }
     }    
+    
+    /**
+     * adds a new dummy clade to a coalescent node in the network
+     * @param bits
+     * @param totalNumber 
+     * @param segment
+     **/    	
+    private void getCoalescentCladeProb(BitSet bits, RecombinationNetworkNode node, BreakPoints bp, int totalLength) {   	
+    	double weighted_support = 0;
+    	boolean found = false;
+    	for (DummyClade clade : cladeMap) {
+    		if (clade.bits.equals(bits)) {
+    			for (BreakPoints bp_clade : clade.bp) {
+        			BreakPoints bp_in = bp.copy();
+        			bp_in.and(bp_clade);
+        			weighted_support += bp_in.getGeneticLength()/totalLength;
+        			found = true;
+
+    			}
+    		}
+    	}
+    	
+    	if (!found) {
+    		System.out.println(node.getHeight());
+    		System.out.println(bp);
+    		System.out.println(bits);
+    		throw new IllegalArgumentException("clade not found");
+    	}
+    	
+    	if (nodeProbs.get(node.ID)==null)
+    		nodeProbs.put(node.ID, weighted_support);
+		else
+    		nodeProbs.replace(node.ID, nodeProbs.get(node.ID)+ weighted_support);
+    }    
+
     
     /**
      * adds new dummy clades to the new clade map
@@ -200,270 +283,90 @@ public class RecombinationNetworkCladeSystem {
 //        	throw new IllegalArgumentException("reassortment clade should never be found");
 //        }
     }   
-    
-    private void buildCoalescentCladeMap() {
+       
+    public void collectAttributes(RecombinationNetwork network, Set<String> attributeNames, boolean includeTips) {
     	
-    	
-    	
-    	// get all unique reassortment node heights
-   	
-    	for (int i = 0; i < nodeHeights.size(); i++){    	
-    		
-    		// add the bits to a new reassortmentClade
-            ReassortmentClade clade = cladeMap.get(bitsArray);
-            if (clade == null) {
-                clade = new ReassortmentClade(bits);
-            	cladeMap.put(bitsArray, clade);                
-            }              
-            clade.setCount(clade.getCount() + 1);
-    	}    	
-    }       
-   
-    protected void buildReassortmentCladeMap(int nrSegments) {
-    	// get all unique reassortment node heights
-    	List<Double> nodeHeights = new ArrayList<>();
-    	List<Boolean[]> segmentDirection = new ArrayList<>();
-    	for (int i = 0; i < newReassortmentCladeMap.size(); i++){
-    		for (Double height : newReassortmentCladeMap.get(i).keySet()){
-    			int index = nodeHeights.indexOf(height);
-    			if (index==-1){
-    				nodeHeights.add(height);
-    				Boolean[] newSegs = new Boolean[newReassortmentCladeMap.size()];
-    				newSegs[i] = newReassortmentCladeMap.get(i).get(height).isLeft;
-    				segmentDirection.add(newSegs);
-    			}else{
-    				Boolean[] newSegs = segmentDirection.get(index);
-    				newSegs[i] = newReassortmentCladeMap.get(i).get(height).isLeft;
-    				segmentDirection.set(index, newSegs);
-    			}
-    		}
-    	}    	
-    	
-    	for (int i = 0; i < nodeHeights.size(); i++){
-    		// check if the first segment that is involved in the reassortment event is going left or right
-    		Boolean isLeft = false;
-    		for (Boolean dir : segmentDirection.get(i)){
-    			if (dir !=null && dir==true){
-    				isLeft = true;
-    				break;
-    			}else if (dir !=null &&dir==false){
-    				isLeft = false;
-    				break;
-    			}  
-    					
-    		}
-    		
-    		
-    		// make a bit set array that is empty if a segment goes left
-    		BitSet[] bits = new BitSet[nrSegments*2];
-    		for (int j = 0; j < nrSegments; j++){
-    			if (segmentDirection.get(i)[j]!=null){
-    				if (isLeft && segmentDirection.get(i)[j])
-    					bits[2*j] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;
-    				else if (isLeft && !segmentDirection.get(i)[j])
-    					bits[2*j+1] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;
-    				else if (!isLeft && !segmentDirection.get(i)[j])
-    					bits[2*j] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;
-    				else
-    					bits[2*j+1] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;
-
-    			}
-    		}
-    		
-    		BitSetArray bitsArray = new BitSetArray(bits);
-    		
-    		// add the bits to a new reassortmentClade
-            ReassortmentClade clade = reassortmentCladeMap.get(bitsArray);
-            if (clade == null) {
-                clade = new ReassortmentClade(bits);
-            	reassortmentCladeMap.put(bitsArray, clade);
-                
-            }              
-            	
-            clade.setCount(clade.getCount() + 1);
-
-
-    	}
-    	
-    }   
-
-    public void collectAttributes(Network network, Set<String> attributeNames, boolean includeTips) {
-		newCoalescentCladeMap = new ArrayList<>();
-		newReassortmentCladeMap = new ArrayList<>();
-		for (int i = 0; i < network.getSegmentCount(); i++){
-			newCoalescentCladeMap.add(new HashMap<>());
-			newReassortmentCladeMap.add(new HashMap<>());
-			
-			
-			final int segment = i;
-			// get the segment root node
-	        List<RecombinationNetworkNode> rootEdge = network.getNodes().stream()
-	                .filter(e -> e.isCoalescence())
-	                .filter(e -> !e.getParentEdges().get(0).hasSegments.get(segment))
-	                .filter(e -> e.getChildEdges().get(0).hasSegments.get(segment))
-	                .filter(e -> e.getChildEdges().get(1).hasSegments.get(segment))
-	                .collect(Collectors.toList());
-	        
-	        
-	        if (rootEdge.size()==1)
-	        	collectAttributes(rootEdge.get(0), attributeNames, includeTips, i);
-	        else if (rootEdge.size()>1)
-	        	throw new IllegalArgumentException("segment tree root not found");	        
-		}		
-
-		collectAtributesCoalescentCladeMap(network.getSegmentCount(), attributeNames);
-		collectAtributesReassortmentCladeMap(network.getSegmentCount(), attributeNames);		
+		visitedBP = new HashMap<>(); 
+		visitedBits = new HashMap<>(); 
+		
+		for (RecombinationNetworkNode l : network.getLeafNodes())
+        	collectAttributes(l, attributeNames, l.getParentEdges().get(0).breakPoints, includeTips, new BitSet());
     }
     
-    private BitSet collectAttributes(RecombinationNetworkNode node, Set<String> attributeNames, boolean includeTips, int segment) {
-        BitSet bits = new BitSet();
-        
-        
-        if (node.isLeaf()) {
-
+    private void collectAttributes(RecombinationNetworkNode node, Set<String> attributeNames, BreakPoints computeFor_BP, boolean includeTips, BitSet bits) {
+    	if (computeFor_BP.isEmpty())
+    		return;    	
+    	
+    	if (node.isLeaf()) {
             int index = getTaxonIndex(node);
-            if (index < 0) {
-                throw new IllegalArgumentException("Taxon with height= " + node.getHeight() + ", not found in target tree");
-            }
-        	if (node.getParentEdges().get(0).hasSegments.get(segment))
-        			bits.set(index);
+   			bits.set(index);
+   			BreakPoints computeFor = computeFor_BP.copy();
+   			
+   			if (includeTips)
+    			collectCoalescentClade(bits, node, computeFor_BP, attributeNames);	        			
+
+   			
+   			collectAttributes(node.getParentEdges().get(0).parentNode, attributeNames, computeFor, includeTips, bits);
+        }else if (node.isRecombination()) {
+        	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
+       			BreakPoints computeFor = computeFor_BP.copy();
+       			computeFor.and(edge.breakPoints.copy());
+       			BitSet biton = (BitSet) bits.clone();
+       			collectAttributes(edge.parentNode, attributeNames, computeFor, includeTips, biton);
+        	}        	
+        }else {
+   			BreakPoints computeFor = computeFor_BP.copy();
+   			RecombinationNetworkEdge edge = node.getParentEdges().get(0);   			
+   			
+        	// compute with breakpoints are "visibly" coalescing at this node
+        	BreakPoints overlap = node.getChildEdges().get(0).breakPoints.copy();        	
+        	overlap.and(node.getChildEdges().get(1).breakPoints);	
         	
-        	if (includeTips && node.getParentEdges().get(0).hasSegments.get(segment))
-    			collectAttributesForLeaves(bits, node, attributeNames, segment, node.getHeight());
+        	// test if compute for is visibly coalescing here
+    		BreakPoints cf_only = computeFor.copy();
+    		cf_only.andNot(overlap);
+    		
+    		if (!cf_only.isEmpty()) {    			
+                if (!edge.isRootEdge()) {        
+           			BitSet biton = (BitSet) bits.clone();
+           			collectAttributes(edge.parentNode, attributeNames, cf_only, includeTips, biton);
+            	}
+                // see "how" much is left of the compute for BP
+    			computeFor.andNot(cf_only);
+    		}
 
-
-        } else {        	
-           	
-        	// get the children of that node
-            List<RecombinationNetworkEdge> childEdges = node.getChildEdges();
-            // add all children to the bitset
-            for (RecombinationNetworkEdge childEdge : childEdges){
-	        	if (childEdge.hasSegments.get(segment))
-	    			bits.or(collectAttributes(childEdge.childNode, attributeNames, includeTips, segment));
-            }  
-            
-            if (node.isCoalescence()){
-        		if(node.getChildEdges().get(0).hasSegments.get(segment) &&
-        			node.getChildEdges().get(1).hasSegments.get(segment)){
-        			collectAttributesForClade(bits, node, attributeNames, segment, node.getHeight());
-        		}
-            } else {
-            	if (node.getParentEdges().get(0).hasSegments.get(segment))
-            		collectAttributesForReassortmentClade(bits, node, attributeNames, segment, node.getHeight(), false);
-            	else if (node.getParentEdges().get(1).hasSegments.get(segment))
-            		collectAttributesForReassortmentClade(bits, node, attributeNames, segment, node.getHeight(), true);
-            }
-            
-        }
-
-        return bits;
-    }
-    
-    private void collectAttributesForClade(BitSet bits, RecombinationNetworkNode node, Set<String> attributeNames, int segment, Double height) {
-        DummyClade clade = newCoalescentCladeMap.get(segment).get(height);
-        if (clade == null) {
-        	
-        	clade = new DummyClade(bits, height, false);
-
-            if (clade.attributeValues == null) {
-                clade.attributeValues = new ArrayList<>();
-            }
-
-            int i = 0;
-            Object[] values = new Object[attributeNames.size()];
-            for (String attributeName : attributeNames) {
-
-                Object value;
-                switch (attributeName) {
-                    case "height":
-                        value = node.getHeight();
-                        break;
-                    case "length":
-//                        value = getBranchLength(node);
-//                        break;
-                    default:
-                    	throw new IllegalArgumentException("Summary not implemented for values other than height and posterior");
-                }
-
-                values[i] = value;
-
-                i++;
-            }
-            clade.attributeValues.add(values);
-            
-            newCoalescentCladeMap.get(segment).put(height, clade);
-
+    		BreakPoints bp_in = computeFor.copy();
+    		if (visitedBP.get(node.ID)!=null) {
+	    		for (int i = 0; i < visitedBP.get(node.ID).size();i++) {
+	        		BreakPoints bp_here = visitedBP.get(node.ID).get(i).copy();
+	        		// get the overlap
+	        		bp_here.and(bp_in);       		
+	        		if (!bp_here.isEmpty()) {
+	           			BitSet biton = (BitSet) bits.clone();
+	           			biton.or(visitedBits.get(node.ID).get(i));
+	        			collectCoalescentClade(biton, node, bp_here, attributeNames);	        			
+		        		computeFor.andNot(bp_here);
+		                if (!edge.isRootEdge()) {
+		                	bp_here.and(edge.breakPoints);
+		                	collectAttributes(edge.parentNode, attributeNames, bp_here, includeTips, biton);
+		                }
+	        		}  
+	        	}
+    		}else{
+	    		visitedBP.put(node.ID, new ArrayList<>());
+	    		visitedBits.put(node.ID, new ArrayList<>());
+    		}
+    		visitedBP.get(node.ID).add(computeFor.copy());
+    		visitedBits.get(node.ID).add((BitSet) bits.clone());
         }
     }
     
-    private void collectAttributesForLeaves(BitSet bits, RecombinationNetworkNode node, Set<String> attributeNames, int segment, Double height) {
-    	DummyClade clade = leafCladeMap.get(bits);
-        if (clade == null) {
-        	
-        	clade = new DummyClade(bits, height, false);
-
-            clade.attributeValues = new ArrayList<>();
-            
-            int i = 0;
-            Object[] values = new Object[attributeNames.size()];
-            for (String attributeName : attributeNames) {
-
-                Object value;
-                switch (attributeName) {
-                    case "height":
-                        value = node.getHeight();
-                        break;
-                    case "length":
-//                        value = getBranchLength(node);
-//                        break;
-                    default:
-                    	throw new IllegalArgumentException("Summary not implemented for values other than height and posterior");
-                }
-
-                values[i] = value;
-
-                i++;
-            }
-            clade.attributeValues.add(values);
-            
-            leafCladeMap.put(bits, clade);
-        }else{
-            int i = 0;
-            Object[] values = new Object[attributeNames.size()];
-            for (String attributeName : attributeNames) {
-
-                Object value;
-                switch (attributeName) {
-                    case "height":
-                        value = node.getHeight();
-                        break;
-                    case "length":
-//                        value = getBranchLength(node);
-//                        break;
-                    default:
-                    	throw new IllegalArgumentException("Summary not implemented for values other than height and posterior");
-                }
-
-                values[i] = value;
-
-                i++;
-            }
-
-			clade.attributeValues.add(values);
-        		
-        }
-    }
-
-    
-    private void collectAttributesForReassortmentClade(BitSet bits, RecombinationNetworkNode node,
-    		Set<String> attributeNames, int segment, double height,  boolean isLeft) {
+    private void collectCoalescentClade(BitSet bits, RecombinationNetworkNode node, BreakPoints bp, Set<String> attributeNames) {   	
+    	DummyClade clade = new DummyClade(bits, bp);
+    	    	
+    	int index = cladeMap.indexOf(clade);  	
     	
-
-        DummyClade clade = newReassortmentCladeMap.get(segment).get(height);
-        if (clade == null) {
-        	
-            clade = new DummyClade(bits, height, isLeft);
-        	
+        if (index != -1) {
             if (clade.attributeValues == null) {
                 clade.attributeValues = new ArrayList<>();
             }
@@ -488,213 +391,274 @@ public class RecombinationNetworkCladeSystem {
 //                        }
 //                        break;
                 }
-
                 values[i] = value;
 
                 i++;
             }
-            clade.attributeValues.add(values);
-            
-            newReassortmentCladeMap.get(segment).put(height, clade);
-        }else{
-//        	System.err.println("reassortment clade should never be found");
-       	throw new IllegalArgumentException("reassortment clade should never be found");
-        }
-    }
+            cladeMap.get(index).attributeValues.add(values);
+            cladeMap.get(index).bp.add(bp.copy());
+        }       
+    }    
+         
+    public void summarizeAttributes(RecombinationNetwork network, Set<String> attributeNames, boolean useMean, int nrNetworks, boolean onTarget) {
+    	
+		visitedBP = new HashMap<>(); 
+		visitedBits = new HashMap<>(); 
+		
+		nodeBP = new HashMap<>(); 
+		nodeBits = new HashMap<>(); 
+		nodeHeights = new HashMap<>();
+		
+		for (RecombinationNetworkNode l : network.getLeafNodes())
+			summarizeAttributes(l, attributeNames, l.getParentEdges().get(0).breakPoints, new BitSet(), useMean, nrNetworks, onTarget);
+		
+		for (RecombinationNetworkEdge e : network.getEdges())
+			e.visited=false;
 
-    private void collectAtributesCoalescentCladeMap(int nrSegments, Set<String> attributeNames) {
-    	// get all unique reassortment node heights
-    	List<Double> nodeHeights = new ArrayList<>();
-    	for (int i = 0; i < newCoalescentCladeMap.size(); i++){
-    		for (Double height : newCoalescentCladeMap.get(i).keySet()){
-    			int index = nodeHeights.indexOf(height);
-    			if (index==-1){
-    				nodeHeights.add(height);
-    			}
-    		}
-    	}    
-    	    	
-    	for (int i = 0; i < nodeHeights.size(); i++){
-    		// make a bit set array that is empty if a segment goes left
-    		BitSet[] bits = new BitSet[nrSegments];
-    		for (int j = 0; j < nrSegments; j++){
-    			if (newCoalescentCladeMap.get(j).get(nodeHeights.get(i))!=null)
-    				bits[j] = newCoalescentCladeMap.get(j).get(nodeHeights.get(i)).bits;    			
-    		}
+		summarizeCoalescentNodes(network.getRootEdge(), attributeNames, useMean, nrNetworks, onTarget);
+    }
+        
+    private void summarizeAttributes(RecombinationNetworkNode node, Set<String> attributeNames, 
+    		BreakPoints computeFor_BP, BitSet bits, boolean useMean, int nrNetworks, boolean onTarget) {
+    	
+    	if (computeFor_BP.isEmpty())
+    		return;    	
+    	
+    	if (node.isLeaf()) {
+            int index = getTaxonIndex(node);
+   			bits.set(index);
+   			BreakPoints computeFor = computeFor_BP.copy();
+   			
+   			if (nodeBP.get(node.ID)==null) {
+   				nodeBP.put(node.ID, new ArrayList<>());
+   				nodeBits.put(node.ID, new ArrayList<>());
+   			}
+			nodeBP.get(node.ID).add(computeFor_BP.copy());
+			nodeBits.get(node.ID).add((BitSet) bits.clone());   	
+   			
+   			summarizeAttributes(node.getParentEdges().get(0).parentNode, attributeNames, computeFor, bits, useMean, nrNetworks, onTarget);
+        }else if (node.isRecombination()) {
+        	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
+       			BreakPoints computeFor = computeFor_BP.copy();
+       			computeFor.and(edge.breakPoints.copy());
+       			BitSet biton = (BitSet) bits.clone();
+       			summarizeAttributes(edge.parentNode, attributeNames, computeFor, biton, useMean, nrNetworks, onTarget);
+        	}        	
+        }else {
+   			BreakPoints computeFor = computeFor_BP.copy();
+   			RecombinationNetworkEdge edge = node.getParentEdges().get(0);
+   			
+   			
+        	// compute with breakpoints are "visibly" coalescing at this node
+        	BreakPoints overlap = node.getChildEdges().get(0).breakPoints.copy();        	
+        	overlap.and(node.getChildEdges().get(1).breakPoints);	
+        	
+        	// test if compute for is visibly coalescing here
+    		BreakPoints cf_only = computeFor.copy();
+    		cf_only.andNot(overlap);
     		
-    		
-    		BitSetArray bitsArray = new BitSetArray(bits);
-    		
-    		// add the bits to a new reassortmentClade
-            ReassortmentClade clade = cladeMap.get(bitsArray);
-            if (clade != null) {
-            	if (clade.attributeValues==null)
-            		clade.attributeValues = new ArrayList<>();
-            		
-            	// add the attributes
-            	for (int j = 0; j < nrSegments; j++){
-            		if (newCoalescentCladeMap.get(j).get(nodeHeights.get(i))!=null){
-            			clade.attributeValues.addAll(newCoalescentCladeMap.get(j).get(nodeHeights.get(i)).getAttributeValues());
-            		}
+    		if (!cf_only.isEmpty()) {    			
+                if (!edge.isRootEdge()) {        
+           			BitSet biton = (BitSet) bits.clone();
+           			summarizeAttributes(edge.parentNode, attributeNames, cf_only, biton, useMean, nrNetworks, onTarget);
             	}
-            	clade.setCount(clade.getCount()+1);
+                // see "how" much is left of the compute for BP
+    			computeFor.andNot(cf_only);
+    		}
+
+    		BreakPoints bp_in = computeFor.copy();
+    		if (visitedBP.get(node.ID)!=null) {
+	    		for (int i = 0; i < visitedBP.get(node.ID).size();i++) {
+	        		BreakPoints bp_here = visitedBP.get(node.ID).get(i).copy();
+	        		// get the overlap
+	        		bp_here.and(bp_in);       		
+	        		if (!bp_here.isEmpty()) {
+	           			BitSet biton = (BitSet) bits.clone();
+	           			biton.or(visitedBits.get(node.ID).get(i));
+	           			
+	           			if (nodeBP.get(node.ID)==null) {
+	           				nodeBP.put(node.ID, new ArrayList<>());
+	           				nodeBits.put(node.ID, new ArrayList<>());
+	           				nodeHeights.put(node.ID, new ArrayList<>());
+	           			}
+	        			nodeBP.get(node.ID).add(computeFor_BP.copy());
+	        			nodeBits.get(node.ID).add((BitSet) biton.clone());   			
+
+	        			computeFor.andNot(bp_here);
+		                if (!edge.isRootEdge()) {
+		                	bp_here.and(edge.breakPoints);
+		                	summarizeAttributes(edge.parentNode, attributeNames, bp_here, biton, useMean, nrNetworks, onTarget);
+		                }
+	        		}  
+	        	}
+    		}else{
+	    		visitedBP.put(node.ID, new ArrayList<>());
+	    		visitedBits.put(node.ID, new ArrayList<>());
+    		}
+    		visitedBP.get(node.ID).add(computeFor.copy());
+    		visitedBits.get(node.ID).add((BitSet) bits.clone());
+        }
+	}
+    
+    
+    private void summarizeCoalescentNodes(RecombinationNetworkEdge edge, Set<String> attributeNames, 
+    		boolean useMean, int nrNetworks, boolean onTarget) {
+
+    	if (edge.visited)
+    		return;
+    	
+    	edge.visited=true;
+    	
+    	RecombinationNetworkNode node = edge.childNode;
+    	
+    	if (node.isLeaf()) {  			  			
+        	summarizeClade(node, attributeNames, useMean, nrNetworks, onTarget);
+        }else if (node.isRecombination()) {
+        	for (RecombinationNetworkEdge e : node.getChildEdges()) {
+        		summarizeCoalescentNodes(e, attributeNames, useMean, nrNetworks, onTarget);
+        	}        	
+        }else {
+        	summarizeClade(node, attributeNames, useMean, nrNetworks, onTarget);
+        	for (RecombinationNetworkEdge e : node.getChildEdges()) {
+        		summarizeCoalescentNodes(e, attributeNames, useMean, nrNetworks, onTarget);
+        	}        	
+        }
+	}
+    
+
+    
+    private void summarizeClade(RecombinationNetworkNode node, Set<String> attributeNames, boolean useMean, int nrNetworks, boolean onTarget) {   	
+    	List<BreakPoints>  bp_list = nodeBP.get(node.ID);
+    	List<BitSet>  bits_list = nodeBits.get(node.ID);
+    	
+    	if (bp_list==null) {
+    		return;
+    	}
+    	
+		// keeps track of the height of the target network,
+		Double targetHeight = null;
+		
+		int k = 0;
+		
+        for (String attributeName : attributeNames) {
+            switch (attributeName) {
+            	case "height":
+            		node.setMetaData("");
+            		
+            		double totalLength = 0;
+            		double consideredLength = 0;
+            		
+            		List<HeightWeights> heights = new ArrayList<>();
+            		
+            		for (int i = 0; i < bp_list.size(); i++) {
+            			consideredLength += bp_list.get(i).getGeneticLength();
+            					
+            			DummyClade indexClade = new DummyClade(bits_list.get(i), bp_list.get(i));
+            			int index = cladeMap.indexOf(indexClade);            			
+            			
+            			if (index==-1)
+            				throw new IllegalArgumentException("didn't find clade");
+            			
+            			int j = 0;
+            			          			
+                		for (BreakPoints bp_here : cladeMap.get(index).bp) {
+                			BreakPoints bp_tmp = bp_here.copy();
+                			bp_tmp.and(bp_list.get(i));
+                			if (!bp_tmp.isEmpty()) {
+                				if (cladeMap.get(index).attributeValues.get(j)!=null) {
+                					heights.add(new HeightWeights((Double) cladeMap.get(index).attributeValues.get(j)[k], bp_tmp.getGeneticLength()));
+	                    			totalLength += bp_tmp.getGeneticLength();
+                				}
+                			}
+                			j++;
+                		}  
+            		}
+            		
+            		
+            		if(onTarget)
+            			targetHeight = node.getHeight();     
+            		
+            		
+		            
+            		double posterior = (double) totalLength / (double) (nrNetworks*consideredLength);
+            		
+        		            		
+            		double[] quantiles = getQuantiles(heights, totalLength);
+            		
+            		
+            		if(!onTarget){
+	            		if (heights.size()>0){
+							if (useMean){
+								node.setHeight(quantiles[3]);
+							}else{
+							    node.setHeight(quantiles[1]);
+							}
+	            		}
+            		}
+
+            		double minHPD,maxHPD;
+            		if (heights.size()>0){
+	                    minHPD = quantiles[0];
+	                    maxHPD = quantiles[2];
+            		}else{
+            			minHPD = node.getHeight();
+            			maxHPD = node.getHeight();
+            		}	            		
+            		
+            		if (targetHeight!=null){
+            			node.setMetaData(",posterior=" + posterior +
+            					",targetHeight=" + targetHeight +
+            					",height_95%_HPD={" + minHPD + "," + maxHPD + "}" + 
+		            		node.getMetaData() + "");
+
+            		}else{
+            			node.setMetaData(",posterior=" + posterior +
+            					",height_95%_HPD={" + minHPD + "," + maxHPD + "}" + 
+		            		node.getMetaData() + "");
+            		}
+
+                   
+                case "length":
+                    break;
+                default:
+                	throw new IllegalArgumentException("");
             }
-        }    	
+            k++;
+        }
+    	
+        
     }   
     
-    private void collectAtributesReassortmentCladeMap(int nrSegments, Set<String> attributeNames) {
-    	// get all unique reassortment node heights
-    	List<Double> nodeHeights = new ArrayList<>();
-    	List<Boolean[]> segmentDirection = new ArrayList<>();
-    	for (int i = 0; i < newReassortmentCladeMap.size(); i++){
-    		for (Double height : newReassortmentCladeMap.get(i).keySet()){
-    			int index = nodeHeights.indexOf(height);
-    			if (index==-1){
-    				nodeHeights.add(height);
-    				Boolean[] newSegs = new Boolean[newReassortmentCladeMap.size()];
-    				newSegs[i] = newReassortmentCladeMap.get(i).get(height).isLeft;
-    				segmentDirection.add(newSegs);
-    			}else{
-    				Boolean[] newSegs = segmentDirection.get(index);
-    				newSegs[i] = newReassortmentCladeMap.get(i).get(height).isLeft;
-    				segmentDirection.set(index, newSegs);
-    			}
+    private double[] getQuantiles(List<HeightWeights> heights, double totalLength) {
+    	double[] quantiles = new double[4];
+    	// sort data
+    	HeightsComparator comparator = new HeightsComparator();
+        // sort the array    	
+    	Collections.sort(heights, comparator);
+    	double currweights = 0.0;
+    	double mean = 0.0;
+    	boolean lower=false,median=false,upper=false;
+    	for (HeightWeights height : heights) {
+    		mean += height.height*height.weight;
+    		currweights += height.weight;
+    		if (!lower && currweights>0.025*totalLength) {
+    			quantiles[0] = height.height;
+    			lower=true;
+    		}
+    		if (!median && currweights>0.5*totalLength) {
+    			quantiles[1] = height.height;
+    			median=true;
+    		}
+    		if (!upper && currweights>0.975*totalLength) {
+    			quantiles[2] = height.height;
+    			upper=true;
     		}
     	}    	
     	
-    	for (int i = 0; i < nodeHeights.size(); i++){
-    		// check if the first segment that is involved in the reassortment event is going left or right
-    		Boolean isLeft = false;
-    		for (Boolean dir : segmentDirection.get(i)){
-    			if (dir !=null && dir==true){
-    				isLeft = true;
-    				break;
-    			}else if (dir !=null &&dir==false){
-    				isLeft = false;
-    				break;
-    			}  
-    					
-    		}
-    		
-    		
-    		// make a bit set array that is empty if a segment goes left
-    		BitSet[] bits = new BitSet[nrSegments*2];
-    		
-    		for (int j = 0; j < nrSegments; j++){
-    			if (segmentDirection.get(i)[j]!=null){
-    				if (isLeft && segmentDirection.get(i)[j])
-    					bits[2*j] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;
-    				else if (isLeft && !segmentDirection.get(i)[j])
-    					bits[2*j+1] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;
-    				else if (!isLeft && !segmentDirection.get(i)[j])
-    					bits[2*j] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;
-    				else
-    					bits[2*j+1] = newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).bits;   				
-    				
-    			}
-    		}
-    		BitSetArray bitsArray = new BitSetArray(bits);
-    		
-    		// add the bits to a new reassortmentClade
-            ReassortmentClade clade = reassortmentCladeMap.get(bitsArray);
-            if (clade != null) {
-            	if (clade.attributeValues==null)
-            		clade.attributeValues = new ArrayList<>();
-            		
-            	// add the attributes
-            	for (int j = 0; j < nrSegments; j++){
-            		if (segmentDirection.get(i)[j]!=null){
-            			clade.attributeValues.addAll(newReassortmentCladeMap.get(j).get(nodeHeights.get(i)).getAttributeValues());
-            		}
-            	}
-            	clade.setCount(clade.getCount()+1);
-            }
-        }    	
-    }   
-     
-    public void summarizeAttributes(RecombinationNetwork network, Set<String> attributeNames, boolean useMean, int nrNetworks, boolean onTarget) {
-		boolean[] followSegment = new boolean[network.getSegmentCount()];
-		for (int i=0;i<network.getSegmentCount();i++)followSegment[i] = false;
-		
-		followSegmentAlready = Arrays.copyOf(followSegment, followSegment.length);
-		
-		//
-		Map<RecombinationNetworkNode, BitSet[]> passedBitSet = new HashMap<>();
-		
-		
-    	// summarizes all coalescent events
-    	summarizeAttributes(network.getRootEdge().childNode, attributeNames, useMean, nrNetworks, network.getSegmentCount(), followSegment, onTarget, passedBitSet);    	
+    	quantiles[3] = mean/currweights;
+    	return quantiles;
     }
-    
-    private BitSet[] summarizeAttributes(RecombinationNetworkNode node, Set<String> attributeNames, boolean useMean, 
-    		int nrNetworks, int nrSegments, boolean[] followSegment_in, boolean onTarget, Map<RecombinationNetworkNode, BitSet[]> passedBitSet) {
 
-		// check if the node was already passed
-    	if (passedBitSet.get(node)!=null)
-    		return passedBitSet.get(node);
-
-    	
-        BitSet[] bits = new BitSet[nrSegments];
-        for (int i = 0; i < nrSegments; i++) bits[i] = new BitSet();
-        
-        boolean[] followSegment = Arrays.copyOf(followSegment_in, followSegment_in.length);
-
-        if (node.isLeaf()) {
-            int index = getTaxonIndex(node);
-            if (index < 0) {
-                throw new IllegalArgumentException("Taxon with height= " + node.getHeight() + ", not found in target tree");
-            }
-            for (int i = 0; i < cladeMap.size(); i++){
-            	if (node.getParentEdges().get(0).hasSegments.get(i))
-            		bits[i].set(index);
-            }
-            summarizeAttributesForLeaf(bits, node, attributeNames, useMean, nrNetworks, nrSegments, onTarget);
-        } else {
-        	
-            // check if the node is the root of a segment tree, if so, follow the segment
-            if (node.isCoalescence()){
-	           	 for (int i = 0; i < nrSegments; i++){
-	           		if (node.getChildEdges().get(0).hasSegments.get(i) &&
-	           			node.getChildEdges().get(1).hasSegments.get(i) &&
-	           			!node.getParentEdges().get(0).hasSegments.get(i) &&
-	           			!followSegmentAlready[i]){
-	           			followSegment[i] = true;
-	           			followSegmentAlready[i] = true;
-	           		}
-	   			}
-           }            
-
-           	
-        	// get the children of that node
-            List<RecombinationNetworkEdge> childEdges = node.getChildEdges();
-            // add all children to the bitset
-            for (RecombinationNetworkEdge childEdge : childEdges){
-				boolean[] followSegmentout = Arrays.copyOf(followSegment, followSegment.length);
-
-				for (int i = 0; i < nrSegments;i++){
-					if (!childEdge.hasSegments.get(i)){
-						followSegmentout[i] = false;
-					}
-				}				
-				
-				BitSet[] newBits = summarizeAttributes(childEdge.childNode, attributeNames, useMean, nrNetworks, nrSegments, followSegmentout, onTarget, passedBitSet);
-            	for (int i = 0; i < nrSegments;i++){
-	            	if (childEdge.hasSegments.get(i)){
-            			bits[i].or(newBits[i]);	   
-	            	}
-            	}
-            	passedBitSet.put(node, bits);
-				
-            }            
-            if (!node.isReassortment())
-            	summarizeAttributesForClade(bits, node, attributeNames, useMean, nrNetworks, nrSegments, onTarget);   
-            else{
-            	summarizeAttributesForReassortmentClade(bits, node, attributeNames, useMean, nrNetworks, nrSegments, onTarget);
-            }
-        }  
-        
-        return bits;
-    }
     
     private void summarizeAttributesForClade(BitSet[] bits, RecombinationNetworkNode node, 
     		Set<String> attributeNames, boolean useMean, int nrNetworks, int nrSegments, boolean onTarget) {
@@ -722,6 +686,9 @@ public class RecombinationNetworkCladeSystem {
 	            switch (attributeName) {
 	            	case "height":
 	            		node.setMetaData("");
+	            		
+	            		
+	            		cladeMap.
 	            			            		
 	            		List<Double> height = new ArrayList<>();
 	            		if(cladeMap.get(bitsArray).count>1){
@@ -962,103 +929,22 @@ public class RecombinationNetworkCladeSystem {
 	                	throw new IllegalArgumentException("");
 	            }
 	        }
-    	}
-    	
-    }
-    
-    public void calculateCladeCredibilities(int totalTreesUsed) {
-    	
-    	
-    	
-    	System.exit(0);
-        for (ReassortmentClade clade : cladeMap.values()) {	        	
-            if (clade.getCount() > totalTreesUsed) {
-            	for (int j = 0; j < leafNodeMap.size();j++)
-            		if (clade.bits[0].get(j))
-            			System.err.println(leafNodeMap.get(j));
-
-                throw new AssertionError("clade.getCount=(" + clade.getCount() +
-                        ") should be <= totalTreesUsed = (" + totalTreesUsed + ")");
-            }
-            clade.setCredibility(((double) clade.getCount()) / (double) totalTreesUsed);
-        }
-        
-        for (ReassortmentClade clade : reassortmentCladeMap.values()) {	        	
-            if (clade.getCount() > totalTreesUsed) {
-            	for (int j = 0; j < leafNodeMap.size();j++)
-            		if (clade.bits[0].get(j))
-            			System.err.println(leafNodeMap.get(j));
-
-                throw new AssertionError("clade.getCount=(" + clade.getCount() +
-                        ") should be <= totalTreesUsed = (" + totalTreesUsed + ")");
-            }
-            clade.setCredibility(((double) clade.getCount()) / (double) totalTreesUsed);
-        }
-
-    	
-    }
-        
-    public double getLogCladeCredibility(RecombinationNetwork network){
-    	newCoalescentCladeMap = new ArrayList<>();
-		newReassortmentCladeMap = new ArrayList<>();
-		for (int i = 0; i < network.getSegmentCount(); i++){
-			newCoalescentCladeMap.add(new HashMap<>());
-			newReassortmentCladeMap.add(new HashMap<>());
-			final int segment = i;
-			// get the segment root node
-	        List<RecombinationNetworkNode> rootEdge = network.getNodes().stream()
-	                .filter(e -> e.isCoalescence())
-	                .filter(e -> !e.getParentEdges().get(0).hasSegments.get(segment))
-	                .filter(e -> e.getChildEdges().get(0).hasSegments.get(segment))
-	                .filter(e -> e.getChildEdges().get(1).hasSegments.get(segment))
-	                .collect(Collectors.toList());
-	        
-	        if (rootEdge.size()==1)
-	        	addClades(rootEdge.get(0), false, i);
-	        else if (rootEdge.size()>1)
-	        	throw new IllegalArgumentException("segment tree root not found");	        
-		}	
-		
-		return computeSumLogCladeCredibility(network.getSegmentCount());
-
-    }
-    
-    public double computeSumLogCladeCredibility(int nrSegments) {
-    	
-        double logCladeCredibility = 0.0;
-
-    	// get all unique reassortment node heights
-    	List<Double> nodeHeights = new ArrayList<>();
-    	for (int i = 0; i < newCoalescentCladeMap.size(); i++){
-    		for (Double height : newCoalescentCladeMap.get(i).keySet()){
-    			int index = nodeHeights.indexOf(height);
-    			if (index==-1){
-    				nodeHeights.add(height);    			
-    			}
-    		}
     	}    	
+    }
+    
+    public double getLogCladeCredibility(RecombinationNetwork network, int totalNumber){
+		visitedBP = new HashMap<>(); 
+		visitedBits = new HashMap<>();
+		nodeProbs = new HashMap<>();
     	
-    	for (int i = 0; i < nodeHeights.size(); i++){   		
-    		// make a bit set array that is empty if a segment goes left
-    		BitSet[] bits = new BitSet[nrSegments];
-    		for (int j = 0; j < nrSegments; j++){
-    			if (newCoalescentCladeMap.get(j).get(nodeHeights.get(i))!=null)
-    				bits[j] = newCoalescentCladeMap.get(j).get(nodeHeights.get(i)).bits;    			
-    		}
-    		
-    		BitSetArray bitsArray = new BitSetArray(bits);
-    		
-    		// add the bits to a new reassortmentClade
-            ReassortmentClade clade = cladeMap.get(bitsArray);
-            if (clade == null) {
-                throw new IllegalArgumentException("coalescence clade not found");              
-            } else {
-            	logCladeCredibility += Math.log(clade.getCredibility())*clade.getNotNull();
-            }   
-    	} 
-    	
-    	
-        return logCladeCredibility;
+		for (RecombinationNetworkNode l : network.getLeafNodes())
+			cladeProbsUpwards(l, l.getParentEdges().get(0).breakPoints, new BitSet(), network.totalLength);
+    			
+    	double logP = 0.0;
+    	for (Integer id : nodeProbs.keySet()) {
+    		logP += Math.log(nodeProbs.get(id)/totalNumber);
+    	}    		
+		return logP;
     }
     
     /**
@@ -1074,9 +960,11 @@ public class RecombinationNetworkCladeSystem {
      */
     public class DummyClade {
     	public DummyClade(BitSet bits, BreakPoints bp) {
-	        this.bits = bits;
+	        this.bits = (BitSet) bits.clone();
             count = 1;
-	        this.bp = bp.copy();
+            this.bp = new ArrayList<>();
+            attributeValues = new ArrayList<>();
+            this.bp.add(bp.copy());
     	}
         
         public List<Object[]> getAttributeValues() {
@@ -1096,20 +984,71 @@ public class RecombinationNetworkCladeSystem {
 
         @Override
         public int hashCode() {
-            return (bits != null ? bits.hashCode() * bp.hashCode() + bits.hashCode() : 0);
+            return (bits != null ? bits.hashCode() : 0);
         }
 
         @Override
         public String toString() {
-            return bits + " bp " + bp + " #" + count;
+            return bits + " #" + count + " " + attributeValues;
        }
         
         BitSet bits;
-        BreakPoints bp;
+        List<BreakPoints> bp;
         int count;
         List<Object[]> attributeValues = null;
     }
+   
+    public class HeightWeights {
+    	public HeightWeights(double height, double weight) {
+    		this.height = height;
+    		this.weight = weight;
+    	}
+    	
+    	public String toString() {
+    		return "" + height;
+    	}
 
+    	double height;
+    	double weight;
+    } 
+    
+    
+    /**
+     * SiteComparator is used for ordering the sites,
+     * which makes it easy to identify patterns.
+     */
+    class HeightsComparator implements Comparator<HeightWeights> {
+        @Override
+		public int compare(HeightWeights o1, HeightWeights o2) {
+            if (o1.height > o2.height) {
+                return 1;
+            }
+            if (o1.height < o2.height) {
+                return -1;
+            }
+            
+            return 0;
+        }
+    } // class SiteComparator
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     public class ReassortmentClade {
         public ReassortmentClade(BitSet[] bits) {
             this.bits = Arrays.copyOf(bits, bits.length);

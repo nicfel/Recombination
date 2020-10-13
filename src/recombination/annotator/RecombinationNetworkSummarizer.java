@@ -109,15 +109,15 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 	        
 	        System.out.println("\nComputing CF clade credibilities...");
 	        // calculate the network clade credibilities
-	        cladeSystem.calculateCladeCredibilities(logReader.getCorrectedNetworkCount());
+//	        cladeSystem.calculateCladeCredibilities(logReader.getCorrectedNetworkCount());
 	        
 	        
 	        // get the network with the highest count
 	        double bestScore = Double.NEGATIVE_INFINITY;
 	
 	        for (RecombinationNetwork network : logReader ) {
-	        	pruneNetwork(network, options.breakPoints);	
-	        	double score = cladeSystem.getLogCladeCredibility(network);
+	        	pruneNetwork(network, options.breakPoints);
+	        	double score = cladeSystem.getLogCladeCredibility(network, logReader.getCorrectedNetworkCount());
 	        	if (score>bestScore) {
 	        		bestNetwork = network;
 	        		bestScore = score;
@@ -144,47 +144,46 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
         }
         
 
-//        // get the posterior probabilities of each coalescent network node
-//        NetworkCladeSystem bestCladeSystem = new NetworkCladeSystem();
+        // get the posterior probabilities of each coalescent network node
+        RecombinationNetworkCladeSystem bestCladeSystem = new RecombinationNetworkCladeSystem();
 //                
-//        // add leafnodes
-//    	segments = bestNetwork.getSegmentCount();
-//    	bestCladeSystem.setLeafLabels(leafNodes, segments);
-//    	    	
-//    	// build clade system
-//        bestCladeSystem.add(bestNetwork, true);
+        // add leafnodes
+    	bestCladeSystem.setLeafLabels(leafNodes, bestNetwork.totalLength);
+    	    	
+    	// build clade system
+        bestCladeSystem.add(bestNetwork, true);
 //        
-//        Set<String> attributeNames = new HashSet<>();
-//		attributeNames.add("height");
+        Set<String> attributeNames = new HashSet<>();
+		attributeNames.add("height");
 //		
-//        // print the network to file
-//        System.out.println("\nCollect Atributes...");
-//        for (RecombinationNetwork network : logReader ) {
-//        	pruneNetwork(network, options.breakPoints);
-//    		bestCladeSystem.collectAttributes(network, attributeNames, true);
-//    	}
-//        
-//        // print the network to file
-//        System.out.println("\nSummarize Atributes...");        
-//    	if (options.summaryStrategy == SummaryStrategy.MEAN)
-//    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, true, logReader.getCorrectedNetworkCount(), onTarget);
-//    	else
-//    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, false, logReader.getCorrectedNetworkCount(), onTarget);
+        // print the network to file
+        System.out.println("\nCollect Atributes...");
+        for (RecombinationNetwork network : logReader ) {
+        	pruneNetwork(network, options.breakPoints);
+    		bestCladeSystem.collectAttributes(network, attributeNames, true);
+    	}
+        
+        // print the network to file
+        System.out.println("\nSummarize Atributes...");        
+    	if (options.summaryStrategy == SummaryStrategy.MEAN)
+    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, true, logReader.getCorrectedNetworkCount(), onTarget);
+    	else
+    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, false, logReader.getCorrectedNetworkCount(), onTarget);
 //
-//    	// print the network to file
-//        System.out.println("\nWriting output to " + options.outFile.getName()
-//        	+ "...");
+    	// print the network to file
+        System.out.println("\nWriting output to " + options.outFile.getName()
+        	+ "...");
 //
-//        try (PrintStream ps = new PrintStream(options.outFile)) {
-//        	ps.print(logReader.getPreamble());
-//        	ps.println("tree STATE_0 = " + bestNetwork.getExtendedNewickVerbose(options.followSegment));
-//
-//        	String postamble = logReader.getPostamble();
-//        	if (postamble.length() > 0)
-//        		ps.println(postamble);
-//        	else
-//        		ps.println("End;");
-//        }        
+        try (PrintStream ps = new PrintStream(options.outFile)) {
+        	ps.print(logReader.getPreamble());
+        	ps.println("tree STATE_0 = " + bestNetwork.getExtendedNewickVerbose(options.followSegment));
+
+        	String postamble = logReader.getPostamble();
+        	if (postamble.length() > 0)
+        		ps.println(postamble);
+        	else
+        		ps.println("End;");
+        }        
 
         System.out.println("\nDone!");
     }      
