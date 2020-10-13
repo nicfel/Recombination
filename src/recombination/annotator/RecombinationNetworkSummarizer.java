@@ -21,6 +21,7 @@ import beast.core.util.Log;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkNode;
+import recombination.statistics.DotConverter;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
@@ -48,7 +49,7 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
         double burninPercentage = 10.0;
         SummaryStrategy summaryStrategy = SummaryStrategy.MEAN;
         BreakPoints breakPoints = new BreakPoints();
-        int followSegment = Integer.MAX_VALUE;
+        boolean useDotFormat = false;
 
         @Override
         public String toString() {
@@ -59,8 +60,7 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                     "Burn-in percentage: " + burninPercentage + "\n" +
                     "Node height and conv. site summary: " + summaryStrategy + "\n" +
             		"Remove Loci for summary: " + breakPoints + "\n" +
-            		"Follow segment in network file " + followSegment + "\n" +
-            		"(if = " + Integer.MAX_VALUE + " follows most segments at reassortment event)";
+            		"dot format output: " + useDotFormat + "\n";
        }
     }
 
@@ -108,9 +108,7 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 	        }
 	        
 	        System.out.println("\nComputing CF clade credibilities...");
-	        // calculate the network clade credibilities
-//	        cladeSystem.calculateCladeCredibilities(logReader.getCorrectedNetworkCount());
-	        
+	        // calculate the network clade credibilities      
 	        
 	        // get the network with the highest count
 	        double bestScore = Double.NEGATIVE_INFINITY;
@@ -173,16 +171,22 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
     	// print the network to file
         System.out.println("\nWriting output to " + options.outFile.getName()
         	+ "...");
-//
         try (PrintStream ps = new PrintStream(options.outFile)) {
-        	ps.print(logReader.getPreamble());
-        	ps.println("tree STATE_0 = " + bestNetwork.getExtendedNewickVerbose(options.followSegment));
-
-        	String postamble = logReader.getPostamble();
-        	if (postamble.length() > 0)
-        		ps.println(postamble);
-        	else
-        		ps.println("End;");
+        	if (options.useDotFormat) {
+        		 List<String> dotString = DotConverter.getDotFormat(bestNetwork);
+        		 for (String s : dotString) {
+     	        	ps.print(s);
+        		 }
+        	} else {
+	        	ps.print(logReader.getPreamble());
+	        	ps.println("tree STATE_0 = " + bestNetwork.getExtendedNewickVerbose());
+	
+	        	String postamble = logReader.getPostamble();
+	        	if (postamble.length() > 0)
+	        		ps.println(postamble);
+	        	else
+	        		ps.println("End;");
+        	}
         }        
 
         System.out.println("\nDone!");
@@ -528,9 +532,9 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
                     printUsageAndError("-positions must be followed by either 'MEAN' or 'MEDIAN'.");
 
-                case "-removeSegments":
+                case "-subsetRange":
                     if (args.length<=i+1) {
-                        printUsageAndError("-removeSegments must be followed by at least one number.");
+                        printUsageAndError("-subsetRange must be a range in the format of 0-100.");
                     }
 
                     try {
@@ -542,20 +546,6 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                     		bp_list.add(Integer.parseInt(tmp[1]));
                     	}
                 		options.breakPoints.init(bp_list);
-                    } catch (NumberFormatException e) {
-                        printUsageAndError("removeSegments must be an array of integers separated by commas if more than one");
-                     }
-
-                    i += 1;
-                    break;
-                    
-                case "-followSegment":
-                    if (args.length<=i+1) {
-                        printUsageAndError("-followSegment must be followed by exactly one number.");
-                    }
-
-                    try {
-                		options.followSegment = Integer.parseInt(args[i + 1]);
                     } catch (NumberFormatException e) {
                         printUsageAndError("removeSegments must be an array of integers separated by commas if more than one");
                      }
@@ -576,9 +566,20 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
                     i += 1;
                     break;
+                    
+                case "-dotFormat":
+                    if (args.length<=i+1) {
+                        printUsageAndError("-dotFormat must be followed by true or false.");
+                    }
 
+                    try {
+                		options.useDotFormat = Boolean.parseBoolean(args[i + 1]);
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("dotFormat must be followed by true or false");
+                     }
 
-
+                    i += 1;
+                    break;
 
                 default:
                     printUsageAndError("Unrecognised command line option '" + args[i] + "'.");

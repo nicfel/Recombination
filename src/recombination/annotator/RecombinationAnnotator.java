@@ -32,15 +32,39 @@ import java.util.stream.Collectors;
  * @author Nicola Felix Müller <nicola.felix.mueller@gmail.com>
  */
 public class RecombinationAnnotator {
+	/**
+	 * performs all the removing things steps
+	 * @param network
+	 * @param segmentToRemove
+	 */
+	void pruneLociFromNetwork(RecombinationNetwork network, BreakPoints breakPointsToKeep){
+    	
+    	BreakPoints breakPointsToRemove = new BreakPoints();
+    	if (!breakPointsToKeep.isEmpty()) {
+    		breakPointsToRemove = new BreakPoints(network.totalLength); 
+    		breakPointsToRemove.andNot(breakPointsToKeep);
+    	}
+    	
+   		removeLoci(network, breakPointsToRemove);
+    	// remove all empty edges in the segment
+    	removeEmptyNetworkEdge(network);  
+	}
 
 	/**
 	 * performs all the removing things steps
 	 * @param network
 	 * @param segmentToRemove
 	 */
-	void pruneNetwork(RecombinationNetwork network, BreakPoints breakPointsToRemove){
+	void pruneNetwork(RecombinationNetwork network, BreakPoints breakPointsToKeep){
     	// remove all parts of the network that aren't informed by the genetic data
     	removeNonGeneticSegmentEdges(network);
+    	
+    	BreakPoints breakPointsToRemove = new BreakPoints();
+    	if (!breakPointsToKeep.isEmpty()) {
+    		breakPointsToRemove = new BreakPoints(network.totalLength); 
+    		breakPointsToRemove.andNot(breakPointsToKeep);
+    	}
+    	
    		removeLoci(network, breakPointsToRemove);
 
     	// remove all loops

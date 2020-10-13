@@ -49,7 +49,7 @@ public class TrunkRecombination extends RecombinationAnnotator {
 
     private static class NetworkAnnotatorOptions {
         File inFile;
-        File outFile = new File("reassortment_distances.txt");
+        File outFile = new File("recombination_trunk.txt");
         double burninPercentage = 10.0;
         TrunkDefinition trunkDefinition = TrunkDefinition.MostRecentSample;
         double minTipDistance = 2.0;
