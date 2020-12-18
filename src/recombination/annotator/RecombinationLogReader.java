@@ -197,7 +197,6 @@ public class RecombinationLogReader implements NetworkLogReader {
         nextLine = reader.readLine();
 
         String networkString = sb.toString();
-
         return networkString.substring(networkString.indexOf("("));
     }
 

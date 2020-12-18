@@ -50,6 +50,7 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
         SummaryStrategy summaryStrategy = SummaryStrategy.MEAN;
         BreakPoints breakPoints = new BreakPoints();
         boolean useDotFormat = false;
+        int useEveryTree = 0;
 
         @Override
         public String toString() {
@@ -60,7 +61,8 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                     "Burn-in percentage: " + burninPercentage + "\n" +
                     "Node height and conv. site summary: " + summaryStrategy + "\n" +
             		"Remove Loci for summary: " + breakPoints + "\n" +
-            		"dot format output: " + useDotFormat + "\n";
+            		"dot format output: " + useDotFormat + "\n" + 
+    				"treesFormat output: " + useEveryTree + "\n";
        }
     }
 
@@ -177,6 +179,24 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
         		 for (String s : dotString) {
      	        	ps.print(s);
         		 }
+        	}else if (options.useEveryTree>0) {
+	        	ps.print(logReader.getPreamble());
+	        	for (int i = 0; i < bestNetwork.totalLength; i=i+options.useEveryTree) {
+	        		RecombinationNetwork n = new RecombinationNetwork(bestNetwork.getRootEdge().getCopy());
+	        		n.totalLength = bestNetwork.totalLength;
+	        		BreakPoints bp2 = new BreakPoints(i,i);
+		        	pruneNetwork(n, bp2);
+		        	
+		        	
+	        		ps.println("tree Loci_" + i + " = " + n.getExtendedNewickVerbose());
+	        	}
+	
+	        	String postamble = logReader.getPostamble();
+	        	if (postamble.length() > 0)
+	        		ps.println(postamble);
+	        	else
+	        		ps.println("End;");
+
         	} else {
 	        	ps.print(logReader.getPreamble());
 	        	ps.println("tree STATE_0 = " + bestNetwork.getExtendedNewickVerbose());
@@ -580,6 +600,21 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
                     i += 1;
                     break;
+                    
+                case "-useEveryTree":
+                    if (args.length<=i+1) {
+                        printUsageAndError("-useEveryTree must be followed by true or false.");
+                    }
+
+                    try {
+                		options.useEveryTree = Integer.parseInt(args[i + 1]);
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("treesFormat must be followed by true or false");
+                     }
+
+                    i += 1;
+                    break;
+
 
                 default:
                     printUsageAndError("Unrecognised command line option '" + args[i] + "'.");
@@ -625,8 +660,6 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
             } catch (InterruptedException | InvocationTargetException e) {
                 e.printStackTrace();
             }
-
-
         } else {
             getCLIOptions(args, options);
         }

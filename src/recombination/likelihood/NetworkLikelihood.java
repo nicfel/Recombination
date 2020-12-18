@@ -29,10 +29,12 @@ package recombination.likelihood;
 import beast.core.Description;
 import beast.core.Input;
 import beast.core.State;
+import beast.core.Input.Validate;
 import beast.core.util.Log;
 import beast.evolution.alignment.Alignment;
 import beast.evolution.branchratemodel.BranchRateModel;
 import beast.evolution.branchratemodel.StrictClockModel;
+import beast.evolution.likelihood.GenericTreeLikelihood;
 import beast.evolution.sitemodel.SiteModel;
 import beast.evolution.substitutionmodel.SubstitutionModel;
 import beast.evolution.tree.Node;
@@ -84,16 +86,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
      */
     protected int hasDirt;
 
-    /**
-     * Lengths of the branches in the tree associated with each of the nodes
-     * in the tree through their node  numbers. By comparing whether the
-     * current branch length differs from stored branch lengths, it is tested
-     * whether a node is dirty and needs to be recomputed (there may be other
-     * reasons as well...).
-     * These lengths take branch rate models in account.
-     */
-    protected double[] m_branchLengths;
-    protected double[] storedBranchLengths;
 
     /**
      * memory allocation for likelihoods for each of the patterns *

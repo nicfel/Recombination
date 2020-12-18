@@ -118,9 +118,6 @@ public class RecombinationAnnotator {
         	
     		for (RecombinationNetworkEdge childEdge : childEdges)
     			removeLociFromEdge(childEdge, new_bp);
-    		
-    	}else{
-    		throw new IllegalArgumentException("odd number of child edges");
     	}
     		
     }
@@ -171,7 +168,7 @@ public class RecombinationAnnotator {
      * removes all edges from the network that don't carry any segments
      * @param network
      */
-    private void removeEmptyNetworkEdge(RecombinationNetwork network){
+    protected void removeEmptyNetworkEdge(RecombinationNetwork network){
         List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
 
         List<RecombinationNetworkEdge> removableEdges = networkEdges.stream()

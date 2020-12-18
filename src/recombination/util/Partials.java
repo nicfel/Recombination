@@ -43,7 +43,6 @@ public class Partials {
 		storedNextNr = new boolean[currentSize];
 		
 		fancyPatterns = new double[currentSize][2][nrPatterns];		
-		
 	}
 	
 	public void addNode(Integer new_id) {

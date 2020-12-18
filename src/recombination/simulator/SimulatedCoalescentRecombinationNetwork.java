@@ -52,6 +52,10 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     
     public Input<Boolean> IgnoreUnknownInput = new Input<>("IgnoreUnknown",
             "if true, N and gap positions are completely ignored", false);
+    
+    public Input<Boolean> conditionCoalescenceInput = new Input<>("conditionCoalescence",
+            "if true, only coalescent events can happen after all loci have reached their mrca", false);
+
 
 
 
@@ -82,6 +86,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     
 
         TaxonSet taxonSet = null;
+        
         if (traitSetInput.get() != null)
             taxonSet = traitSetInput.get().taxaInput.get();
         else if (taxonSetInput.get() != null)
@@ -162,13 +167,18 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     			
             double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*(totalLength-1)) : Double.POSITIVE_INFINITY;
             
+            boolean allowRecomb = true;
+            if (timeUntilNextSample == Double.POSITIVE_INFINITY && conditionCoalescenceInput.get()) {
+            	allowRecomb = getOverlap(new BreakPoints(), extantLineages);
+            }
+            
             // next event time
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
             if (timeUntilNextEvent < timeUntilNextSample) {
                 currentTime += timeUntilNextEvent;
                 if (timeUntilNextEvent == timeToNextCoal) {
                     coalesce(currentTime, extantLineages);
-                }else {
+                }else if (allowRecomb){
                     recombine(currentTime, extantLineages);
                 }
             } else {
@@ -182,7 +192,19 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         setRootEdge(extantLineages.get(0));
     }
 
-    private void sample(List<RecombinationNetworkNode> remainingSampleNodes, List<RecombinationNetworkEdge> extantLineages) {
+    private boolean getOverlap(BreakPoints breakPoints, List<RecombinationNetworkEdge> extantLineages) {
+		for (RecombinationNetworkEdge edge : extantLineages) {
+			BreakPoints cp = breakPoints.copy();
+			cp.and(edge.breakPoints);
+			if (!cp.isEmpty()) {
+				return true;				
+			}
+			breakPoints.or(edge.breakPoints);
+		}
+		return false;
+	}
+
+	private void sample(List<RecombinationNetworkNode> remainingSampleNodes, List<RecombinationNetworkEdge> extantLineages) {
         // sample the network node
     	RecombinationNetworkNode n = remainingSampleNodes.get(0);
 

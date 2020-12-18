@@ -18,15 +18,22 @@
 package recombination.annotator;
 
 import beast.core.util.Log;
+import beast.evolution.alignment.Alignment;
+import beast.evolution.alignment.Sequence;
+import cern.colt.Arrays;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
+import recombination.util.ReducedNetworkLogger;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import java.awt.*;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -36,6 +43,8 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 //import bacter.Conversion;
@@ -47,7 +56,7 @@ import java.util.stream.Collectors;
  * A rewrite of TreeAnnotator that outputs reassortment distances 
  * @author Nicola Felix Müller <nicola.felix.mueller@gmail.com>
  */
-public class RecombinationDistance extends RecombinationAnnotator {
+public class NetworkPruner extends RecombinationAnnotator {
 
 
     List<Double> leaveDistance;
@@ -57,7 +66,8 @@ public class RecombinationDistance extends RecombinationAnnotator {
 
         File inFile;
         File outFile = new File("recombination_distances.txt");
-        double burninPercentage = 10.0;
+        File xmlFile;
+        double burninPercentage = 0.0;
         BreakPoints breakPoints = new BreakPoints();
 
         @Override
@@ -65,19 +75,22 @@ public class RecombinationDistance extends RecombinationAnnotator {
             return "Active options:\n" +
                     "Input file: " + inFile + "\n" +
                     "Output file: " + outFile + "\n" +
-                    "Burn-in percentage: " + burninPercentage + "%\n" +
+                    "Xml file: " + xmlFile + "\n" +
             		"Remove Loci for summary: " + breakPoints + "\n";
         }
     }
 
-    public RecombinationDistance(NetworkAnnotatorOptions options) throws IOException {
+    public NetworkPruner(NetworkAnnotatorOptions options) throws IOException {
+    	
+    	System.out.println();
+    	Alignment dat = getAlignment(options.xmlFile);
 
         // Display options:
         System.out.println(options + "\n");
 
         // Initialise reader
         RecombinationLogReader logReader = new RecombinationLogReader(options.inFile,
-                options.burninPercentage);
+                0.0);
 
         System.out.println(logReader.getNetworkCount() + " Networks in file.");
 
@@ -87,103 +100,55 @@ public class RecombinationDistance extends RecombinationAnnotator {
 
 	      System.out.println("\nWriting output to " + options.outFile.getName()
 	      + "...");
-        
+	      
+	    ReducedNetworkLogger rnl = new ReducedNetworkLogger(); 
+	    System.out.println(dat);
+	    int i=0;
         // compute the pairwise reassortment distances 
-	    int i  =0;
         try (PrintStream ps = new PrintStream(options.outFile)) {
+        	ps.print("#nexus\n" +
+        			"begin trees;\n");
 	        for (RecombinationNetwork network : logReader){
-	        	pruneLociFromNetwork(network, options.breakPoints);
-	        	computeRecombinationDistance(network, ps, i);
+	        	RecombinationNetwork logNetwork = rnl.getPrunedNetwork(network, dat);	        	
+	        	ps.println("tree STATE_" + i + " = " + logNetwork.getExtendedNewickVerbose());
 	        	i++;
 	        }
+	        ps.print("END;");
 	        ps.close();
         }
         System.out.println("\nDone!");
     }
     
-    private void computeRecombinationDistance(RecombinationNetwork network, PrintStream ps, int samplenr){    	
-    	// get all reassortment nodes    	
-        List<RecombinationNetworkNode> recombinationNodes = network.getNodes().stream()
-                .filter(e -> e.isRecombination())
-                .collect(Collectors.toList());    	
+    private Alignment getAlignment(File xmlFile) throws IOException {
+    	BufferedReader reader = new BufferedReader(new FileReader(xmlFile));
+    	
+    	List<Sequence> sequences = new ArrayList<>();
+        String nextLine = reader.readLine();
         
-        int j=0;
-        
-        for (RecombinationNetworkNode node : recombinationNodes){
+        while (true) {
+            if (nextLine.trim().startsWith("</data")) 
+            	break;
+
         	
-        	if (node.getParentEdges().get(0).breakPoints.isEmpty())
-        		throw new IllegalArgumentException("Empty parent edge");
-        	if (node.getParentEdges().get(1).breakPoints.isEmpty())
-        		throw new IllegalArgumentException("Empty parent edge");
-
-        	// follow the nodes uphill and always denote which
-        	Map<Integer, BreakPoints> uphill = new HashMap<>();       
-        	getNodesUphill(uphill, node.getParentEdges().get(0).breakPoints.copy(), node.getParentEdges().get(0));
-        	List<Double> heights = new ArrayList<>();
-        	List<BreakPoints> breaks = new ArrayList<>();
-        	getDistances(uphill, heights, breaks, node.getParentEdges().get(1).breakPoints.copy(), node.getParentEdges().get(1));
-        	// compute weighted height
-        	double height = 0.0;
-        	double weight = 0.0;
-        	for (int i = 0; i < breaks.size(); i++) {
-        		height += heights.get(i) * breaks.get(i).getGeneticLength();
-        		weight += breaks.get(i).getGeneticLength();
-        	}
-        	height/=weight;
-        	
-            ps.print(Math.max(node.getParentEdges().get(0).passingRange.getMin(), node.getParentEdges().get(1).passingRange.getMin()));
-            ps.print("\t");
-            ps.print(height);
-            ps.print("\t");
-            ps.print(node.getHeight());
-            ps.print("\t");
-            ps.print(samplenr);
-            j++;
-        	ps.print("\n"); 
-        }  
-    }
-    
-    private void getNodesUphill(Map<Integer, BreakPoints> uphill, BreakPoints cp, RecombinationNetworkEdge edge) {
-    	if (cp.isEmpty())
-    		return;
-
-    	RecombinationNetworkNode node = edge.parentNode;
-    	if (uphill.get(node.ID)==null) {
-    		uphill.put(node.ID, cp.copy());
-    	}else {
-    		uphill.get(node.ID).or(cp);
-    	}
-    	
-    	for (RecombinationNetworkEdge e : node.getParentEdges()) {
-    		if (e.isRootEdge())
-    			return;
-    		
-    		BreakPoints cp_up = cp.copy();
-    		cp_up.and(e.breakPoints);
-        	getNodesUphill(uphill, cp_up, e);
-    	}    	
-    }
-    
-    private void getDistances(Map<Integer, BreakPoints> uphill, List<Double> heights, List<BreakPoints> breaks, BreakPoints cp, RecombinationNetworkEdge edge) {
-    	if (cp.isEmpty())
-    		return;
-    	
-    	
-    	RecombinationNetworkNode node = edge.parentNode;
-    	if (uphill.get(node.ID)!=null) {    		
-    		heights.add(node.getHeight());
-    		breaks.add(cp.copy());
-    		return;
-    	}
-    	
-    	for (RecombinationNetworkEdge e : node.getParentEdges()) {
-    		BreakPoints cp_up = cp.copy();
-    		cp_up.and(e.breakPoints);
-    		getDistances(uphill, heights, breaks, cp_up, e);
-    	}
-    	
-    }
-
+            if (nextLine.trim().startsWith("<sequence")) {
+            	String[] tmp = nextLine.trim().split("=");
+            	String tax = "";
+            	String value = "";
+            	for (int i = 0; i < tmp.length; i++) {
+            		if (tmp[i].contains("taxon")) 
+            			tax = tmp[i+1].replace("\"", "").split("\\s+")[0];
+            		if (tmp[i].contains("value"))
+            			value = tmp[i+1].replace("\"", "").replace("/>", "");            		
+            	}
+            	sequences.add(new Sequence(tax, value));
+            	
+            }    	
+            nextLine = reader.readLine();
+        }
+//
+        Alignment data = new Alignment(sequences, "nucleotide");
+		return data;
+	}
     
 
     /**
@@ -463,24 +428,6 @@ public class RecombinationDistance extends RecombinationAnnotator {
                 case "-help":
                     printUsageAndExit();
                     break;
-
-                case "-burnin":
-                    if (args.length<=i+1)
-                        printUsageAndError("-burnin must be followed by a number (percent)");
-
-                    try {
-                        options.burninPercentage = Double.parseDouble(args[i+1]);
-                    } catch (NumberFormatException e) {
-                        printUsageAndError("Error parsing burnin percentage.");
-                    }
-
-                    if (options.burninPercentage<0 || options.burninPercentage>100) {
-                        printUsageAndError("Burnin percentage must be >= 0 and < 100.");
-                    }
-
-                    i += 1;
-                    break;
-
                 case "-subsetRange":
                     if (args.length<=i+1) {
                         printUsageAndError("-subsetRange must be a range in the format of 0-100.");
@@ -502,6 +449,21 @@ public class RecombinationDistance extends RecombinationAnnotator {
                     i += 1;
                     break;
                     
+                case "-xmlFile":
+                    if (args.length<=i+1) {
+                        printUsageAndError("-xmlFile must be followed by a file name.");
+                    }
+                    
+                    try {
+                        options.xmlFile =  new File(args[i+1]);
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("Error parsing xmls file.");
+                    }
+
+
+                    i += 1;
+                    break;
+
                 default:
                     printUsageAndError("Unrecognised command line option '" + args[i] + "'.");
             }
@@ -554,7 +516,7 @@ public class RecombinationDistance extends RecombinationAnnotator {
 
         // Run ACGAnnotator
         try {
-            new RecombinationDistance(options);
+            new NetworkPruner(options);
 
         } catch (Exception e) {
             if (args.length == 0) {

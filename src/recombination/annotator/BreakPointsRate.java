@@ -18,6 +18,7 @@
 package recombination.annotator;
 
 import beast.core.util.Log;
+import cern.colt.Arrays;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
@@ -47,7 +48,7 @@ import java.util.stream.Collectors;
  * A rewrite of TreeAnnotator that outputs reassortment distances 
  * @author Nicola Felix Müller <nicola.felix.mueller@gmail.com>
  */
-public class RecombinationDistance extends RecombinationAnnotator {
+public class BreakPointsRate extends RecombinationAnnotator {
 
 
     List<Double> leaveDistance;
@@ -70,7 +71,7 @@ public class RecombinationDistance extends RecombinationAnnotator {
         }
     }
 
-    public RecombinationDistance(NetworkAnnotatorOptions options) throws IOException {
+    public BreakPointsRate(NetworkAnnotatorOptions options) throws IOException {
 
         // Display options:
         System.out.println(options + "\n");
@@ -93,7 +94,7 @@ public class RecombinationDistance extends RecombinationAnnotator {
         try (PrintStream ps = new PrintStream(options.outFile)) {
 	        for (RecombinationNetwork network : logReader){
 	        	pruneLociFromNetwork(network, options.breakPoints);
-	        	computeRecombinationDistance(network, ps, i);
+	        	getLength(network, ps, i);
 	        	i++;
 	        }
 	        ps.close();
@@ -101,90 +102,24 @@ public class RecombinationDistance extends RecombinationAnnotator {
         System.out.println("\nDone!");
     }
     
-    private void computeRecombinationDistance(RecombinationNetwork network, PrintStream ps, int samplenr){    	
+    private void getLength(RecombinationNetwork network, PrintStream ps, int samplenr){    	
     	// get all reassortment nodes    	
-        List<RecombinationNetworkNode> recombinationNodes = network.getNodes().stream()
+        int nrNodes = network.getNodes().stream()
                 .filter(e -> e.isRecombination())
-                .collect(Collectors.toList());    	
+                .collect(Collectors.toList()).size();    	
         
-        int j=0;
-        
-        for (RecombinationNetworkNode node : recombinationNodes){
-        	
-        	if (node.getParentEdges().get(0).breakPoints.isEmpty())
-        		throw new IllegalArgumentException("Empty parent edge");
-        	if (node.getParentEdges().get(1).breakPoints.isEmpty())
-        		throw new IllegalArgumentException("Empty parent edge");
-
-        	// follow the nodes uphill and always denote which
-        	Map<Integer, BreakPoints> uphill = new HashMap<>();       
-        	getNodesUphill(uphill, node.getParentEdges().get(0).breakPoints.copy(), node.getParentEdges().get(0));
-        	List<Double> heights = new ArrayList<>();
-        	List<BreakPoints> breaks = new ArrayList<>();
-        	getDistances(uphill, heights, breaks, node.getParentEdges().get(1).breakPoints.copy(), node.getParentEdges().get(1));
-        	// compute weighted height
-        	double height = 0.0;
-        	double weight = 0.0;
-        	for (int i = 0; i < breaks.size(); i++) {
-        		height += heights.get(i) * breaks.get(i).getGeneticLength();
-        		weight += breaks.get(i).getGeneticLength();
-        	}
-        	height/=weight;
-        	
-            ps.print(Math.max(node.getParentEdges().get(0).passingRange.getMin(), node.getParentEdges().get(1).passingRange.getMin()));
-            ps.print("\t");
-            ps.print(height);
-            ps.print("\t");
-            ps.print(node.getHeight());
-            ps.print("\t");
-            ps.print(samplenr);
-            j++;
-        	ps.print("\n"); 
+        double length = 0.0;
+        for (RecombinationNetworkEdge edge : network.getEdges()){
+        	if (!edge.isRootEdge())
+        		length += edge.breakPoints.getGeneticLength()*edge.getLength();
         }  
-    }
-    
-    private void getNodesUphill(Map<Integer, BreakPoints> uphill, BreakPoints cp, RecombinationNetworkEdge edge) {
-    	if (cp.isEmpty())
-    		return;
+    	
+        ps.print(nrNodes);
+        ps.print("\t");
+        ps.print(length);
+    	ps.print("\n"); 
 
-    	RecombinationNetworkNode node = edge.parentNode;
-    	if (uphill.get(node.ID)==null) {
-    		uphill.put(node.ID, cp.copy());
-    	}else {
-    		uphill.get(node.ID).or(cp);
-    	}
-    	
-    	for (RecombinationNetworkEdge e : node.getParentEdges()) {
-    		if (e.isRootEdge())
-    			return;
-    		
-    		BreakPoints cp_up = cp.copy();
-    		cp_up.and(e.breakPoints);
-        	getNodesUphill(uphill, cp_up, e);
-    	}    	
     }
-    
-    private void getDistances(Map<Integer, BreakPoints> uphill, List<Double> heights, List<BreakPoints> breaks, BreakPoints cp, RecombinationNetworkEdge edge) {
-    	if (cp.isEmpty())
-    		return;
-    	
-    	
-    	RecombinationNetworkNode node = edge.parentNode;
-    	if (uphill.get(node.ID)!=null) {    		
-    		heights.add(node.getHeight());
-    		breaks.add(cp.copy());
-    		return;
-    	}
-    	
-    	for (RecombinationNetworkEdge e : node.getParentEdges()) {
-    		BreakPoints cp_up = cp.copy();
-    		cp_up.and(e.breakPoints);
-    		getDistances(uphill, heights, breaks, cp_up, e);
-    	}
-    	
-    }
-
-    
 
     /**
      * Use a GUI to retrieve ACGAnnotator options.
@@ -368,49 +303,6 @@ public class RecombinationDistance extends RecombinationAnnotator {
         return !canceled[0];
     }
 
-    /**
-     * Prepare JFrame to which ACGAnnotator output streams will be
-     * directed.
-     */
-    private static void setupGUIOutput() {
-
-        JFrame frame = new JFrame();
-        frame.setTitle("ACGAnnotator");
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-        JTextArea textArea = new JTextArea(25, 80);
-        textArea.setFont(new Font("monospaced", Font.PLAIN, 12));
-        textArea.setEditable(false);
-        frame.getContentPane().add(new JScrollPane(textArea), BorderLayout.CENTER);
-
-        JButton closeButton = new JButton("Close");
-        closeButton.addActionListener(e -> System.exit(0));
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(closeButton);
-        frame.getContentPane().add(buttonPanel, BorderLayout.PAGE_END);
-
-        // Redirect streams to output window:
-        OutputStream out = new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                SwingUtilities.invokeLater(() -> {
-                    if ((char)b == '\r') {
-                        int from = textArea.getText().lastIndexOf("\n") + 1;
-                        int to = textArea.getText().length();
-                        textArea.replaceRange(null, from, to);
-                    } else
-                        textArea.append(String.valueOf((char) b));
-                });
-            }
-        };
-
-        System.setOut(new PrintStream(out, true));
-        System.setErr(new PrintStream(out, true));
-
-        frame.pack();
-        frame.setVisible(true);
-    }
-
     public static String helpMessage =
             "ACGAnnotator - produces summaries of Bacter ACG log files.\n"
                     + "\n"
@@ -527,34 +419,12 @@ public class RecombinationDistance extends RecombinationAnnotator {
     public static void main(String[] args) {
     	NetworkAnnotatorOptions options = new NetworkAnnotatorOptions();
 
-        if (args.length == 0) {
-            // Retrieve options from GUI:
-
-            try {
-                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-            } catch (ClassNotFoundException | InstantiationException | UnsupportedLookAndFeelException | IllegalAccessException e) {
-                Log.warning.println("Error setting cross-platform look and feel.");
-            }
-
-            try {
-                SwingUtilities.invokeAndWait(() -> {
-                    if (!getOptionsGUI(options))
-                        System.exit(0);
-
-                    setupGUIOutput();
-                });
-            } catch (InterruptedException | InvocationTargetException e) {
-                e.printStackTrace();
-            }
-
-
-        } else {
-            getCLIOptions(args, options);
-        }
+        getCLIOptions(args, options);
+        
 
         // Run ACGAnnotator
         try {
-            new RecombinationDistance(options);
+            new BreakPointsRate(options);
 
         } catch (Exception e) {
             if (args.length == 0) {

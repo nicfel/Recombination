@@ -138,11 +138,11 @@ public class RecombinationNetwork extends StateNode {
      * @return Extended Newick representation of recombinationNetwork
      */
     public String getExtendedNewick() {
-        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), false, Integer.MAX_VALUE) + ";";
+        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), false, new BreakPoints(totalLength)) + ";";
     }
     
-    public String getExtendedNewick(int followSegment) {
-        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), false, followSegment) + ";";
+    public String getExtendedNewick(BreakPoints followBreaks) {
+        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), false, followBreaks) + ";";
     }
 
 
@@ -151,16 +151,16 @@ public class RecombinationNetwork extends StateNode {
      *         segment presence annotation.
      */
     public String getExtendedNewickVerbose() {
-        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), true, Integer.MAX_VALUE) + ";";
+        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), true, new BreakPoints(totalLength)) + ";";
     }
     
-    public String getExtendedNewickVerbose(int followSegment) {
-        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), true, followSegment) + ";";
+    public String getExtendedNewickVerbose(BreakPoints followBreaks) {
+        return getExtendedNewick(rootEdge, new ArrayList<>(), new ArrayList<>(), true, followBreaks) + ";";
     }
 
 
     private String getExtendedNewick(RecombinationNetworkEdge currentEdge, List<RecombinationNetworkNode> seenReassortmentNodes, 
-    		List<Boolean> isTraverseEdge, boolean verbose, int followSegment) {
+    		List<Boolean> isTraverseEdge, boolean verbose, BreakPoints followBreaks) {
         StringBuilder result = new StringBuilder();
 
         boolean traverse = true;
@@ -179,8 +179,13 @@ public class RecombinationNetwork extends StateNode {
 	        	else
 	        		otherEdge = parentEdges.get(0);
 	        	
+	        	BreakPoints bp1 = currentEdge.breakPoints.copy();
+	        	BreakPoints bp2 = otherEdge.breakPoints.copy();
+	        	bp1.and(followBreaks);
+	        	bp2.and(followBreaks);
+	        	
 	        	// check which edge is the main edge
-	        	if (currentEdge.breakPoints.getGeneticLength() < otherEdge.breakPoints.getGeneticLength()){
+	        	if (bp1.getGeneticLength() < bp2.getGeneticLength()){
 	                traverse = false;
 	                seenReassortmentNodes.add(currentEdge.childNode);
 	                isTraverseEdge.add(true);
@@ -205,7 +210,7 @@ public class RecombinationNetwork extends StateNode {
                 else
                     result.append(",");
 
-                result.append(getExtendedNewick(childEdge, seenReassortmentNodes, isTraverseEdge, verbose, followSegment));
+                result.append(getExtendedNewick(childEdge, seenReassortmentNodes, isTraverseEdge, verbose, followBreaks));
             }
 
             result.append(")");
@@ -222,9 +227,11 @@ public class RecombinationNetwork extends StateNode {
         
         result.append("loci={").append(currentEdge.breakPoints);
         result.append("}");
-        result.append(",pr={").append(currentEdge.passingRange);
-        result.append("}");
-        result.append(",dirty=").append(currentEdge.isDirty);
+        if (currentEdge.passingRange!=null && !currentEdge.passingRange.isEmpty()) {
+	        result.append(",pr={").append(currentEdge.passingRange);
+	        result.append("}");
+        }
+//        result.append(",dirty=").append(currentEdge.isDirty);
 
 
         
@@ -287,8 +294,12 @@ public class RecombinationNetwork extends StateNode {
         			int newBp = Randomizer.nextInt(min1-max2)+max2;
         			n.getParentEdges().get(0).setPassingRange(newBp+1, totalLength-1);
         			n.getParentEdges().get(1).setPassingRange(0, newBp);
-        		}else {
+        		}else if (min2>max1){
         			int newBp = Randomizer.nextInt(min2-max1)+max1;
+        			n.getParentEdges().get(1).setPassingRange(newBp+1, totalLength-1);
+        			n.getParentEdges().get(0).setPassingRange(0, newBp);
+        		}else {
+        			int newBp = Randomizer.nextInt(totalLength);
         			n.getParentEdges().get(1).setPassingRange(newBp+1, totalLength-1);
         			n.getParentEdges().get(0).setPassingRange(0, newBp);
         		}
@@ -554,9 +565,12 @@ public class RecombinationNetwork extends StateNode {
                         continue;
 
                     for (NetworkParser.AttribValueContext attribValueCtx : attribCtx.attribValue().vector().attribValue()) {
-                    	String[] attr = attribValueCtx.getText().split("-");
-                    	breakPoints.add(Integer.valueOf(attr[0]));
-                    	breakPoints.add(Integer.valueOf(attr[1]));
+                    	if (attribValueCtx.getText().contains("null")){
+                    	}else {
+	                    	String[] attr = attribValueCtx.getText().split("-");
+	                    	breakPoints.add(Integer.valueOf(attr[0]));
+	                    	breakPoints.add(Integer.valueOf(attr[1]));
+                    	}
                     }
 
                     lociProcessed = true;

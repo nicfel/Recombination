@@ -212,8 +212,7 @@ public class TrunkRecombination extends RecombinationAnnotator {
 		leaveDistance = new ArrayList<>();
 		
 		if(zeroHeightEdges.size()==0)
-			throw new IllegalArgumentException("no leaf node with 0 height found");
-		
+			throw new IllegalArgumentException("no leaf node with 0 height found");		
 
 		for (RecombinationNetworkEdge zeroEdge : zeroHeightEdges){
     		double dist = 0.0;
@@ -228,22 +227,34 @@ public class TrunkRecombination extends RecombinationAnnotator {
 		}
     	
     	// calculate how many reassortment events are on the trunk and how many aren't       
-        int onTrunk = allTrunkNodes.stream()
-                .filter(e -> e.isRecombination())
-                .collect(Collectors.toList()).size();
+//        int onTrunk = allTrunkNodes.stream()
+//                .filter(e -> e.isRecombination())
+//                .collect(Collectors.toList()).size();
         
-        int offTrunk = allEdges.stream()
-                .filter(e -> !e.isRootEdge())
-                .filter(e -> e.parentNode.isRecombination())
-                .collect(Collectors.toList()).size() - onTrunk;
+//        int offTrunk = allEdges.stream()
+//                .filter(e -> !e.isRootEdge())
+//                .filter(e -> e.parentNode.isRecombination())
+//                .collect(Collectors.toList()).size() - onTrunk;
         
        	// calculate the length of the trunk
         double trunkLength = 0.0;
         for (RecombinationNetworkNode node : allTrunkNodes){
-        	for (RecombinationNetworkEdge edge:node.getParentEdges())
+        	for (RecombinationNetworkEdge edge : node.getParentEdges())
         		if (!edge.isRootEdge())
         			trunkLength += edge.getLength();
         }
+        
+        double onTrunk = 0.0;
+        for (RecombinationNetworkNode node : allTrunkNodes.stream().filter(e -> e.isRecombination()).collect(Collectors.toList())) {
+        	onTrunk += (node.getChildEdges().get(0).breakPoints.getGeneticLength()-1)/network.totalLength;
+        }
+        
+        double offTrunk = 0.0;
+        for (RecombinationNetworkEdge edge : allEdges.stream().filter(e -> !e.isRootEdge()).filter(e -> e.parentNode.isRecombination()).collect(Collectors.toList())) {
+        	offTrunk += (edge.breakPoints.getGeneticLength()-1)/network.totalLength;
+        }
+        
+        offTrunk -= onTrunk;        
 
         ps.print(onTrunk + "\t" + offTrunk + "\t" + trunkLength + "\t" + (fullLength-trunkLength));
 
@@ -594,9 +605,9 @@ public class TrunkRecombination extends RecombinationAnnotator {
                     i += 1;
                     break;
                     
-                case "-removeSegments":
+                case "-subsetRange":
                     if (args.length<=i+1) {
-                        printUsageAndError("-removeSegments must be followed by at least one number.");
+                        printUsageAndError("-subsetRange must be a range in the format of 0-100.");
                     }
 
                     try {
@@ -614,8 +625,7 @@ public class TrunkRecombination extends RecombinationAnnotator {
 
                     i += 1;
                     break;
-
-
+                    
                 default:
                     printUsageAndError("Unrecognised command line option '" + args[i] + "'.");
             }
