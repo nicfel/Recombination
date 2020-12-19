@@ -466,22 +466,21 @@ public class BreakPoints {
 	public boolean equals(Object obj) {
         if (this == obj)
     		return true;
-        
-        
-        
+
         BreakPoints bp = (BreakPoints) obj;
         
         if (isEmpty() && bp.isEmpty())
         	return true;
-        	
-        if (bp.size()!=this.size())
+
+        if (bp.size()!=size())
         	return false;
         
         if (bp.getRange(0).from!=getRange(0).from)
         	return false;
-        
+                
         if (bp.getRange(0).to!=getRange(0).to)
         	return false;
+        
         
         for (int i=1; i < size(); i++) {
             if (bp.getRange(i).from!=getRange(i).from)

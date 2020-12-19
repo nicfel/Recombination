@@ -27,7 +27,7 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
     		boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
         
-        double[] partials3 = partialsNew.getPartialsOperation(node.ID, computeFor);
+        double[] partials3 = partials.getPartialsOperation(node.ID, computeFor);
         int[] stateIndex1 = states.get(edge1.childNode.getTaxonLabel());
         int[] stateIndex2 = states.get(edge2.childNode.getTaxonLabel());
         
@@ -122,9 +122,9 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
         int u = 0;
         int v = 0;        
         
-        double[] partials3 = partialsNew.getPartialsOperation(node.ID, computeFor);
+        double[] partials3 = partials.getPartialsOperation(node.ID, computeFor);
         int[] states_child1 = this.states.get(edge1.childNode.getTaxonLabel());
-        double[] partials2 = partialsNew.getPartials(edge2.childNode.ID, compute2);
+        double[] partials2 = partials.getPartials(edge2.childNode.ID, compute2);
        
         for (int l = 0; l < nrOfMatrices; l++) {
             for (int k = 0; k < nrOfPatterns; k++) {
@@ -219,11 +219,11 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
     		boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
     	
-        double[] partials3 = partialsNew.getPartialsOperation(node.ID, computeFor);
+        double[] partials3 = partials.getPartialsOperation(node.ID, computeFor);
         
         
-        double[] partials1 = partialsNew.getPartials(edge1.childNode.ID, compute1);
-        double[] partials2 = partialsNew.getPartials(edge2.childNode.ID, compute2);
+        double[] partials1 = partials.getPartials(edge1.childNode.ID, compute1);
+        double[] partials2 = partials.getPartials(edge2.childNode.ID, compute2);
                
 
         int u = 0;
@@ -299,7 +299,7 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     	
         double[] matrices1 = this.matrix.get(edge.ID);
         
-        double[] partials3 = partialsNew.getPartialsOperation(node.ID, carries);
+        double[] partials3 = partials.getPartialsOperation(node.ID, carries);
         int[] states_child = states.get(edge.childNode.getTaxonLabel());
         
         
@@ -354,9 +354,9 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
      */
     protected void calculatePartialsPruning(BreakPoints carries, RecombinationNetworkEdge edge, RecombinationNetworkNode node, BreakPoints oldEdgePointer, boolean[] computeForPatterns) {
     	
-        double[] partials3 = partialsNew.getPartialsOperation(node.ID, carries);
+        double[] partials3 = partials.getPartialsOperation(node.ID, carries);
         double[] matrices1 = matrix.get(edge.ID);
-        double[] partials1 = partialsNew.getPartials(edge.childNode.ID, oldEdgePointer);
+        double[] partials1 = partials.getPartials(edge.childNode.ID, oldEdgePointer);
 
         double sum1;
 
@@ -412,4 +412,90 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
 
     }
 
+    
+	@Override
+	public double integratePartials(double[] proportions, double[] frequencies, Alignment data, HashMap<Integer, BreakPoints> rootBreaks) {
+		
+        double logP = 0;
+        int[] nrInPattern;
+        double[] outPartials = new double[4*nrOfPatterns];
+        
+        for (Integer i : rootBreaks.keySet()) {
+        	for (BreakPoints bp : partials.getBreaks(i)) {
+        		if (!bp.isEmpty()) {
+	        		BreakPoints bp1 = bp.copy();
+	        		bp1.and(rootBreaks.get(i));
+	        		
+	        		if (!bp1.isEmpty()) {
+	        			
+	        	        nrInPattern = new int[nrOfPatterns];      
+	        			computeInPatterns(nrInPattern, data, bp1);
+	        			
+	                    double[] inPartials = partials.getPartials(i, bp);                    
+	                    
+	                    int u = 0;
+	                    int v = 0;
+	                    for (int k = 0; k < nrOfPatterns; k++) {
+	                    	if (nrInPattern[k]!=0) {
+		                        for (int s = 0; s < nrOfStates; s++) {
+	
+		                            outPartials[u] = inPartials[v] * proportions[0];
+		                            outPartials[u+1] = inPartials[v+1] * proportions[0];
+		                            outPartials[u+2] = inPartials[v+2] * proportions[0];
+		                            outPartials[u+3] = inPartials[v+3] * proportions[0];
+		                        }
+	                    	}
+                    		u+=4;
+                    		v+=4;
+	                    }
+
+
+	                    for (int l = 1; l < nrOfMatrices; l++) {
+	                        u = 0;
+	                        for (int k = 0; k < nrOfPatterns; k++) {
+	                        	if (nrInPattern[k]!=0) {
+	                                outPartials[u] += inPartials[v] * proportions[l];
+	                                outPartials[u+1] += inPartials[v+1] * proportions[l];
+	                                outPartials[u+2] += inPartials[v+2] * proportions[l];
+	                                outPartials[u+3] += inPartials[v+3] * proportions[l];
+	                        	}
+	                    		u+=4;
+	                    		v+=4;
+
+	                        }
+	                    }
+	                    u = 0;
+                        for (int k = 0; k < nrOfPatterns; k++) {
+                        	if (nrInPattern[k]!=0) {
+                        		double sum = frequencies[0] * outPartials[u];
+                        		sum+= frequencies[1] * outPartials[u+1];
+                        		sum+= frequencies[2] * outPartials[u+2];
+                        		sum+= frequencies[3] * outPartials[u+3];
+//                                for (int s = 0; s < nrOfStates; s++) {
+//                                    sum += frequencies[s] * outPartials[u];
+//                                    u++;
+//                                }
+                                logP += Math.log(sum)*nrInPattern[k];
+                        	
+                        	}
+                        	u+=4;
+                        }	                    
+	        		}   	        		
+        		}         		
+        	}        	
+        }  
+        return logP;
+    }
+	
+	
+    private void computeInPatterns(int[] nrInPattern, Alignment data, BreakPoints computeFor) {
+        for (int j = 0; j < computeFor.size();j++) {
+        	for (int m = computeFor.getRange(j).from; m <= computeFor.getRange(j).to; m++) {
+        		nrInPattern[data.getPatternIndex(m)]++;
+        	}			
+		}
+	}
+
+
+    
 } // class BeerLikelihoodCore

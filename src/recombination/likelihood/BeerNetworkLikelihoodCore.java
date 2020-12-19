@@ -31,13 +31,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     protected int[] currentPartialsIndex;
     protected int[] storedPartialsIndex;
     
-    protected Partials partialsNew;
+    protected Partials partials;
 
     protected HashMap<Integer, double[]> matrix;
     protected HashMap<Integer, double[]> storedMatrix;
     
-    protected List<Integer> touched;
-
     
     public HashMap<String, int[]> states;
 
@@ -51,8 +49,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     public BeerNetworkLikelihoodCore(int nrOfStates) {
         this.nrOfStates = nrOfStates;
         matrix = new HashMap<>();
-        states = new HashMap<>();
-        
+        states = new HashMap<>();        
     } // c'tor
 
 
@@ -142,7 +139,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         this.nrOfMatrices = matrixCount;
         this.integrateCategories = integrateCategories;
         matrixSize = nrOfStates * nrOfStates;
-        partialsNew = new Partials(nrOfNodes+50,nrOfMatrices*nrOfPatterns*nrOfStates);
+        partials = new Partials(nrOfNodes+50,nrOfMatrices*nrOfPatterns*nrOfStates);
     }
 
     /**
@@ -193,10 +190,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         }
         
         ensureLables(node, computeFor);
-        
-        if (!touched.contains(node.ID)) {
-        	touched.add(node.ID);
-        }
     }
     
 	@Override
@@ -206,16 +199,17 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         double[] outPartials = new double[nrOfStates*nrOfPatterns];
         
         for (Integer i : rootBreaks.keySet()) {
-        	for (BreakPoints bp : partialsNew.getBreaks(i)) {
+        	for (BreakPoints bp : partials.getBreaks(i)) {
         		if (!bp.isEmpty()) {
 	        		BreakPoints bp1 = bp.copy();
 	        		bp1.and(rootBreaks.get(i));
+	        		
 	        		if (!bp1.isEmpty()) {
 	        			
 	        	        nrInPattern = new int[nrOfPatterns];      
 	        			computeInPatterns(nrInPattern, data, bp1);
 	        			
-	                    double[] inPartials = partialsNew.getPartials(i, bp);                    
+	                    double[] inPartials = partials.getPartials(i, bp);                    
 	                    
 	                    int u = 0;
 	                    int v = 0;
@@ -371,7 +365,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         matrix = storedMatrix;
         storedMatrix = tmp1;
         
-        partialsNew.restore();
+        partials.restore();
 
     }
 
@@ -387,7 +381,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     @Override
     public void store() {
     	storeMatrix();
-    	partialsNew.store();
+    	partials.store();
     }
     
     private void storeMatrix() {
@@ -417,7 +411,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	
 	@Override
     public void initPartials(RecombinationNetworkNode node, int length) {
-		partialsNew.addNewNode(node.ID);
+		partials.addNewNode(node.ID);
 	}
 	
 	@Override
@@ -430,7 +424,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 	@Override
 	public void cleanMatrix(List<Integer> edgesIDs) {
-		touched = new ArrayList<>();
 		List<Integer> remove = new ArrayList<>();
 		for (Integer e : matrix.keySet()) {
 			if (!edgesIDs.contains(e))
@@ -446,12 +439,12 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	public void cleanPartials(List<Integer> nodeIDs) {
 				
 		List<Integer> remove = new ArrayList<>();
-		for (Integer n : partialsNew.keySet()) {
+		for (Integer n : partials.keySet()) {
 			if (!nodeIDs.contains(n))
 				remove.add(n);
 		}
 		for (Integer n : remove)
-			partialsNew.remove(n);
+			partials.remove(n);
 	}
 
 
@@ -464,11 +457,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 	@Override
 	protected void cleanPartialsNode(RecombinationNetworkNode node) {
-		partialsNew.removeBreaks(node.ID);
+		partials.removeBreaks(node.ID);
 	}
 
 	protected void ensureLables(RecombinationNetworkNode node, BreakPoints computeFor) {
-		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
+		List<BreakPoints> breaks = partials.getBreaks(node.ID);
 		
 		for (BreakPoints bp : breaks) {
 			if (!bp.isEmpty()) {
@@ -476,12 +469,9 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 					BreakPoints cp = computeFor.copy();
 					cp.and(bp);
 					if (!cp.isEmpty()) {
-				        if (!touched.contains(node.ID)) {
-				        	touched.add(node.ID);
-				        }
 						BreakPoints cp2 = bp.copy();
 						cp2.andNot(computeFor);
-						partialsNew.replaceBreaks(node.ID, bp, cp2);
+						partials.replaceBreaks(node.ID, bp, cp2);
 					}				
 				}
 			}
@@ -492,7 +482,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	@Override
 	protected void checkLabels(RecombinationNetworkNode node, BreakPoints computeFor) {
 
-		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
+		List<BreakPoints> breaks = partials.getBreaks(node.ID);
 		
         if (breaks.contains(computeFor))
 			return;
@@ -503,10 +493,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 					BreakPoints cp = computeFor.copy();
 					cp.andNot(bp);
 					if (cp.isEmpty()) {
-				        if (!touched.contains(node.ID)) {
-				        	touched.add(node.ID);
-				        }
-						partialsNew.replaceBreaks(node.ID, bp, computeFor.copy());
+						partials.replaceBreaks(node.ID, bp, computeFor.copy());
 	
 					}			
 				}
@@ -521,7 +508,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	@Override
 	protected int reassignLabels(RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints dirtyEdges) {
 
-		List<BreakPoints> breaks = partialsNew.getBreaks(node.ID);
+		List<BreakPoints> breaks = partials.getBreaks(node.ID);
 		
 		if (breaks.contains(computeFor))
 			return 0;
@@ -540,10 +527,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 					BreakPoints cp_tmp = cp.copy();
 					cp_tmp.andNot(bp);
 					if (cp_tmp.isEmpty()) {
-				        if (!touched.contains(node.ID)) {
-				        	touched.add(node.ID);
-				        }
-				        partialsNew.replaceBreaks(node.ID, bp, computeFor.copy());
+				        partials.replaceBreaks(node.ID, bp, computeFor.copy());
 					}			
 				}
 			}

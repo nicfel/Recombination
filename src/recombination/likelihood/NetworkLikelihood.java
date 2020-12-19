@@ -43,6 +43,7 @@ import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
+import recombination.util.Partials;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -87,17 +88,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     protected int hasDirt;
 
 
-    /**
-     * memory allocation for likelihoods for each of the patterns *
-     */
-    protected double[] patternLogLikelihoods;
-    /**
-     * memory allocation for the root partials *
-     */
-    protected double[] m_fRootPartials;
-    /**
-     * memory allocation for probability tables obtained from the SiteModel *
-     */
+//    protected double[] m_fRootPartials;
+
     protected double[] probabilities;
 
     protected int matrixSizeExtended;
@@ -116,7 +108,11 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
      */
     double proportionInvariant = 0;
     List<Integer> constantPattern = null;
+    
     HashMap<Integer, BreakPoints> rootBreaks;
+    
+    Partials rootPartials;
+        
     
     /**
      * Dummy node to deal with subs models requiring nodes
@@ -164,8 +160,11 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         
 
         
-        patternLogLikelihoods = new double[dataInput.get().getSiteCount()];
-        m_fRootPartials = new double[dataInput.get().getSiteCount() * stateCount];
+//        patternLogLikelihoods = new double[dataInput.get().getSiteCount()];
+//        m_fRootPartials = new double[dataInput.get().getSiteCount() * stateCount];
+        
+        rootPartials = new Partials(2, 1);
+        
         matrixSizeExtended = (stateCount + 1) * (stateCount + 1);
         matrixSize = stateCount * stateCount;
         probabilities = new double[(stateCount + 1) * (stateCount + 1)];
@@ -181,36 +180,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     }
 
 
-//    /**
-//     * Determine indices of m_fRootProbabilities that need to be updates
-//     * // due to sites being invariant. If none of the sites are invariant,
-//     * // the 'site invariant' category does not contribute anything to the
-//     * // root probability. If the site IS invariant for a certain character,
-//     * // taking ambiguities in account, there is a contribution of 1 from
-//     * // the 'site invariant' category.
-//     */
-//    void calcConstantPatternIndices(final int patterns, final int stateCount) {
-//        constantPattern = new ArrayList<>();
-//        for (int i = 0; i < patterns; i++) {
-//            final int[] pattern = dataInput.get().getPattern(i);
-//            final boolean[] isInvariant = new boolean[stateCount];
-//            Arrays.fill(isInvariant, true);
-//            for (final int state : pattern) {
-//                final boolean[] isStateSet = dataInput.get().getStateSet(state);
-//                if (m_useAmbiguities.get() || !dataInput.get().getDataType().isAmbiguousCode(state)) {
-//                    for (int k = 0; k < stateCount; k++) {
-//                        isInvariant[k] &= isStateSet[k];
-//                    }
-//                }
-//            }
-//            for (int k = 0; k < stateCount; k++) {
-//                if (isInvariant[k]) {
-//                    constantPattern.add(i * stateCount + k);
-//                }
-//            }
-//        }
-//    }
-//
     protected void initCore() {
         likelihoodCore.initialize(
                 dataInput.get().getPatternCount(),
@@ -337,10 +306,10 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         }
     }
 
-    // for testing
-    public double[] getRootPartials() {
-        return m_fRootPartials.clone();
-    }
+//    // for testing
+//    public double[] getRootPartials() {
+//        return m_fRootPartials.clone();
+//    }
 
     /**
      * Calculate the log likelihood of the current state.
@@ -354,7 +323,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     @Override
     public double calculateLogP() {
         final RecombinationNetwork network = networkInput.get();
-        
+
         List<RecombinationNetworkNode> nodes = network.getNodes().stream().filter(e -> !e.isLeaf()).collect(Collectors.toList());
         List<RecombinationNetworkEdge> edges = network.getEdges().stream().collect(Collectors.toList());
         		
@@ -449,19 +418,19 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	}		
 	}
 
-	void calcLogP() {
-        logP = 0.0;
-        if (useAscertainedSitePatterns) {
-            final double ascertainmentCorrection = dataInput.get().getAscertainmentCorrection(patternLogLikelihoods);
-            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
-                logP += (patternLogLikelihoods[i] - ascertainmentCorrection) * dataInput.get().getPatternWeight(i);
-            }
-        } else {
-            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
-                logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
-            }
-        }
-    }
+//	void calcLogP() {
+//        logP = 0.0;
+//        if (useAscertainedSitePatterns) {
+//            final double ascertainmentCorrection = dataInput.get().getAscertainmentCorrection(patternLogLikelihoods);
+//            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
+//                logP += (patternLogLikelihoods[i] - ascertainmentCorrection) * dataInput.get().getPatternWeight(i);
+//            }
+//        } else {
+//            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
+//                logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
+//            }
+//        }
+//    }
     
     void calcLogP(RecombinationNetworkEdge edge) {
     	
@@ -612,41 +581,14 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	    }	   
 	    return mat;
 	}
-
-
-    
-	private int updateEdgeMatrix(RecombinationNetworkEdge edge) {
-		int updated = 0;
-		if (edge.isDirty()==Tree.IS_FILTHY || hasDirt!=Tree.IS_CLEAN) {
-	    	if (!edge.visited) {
-	            final double branchRate = branchRateModel.getRateForBranch(dummyNode);
-	            for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
-	            	
-	                final double jointBranchRate = m_siteModel.getRateForCategory(i, dummyNode) * branchRate;
-	                substitutionModel.getTransitionProbabilities(dummyNode, edge.parentNode.getHeight(), edge.childNode.getHeight(), jointBranchRate, probabilities);
-	                likelihoodCore.setEdgeMatrix(edge, i, probabilities);
-	            }
-	            edge.visited = true;
-	    	}	    	
-	    	updated = 2;
-		}else if (edge.isDirty()==Tree.IS_DIRTY) {
-			updated = 1;
-		}
-	    return updated;
-	}
-	
-	private int updateCompute(int newCompute, int compute) {
-		return newCompute > compute ? newCompute : compute;
-	}
-
-
-    /* return copy of pattern log likelihoods for each of the patterns in the alignment */
-	public double [] getPatternLogLikelihoods() {
-//		if (beagle != null) {
-//			return beagle.getPatternLogLikelihoods();
-//		}
-		return patternLogLikelihoods.clone();
-	} // getPatternLogLikelihoods
+   
+//    /* return copy of pattern log likelihoods for each of the patterns in the alignment */
+//	public double [] getPatternLogLikelihoods() {
+////		if (beagle != null) {
+////			return beagle.getPatternLogLikelihoods();
+////		}
+//		return patternLogLikelihoods.clone();
+//	} // getPatternLogLikelihoods
 
     /** CalculationNode methods **/
 
