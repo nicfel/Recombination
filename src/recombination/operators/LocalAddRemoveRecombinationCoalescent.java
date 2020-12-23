@@ -88,18 +88,14 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
     		prevEvent = event;
         }    	
     	
-    	if (attachmentTime>network.getRootEdge().childNode.getHeight()) {
-//    		System.out.println(network);
-    		
+    	if (attachmentTime>network.getRootEdge().childNode.getHeight()) {    		
             double currentTransformedTime = coalescentDistr.populationFunction.getIntensity(network.getRootEdge().childNode.getHeight());
-    		double transformedTimeToNextCoal = Randomizer.nextExponential(0.5*prevEvent.lineages);
+    		double transformedTimeToNextCoal = Randomizer.nextExponential(0.5);
             attachmentTime = coalescentDistr.populationFunction.getInverseIntensity(
                     transformedTimeToNextCoal + currentTransformedTime);
-            
-//            System.out.println(attachmentTime-network.getRootEdge().childNode.getHeight());
 
             logHR -= -0.5 * coalescentDistr.populationFunction.getIntegral(network.getRootEdge().childNode.getHeight(), attachmentTime);
-        	logHR += Math.log(0.5/coalescentDistr.populationFunction.getPopSize(attachmentTime));
+        	logHR -= Math.log(0.5/coalescentDistr.populationFunction.getPopSize(attachmentTime));
 
     	}    	
 
@@ -246,7 +242,7 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
             	double rate = 0.5 * (prevEvent.lineages-1);
                 if (destTime<=event.time) {
                 	logHR += -rate* coalescentDistr.populationFunction.getIntegral(currTime, destTime);                	
-                	logHR -= Math.log(rate/coalescentDistr.populationFunction.getPopSize(destTime));
+                	logHR += Math.log(rate/coalescentDistr.populationFunction.getPopSize(destTime));
                 	break;
                 }
                 logHR += -rate * coalescentDistr.populationFunction.getIntegral(currTime, event.time);
@@ -272,9 +268,6 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
 
         logHR += Math.log(1.0/(double)nPossibleSourceEdges)
                 + Math.log(1.0/sourceEdge.getLength());
-        
-        
-//        logHR += Math.log(1.0/finalNetworkEdges.size());
  
         // keep only those that coexist at the time of maxHeight
         List<RecombinationNetworkEdge> destEdges = finalNetworkEdges.stream()
