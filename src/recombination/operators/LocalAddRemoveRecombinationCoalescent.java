@@ -2,6 +2,8 @@ package recombination.operators;
 
 import beast.core.Input;
 import beast.util.Randomizer;
+import recombination.distribution.CoalescentWithRecombination;
+import recombination.distribution.RecombinationNetworkEvent;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
@@ -10,18 +12,19 @@ import recombination.network.RecombinationNetworkNode;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class AddRemoveRecombination extends DivertLociOperator {
+public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
 
-    public Input<Double> alphaInput = new Input<>("alpha",
+    public Input<CoalescentWithRecombination> coalescentDistrInput = new Input<>("coalescentWithRecombination",
             "Mean of exponential used for choosing root attachment times.",
             Input.Validate.REQUIRED);
 
-    private double alpha;
+
+    CoalescentWithRecombination coalescentDistr;
 
     @Override
     public void initAndValidate() {
         super.initAndValidate();
-        alpha = alphaInput.get();
+        coalescentDistr = coalescentDistrInput.get();
     }
 
     @Override
@@ -38,6 +41,7 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
     double addRecombination() {
         double logHR = 0.0;
+//        System.out.println(network);
 
         List<RecombinationNetworkEdge> networkEdges = new ArrayList<>(network.getEdges());
 
@@ -51,24 +55,72 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
         logHR -= Math.log(1.0/(double)possibleSourceEdges.size())
                 + Math.log(1.0/sourceEdge.getLength());
+        
+        coalescentDistr.intervals.eventListDirty = true;
+        
+    	// Calculate tree intervals
+    	List<RecombinationNetworkEvent> networkEventList = coalescentDistr.intervals.getRecombinationNetworkEventList();
 
-        RecombinationNetworkEdge destEdge = networkEdges.get(Randomizer.nextInt(networkEdges.size()));
-        logHR -= Math.log(1.0/networkEdges.size());
+    	double currTime = sourceTime;
+    	RecombinationNetworkEvent prevEvent = null;
+    	double attachmentTime = 0.0;
+    	
+    	for (RecombinationNetworkEvent event : networkEventList) {
+    		if (event.time>currTime) {
+//    			System.out.println(currTime);
+    			// sample next possible attachment time
+    			double rate = 0.5*prevEvent.lineages;
+                double currentTransformedTime = coalescentDistr.populationFunction.getIntensity(currTime);
+                double transformedTimeToNextCoal = Randomizer.nextExponential(rate);
+                double timeToNextCoal = coalescentDistr.populationFunction.getInverseIntensity(
+                        transformedTimeToNextCoal + currentTransformedTime);
+                
+//                System.out.println(coalescentDistr.populationFunction.getPopSize(attachmentTime));
+               	attachmentTime = timeToNextCoal;
+                if (timeToNextCoal < event.time) {
+                	logHR -= -rate * coalescentDistr.populationFunction.getIntegral(currTime, attachmentTime) +
+                			Math.log(rate/coalescentDistr.populationFunction.getPopSize(attachmentTime));
+                	break;
+                }
+                logHR -= -rate * coalescentDistr.populationFunction.getIntegral(currTime, event.time);
+    			currTime = event.time;
+    		}
+    		prevEvent = event;
+        }    	
+    	
+    	if (attachmentTime>network.getRootEdge().childNode.getHeight()) {
+//    		System.out.println(network);
+    		
+            double currentTransformedTime = coalescentDistr.populationFunction.getIntensity(network.getRootEdge().childNode.getHeight());
+    		double transformedTimeToNextCoal = Randomizer.nextExponential(0.5*prevEvent.lineages);
+            attachmentTime = coalescentDistr.populationFunction.getInverseIntensity(
+                    transformedTimeToNextCoal + currentTransformedTime);
+            
+//            System.out.println(attachmentTime-network.getRootEdge().childNode.getHeight());
+
+            logHR -= -0.5 * coalescentDistr.populationFunction.getIntegral(network.getRootEdge().childNode.getHeight(), attachmentTime);
+        	logHR += Math.log(0.5/coalescentDistr.populationFunction.getPopSize(attachmentTime));
+
+    	}    	
+
+    	double destTime = attachmentTime;
+        // keep only those that coexist at the time of maxHeight
+        List<RecombinationNetworkEdge> destEdges = networkEdges.stream()
+                .filter(e -> !e.isRootEdge())
+                .filter(e -> e.parentNode.getHeight()>destTime)
+                .filter(e -> e.childNode.getHeight()<=destTime)
+               .collect(Collectors.toList());
+        
+        if (destEdges.size()==0)
+        	destEdges.add(network.getRootEdge());
+        
+        
+        RecombinationNetworkEdge destEdge = destEdges.get(Randomizer.nextInt(destEdges.size()));
+        logHR -= Math.log(1.0/destEdges.size());
 
         if (!destEdge.isRootEdge() && destEdge.parentNode.getHeight() < sourceTime)
             return Double.NEGATIVE_INFINITY;
-
-        double minDestTime = Math.max(destEdge.childNode.getHeight(), sourceTime);
-
-        double destTime;
-        if (destEdge.isRootEdge()) {
-            destTime = minDestTime + Randomizer.nextExponential(1.0/alpha);
-            logHR -= -(1.0/alpha)*(destTime-minDestTime) + Math.log(1.0/alpha);
-        } else {
-            destTime = Randomizer.nextDouble()*(destEdge.parentNode.getHeight()-minDestTime) + minDestTime;
-            logHR -= Math.log(1.0/(destEdge.parentNode.getHeight()-minDestTime));
-        }
-        
+      
 
         // Create new reassortment edge
         logHR += addRecombinationEdge(sourceEdge, sourceTime, destEdge, destTime);
@@ -85,7 +137,8 @@ public class AddRemoveRecombination extends DivertLociOperator {
                 .count();
         
         logHR += Math.log(1.0/nRemovableEdges);
-
+//        System.out.println(network);
+//        System.exit(0);
         return logHR;
     }
     
@@ -180,10 +233,31 @@ public class AddRemoveRecombination extends DivertLociOperator {
         double destTime = edgeToRemove.parentNode.getHeight();
         
         
+        coalescentDistr.intervals.eventListDirty = true;
+        
+    	// Calculate tree intervals
+    	List<RecombinationNetworkEvent> networkEventList = coalescentDistr.intervals.getRecombinationNetworkEventList();
+
+    	double currTime = sourceTime;
+    	RecombinationNetworkEvent prevEvent = null;
+    	
+    	for (RecombinationNetworkEvent event : networkEventList) {
+    		if (event.time>currTime) {                
+            	double rate = 0.5 * (prevEvent.lineages-1);
+                if (destTime<=event.time) {
+                	logHR += -rate* coalescentDistr.populationFunction.getIntegral(currTime, destTime);                	
+                	logHR -= Math.log(rate/coalescentDistr.populationFunction.getPopSize(destTime));
+                	break;
+                }
+                logHR += -rate * coalescentDistr.populationFunction.getIntegral(currTime, event.time);
+    			currTime = event.time;
+    		}
+    		prevEvent = event;
+        }    	
+    	
         // Remove reassortment edge
         logHR += removeRecombinationEdge(edgeToRemove);
         
-
         if (logHR == Double.NEGATIVE_INFINITY)
             return Double.NEGATIVE_INFINITY;
 
@@ -198,16 +272,23 @@ public class AddRemoveRecombination extends DivertLociOperator {
 
         logHR += Math.log(1.0/(double)nPossibleSourceEdges)
                 + Math.log(1.0/sourceEdge.getLength());
+        
+        
+//        logHR += Math.log(1.0/finalNetworkEdges.size());
+ 
+        // keep only those that coexist at the time of maxHeight
+        List<RecombinationNetworkEdge> destEdges = finalNetworkEdges.stream()
+                .filter(e -> !e.isRootEdge())
+                .filter(e -> e.parentNode.getHeight()>destTime)
+                .filter(e -> e.childNode.getHeight()<=destTime)
+               .collect(Collectors.toList());
+        
+        if (destEdges.size()==0)
+        	destEdges.add(network.getRootEdge());
+        
+        logHR += Math.log(1.0/destEdges.size());
 
-        logHR += Math.log(1.0/finalNetworkEdges.size());
 
-        double minDestTime = Math.max(destEdge.childNode.getHeight(), sourceTime);
-
-        if (destEdge.isRootEdge()) {
-            logHR += -(1.0/alpha)*(destTime-minDestTime) + Math.log(1.0/alpha);
-        } else {
-            logHR += Math.log(1.0/(destEdge.parentNode.getHeight()-minDestTime));
-        }
 
         return logHR;
     }

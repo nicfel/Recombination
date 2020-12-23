@@ -39,9 +39,9 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
             true);
 
 
-    private PopulationFunction populationFunction;
+    public PopulationFunction populationFunction;
     private Function recombinationRate;
-    private RecombinationNetworkIntervals intervals;
+    public RecombinationNetworkIntervals intervals;
     
 
     @Override

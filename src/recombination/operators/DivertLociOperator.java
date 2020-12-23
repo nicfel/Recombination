@@ -18,6 +18,10 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
             "scaleFactor",
             "Scale factor tuning parameter.",
             1.0);
+    
+
+    final public Input<Boolean> optimiseInput = new Input<>("optimise", "flag to indicate that the scale factor is automatically changed in order to achieve a good acceptance rate (default true)", true);
+
 
     double lambdaDiversion;
     public int totalLength;

@@ -134,9 +134,7 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
 	
 	                int w = l * matrixSize;
 	
-	                if (state1 < 4) {
-	
-	
+	                if (state1 < 4) {	
 	                    sum = matrices2[w] * partials2[v];
 	                    sum += matrices2[w + 1] * partials2[v + 1];
 	                    sum += matrices2[w + 2] * partials2[v + 2];
@@ -426,8 +424,7 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
 	        		BreakPoints bp1 = bp.copy();
 	        		bp1.and(rootBreaks.get(i));
 	        		
-	        		if (!bp1.isEmpty()) {
-	        			
+	        		if (!bp1.isEmpty()) {   	
 	        	        nrInPattern = new int[nrOfPatterns];      
 	        			computeInPatterns(nrInPattern, data, bp1);
 	        			
@@ -471,10 +468,6 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
                         		sum+= frequencies[1] * outPartials[u+1];
                         		sum+= frequencies[2] * outPartials[u+2];
                         		sum+= frequencies[3] * outPartials[u+3];
-//                                for (int s = 0; s < nrOfStates; s++) {
-//                                    sum += frequencies[s] * outPartials[u];
-//                                    u++;
-//                                }
                                 logP += Math.log(sum)*nrInPattern[k];
                         	
                         	}

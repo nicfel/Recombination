@@ -109,16 +109,12 @@ public class TipPrior extends Distribution {
         		break;
         	}
         }    
-        
-//        System.out.println(logP);
-
         return logP;
     }
     
     public void initialise() {
         dist = distInput.get();
-        network = networkInput.get();
-        
+        network = networkInput.get();        
         
         final List<String> taxaNames = new ArrayList<>();
         for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
@@ -140,7 +136,7 @@ public class TipPrior extends Distribution {
         	throw new IllegalArgumentException("TipPrior expects the number of tips to be 1");
         }
         
-        initialised = false;
+        initialised = true;
     }
 
 

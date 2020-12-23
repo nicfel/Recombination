@@ -38,7 +38,7 @@ public class RecombinationNetworkIntervals extends CalculationNode {
 
     }
 
-    List<RecombinationNetworkEvent> getRecombinationNetworkEventList() {
+    public List<RecombinationNetworkEvent> getRecombinationNetworkEventList() {
         update();
 
         return recombinationNetworkEventList;
