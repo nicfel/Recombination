@@ -34,8 +34,6 @@ public class RecombinationNetworkCladeSystem {
     
     protected List<DummyClade> cladeMap = new ArrayList<>();
    
-    protected Map<Double, DummyClade> newReassortmentCladeMap;
-    protected Map<BitSetArray, ReassortmentClade> reassortmentCladeMap = new HashMap<>();
     public List<String> leafNodeMap;
     
     protected Map<BitSet, DummyClade> leafCladeMap = new HashMap<>();
@@ -105,8 +103,6 @@ public class RecombinationNetworkCladeSystem {
    			BreakPoints computeFor = computeFor_BP.copy();
    			RecombinationNetworkEdge edge = node.getParentEdges().get(0);
    			
-   			
-   			
         	// compute with breakpoints are "visibly" coalescing at this node
         	BreakPoints overlap = node.getChildEdges().get(0).breakPoints.copy();        	
         	overlap.and(node.getChildEdges().get(1).breakPoints);	
@@ -149,6 +145,8 @@ public class RecombinationNetworkCladeSystem {
     		visitedBP.get(node.ID).add(computeFor.copy());
     		visitedBits.get(node.ID).add((BitSet) bits.clone());
         }
+    	
+    	
     }
     
     private void cladeProbsUpwards(RecombinationNetworkNode node, BreakPoints computeFor_BP, BitSet bits, int totalLength) {
@@ -220,17 +218,18 @@ public class RecombinationNetworkCladeSystem {
      * @param bits
      * @param segment
      **/    	
-    private void addCoalescentClade(BitSet bits, RecombinationNetworkNode node, BreakPoints bp) {   	
+    private void addCoalescentClade(BitSet bits, RecombinationNetworkNode node, BreakPoints bp) {
     	DummyClade clade = new DummyClade(bits, bp);    	    	
     	int i = cladeMap.indexOf(clade);
-    	
+
         if (i != -1) {
-        	cladeMap.get(i).bp.add(bp);
+        	cladeMap.get(i).bp.add(bp.copy());
         	cladeMap.get(i).attributeValues.add(null);
         }else{
         	clade.attributeValues.add(null);
         	cladeMap.add(clade);
         }
+        
     }    
     
     /**
@@ -251,6 +250,13 @@ public class RecombinationNetworkCladeSystem {
         			found = true;
 
     			}
+    			
+    	    	if (weighted_support==0) {
+    	    		System.out.println(clade.bp);
+    	    		System.out.println(clade);
+    	    		System.exit(0);
+    	    	}
+
     		}
     	}
     	
@@ -400,7 +406,7 @@ public class RecombinationNetworkCladeSystem {
         }       
     }    
          
-    public void summarizeAttributes(RecombinationNetwork network, Set<String> attributeNames, boolean useMean, int nrNetworks, boolean onTarget) {
+    public void summarizeAttributes(RecombinationNetwork network, Set<String> attributeNames, int heightSummary, int nrNetworks, boolean onTarget) {
     	
 		visitedBP = new HashMap<>(); 
 		visitedBits = new HashMap<>(); 
@@ -410,16 +416,16 @@ public class RecombinationNetworkCladeSystem {
 		nodeHeights = new HashMap<>();
 		
 		for (RecombinationNetworkNode l : network.getLeafNodes())
-			summarizeAttributes(l, attributeNames, l.getParentEdges().get(0).breakPoints, new BitSet(), useMean, nrNetworks, onTarget);
+			summarizeAttributes(l, attributeNames, l.getParentEdges().get(0).breakPoints, new BitSet(), heightSummary, nrNetworks, onTarget);
 		
 		for (RecombinationNetworkEdge e : network.getEdges())
 			e.visited=false;
 
-		summarizeCoalescentNodes(network.getRootEdge(), attributeNames, useMean, nrNetworks, onTarget);
+		summarizeCoalescentNodes(network.getRootEdge(), attributeNames, heightSummary, nrNetworks, onTarget);
     }
         
     private void summarizeAttributes(RecombinationNetworkNode node, Set<String> attributeNames, 
-    		BreakPoints computeFor_BP, BitSet bits, boolean useMean, int nrNetworks, boolean onTarget) {
+    		BreakPoints computeFor_BP, BitSet bits, int heightSummary, int nrNetworks, boolean onTarget) {
     	
     	if (computeFor_BP.isEmpty())
     		return;    	
@@ -436,13 +442,13 @@ public class RecombinationNetworkCladeSystem {
 			nodeBP.get(node.ID).add(computeFor_BP.copy());
 			nodeBits.get(node.ID).add((BitSet) bits.clone());   	
    			
-   			summarizeAttributes(node.getParentEdges().get(0).parentNode, attributeNames, computeFor, bits, useMean, nrNetworks, onTarget);
+   			summarizeAttributes(node.getParentEdges().get(0).parentNode, attributeNames, computeFor, bits, heightSummary, nrNetworks, onTarget);
         }else if (node.isRecombination()) {
         	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
        			BreakPoints computeFor = computeFor_BP.copy();
        			computeFor.and(edge.breakPoints.copy());
        			BitSet biton = (BitSet) bits.clone();
-       			summarizeAttributes(edge.parentNode, attributeNames, computeFor, biton, useMean, nrNetworks, onTarget);
+       			summarizeAttributes(edge.parentNode, attributeNames, computeFor, biton, heightSummary, nrNetworks, onTarget);
         	}        	
         }else {
    			BreakPoints computeFor = computeFor_BP.copy();
@@ -460,7 +466,7 @@ public class RecombinationNetworkCladeSystem {
     		if (!cf_only.isEmpty()) {    			
                 if (!edge.isRootEdge()) {        
            			BitSet biton = (BitSet) bits.clone();
-           			summarizeAttributes(edge.parentNode, attributeNames, cf_only, biton, useMean, nrNetworks, onTarget);
+           			summarizeAttributes(edge.parentNode, attributeNames, cf_only, biton, heightSummary, nrNetworks, onTarget);
             	}
                 // see "how" much is left of the compute for BP
     			computeFor.andNot(cf_only);
@@ -487,7 +493,7 @@ public class RecombinationNetworkCladeSystem {
 	        			computeFor.andNot(bp_here);
 		                if (!edge.isRootEdge()) {
 		                	bp_here.and(edge.breakPoints);
-		                	summarizeAttributes(edge.parentNode, attributeNames, bp_here, biton, useMean, nrNetworks, onTarget);
+		                	summarizeAttributes(edge.parentNode, attributeNames, bp_here, biton, heightSummary, nrNetworks, onTarget);
 		                }
 	        		}  
 	        	}
@@ -502,7 +508,7 @@ public class RecombinationNetworkCladeSystem {
     
     
     private void summarizeCoalescentNodes(RecombinationNetworkEdge edge, Set<String> attributeNames, 
-    		boolean useMean, int nrNetworks, boolean onTarget) {
+    		int heightSummary, int nrNetworks, boolean onTarget) {
 
     	if (edge.visited)
     		return;
@@ -512,22 +518,22 @@ public class RecombinationNetworkCladeSystem {
     	RecombinationNetworkNode node = edge.childNode;
     	
     	if (node.isLeaf()) {  			  			
-        	summarizeClade(node, attributeNames, useMean, nrNetworks, onTarget);
+        	summarizeClade(node, attributeNames, heightSummary, nrNetworks, onTarget);
         }else if (node.isRecombination()) {
         	for (RecombinationNetworkEdge e : node.getChildEdges()) {
-        		summarizeCoalescentNodes(e, attributeNames, useMean, nrNetworks, onTarget);
+        		summarizeCoalescentNodes(e, attributeNames, heightSummary, nrNetworks, onTarget);
         	}        	
         }else {
-        	summarizeClade(node, attributeNames, useMean, nrNetworks, onTarget);
+        	summarizeClade(node, attributeNames, heightSummary, nrNetworks, onTarget);
         	for (RecombinationNetworkEdge e : node.getChildEdges()) {
-        		summarizeCoalescentNodes(e, attributeNames, useMean, nrNetworks, onTarget);
+        		summarizeCoalescentNodes(e, attributeNames, heightSummary, nrNetworks, onTarget);
         	}        	
         }
 	}
     
 
     
-    private void summarizeClade(RecombinationNetworkNode node, Set<String> attributeNames, boolean useMean, int nrNetworks, boolean onTarget) {   	
+    private void summarizeClade(RecombinationNetworkNode node, Set<String> attributeNames, int heightSummary, int nrNetworks, boolean onTarget) {   	
     	List<BreakPoints>  bp_list = nodeBP.get(node.ID);
     	List<BitSet>  bits_list = nodeBits.get(node.ID);
     	
@@ -588,9 +594,9 @@ public class RecombinationNetworkCladeSystem {
             		
             		if(!onTarget){
 	            		if (heights.size()>0){
-							if (useMean){
+							if (heightSummary==1){
 								node.setHeight(quantiles[3]);
-							}else{
+							}else if (heightSummary==2){
 							    node.setHeight(quantiles[1]);
 							}
 	            		}
@@ -716,7 +722,7 @@ public class RecombinationNetworkCladeSystem {
 
         @Override
         public String toString() {
-            return bits + " #" + count + " " + attributeValues;
+            return  count + " " + bp;
        }
         
         BitSet bits;
@@ -760,115 +766,5 @@ public class RecombinationNetworkCladeSystem {
 
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    public class ReassortmentClade {
-        public ReassortmentClade(BitSet[] bits) {
-            this.bits = Arrays.copyOf(bits, bits.length);
-            count = 0;
-            credibility = 0.0;
-            notnull = 0;
-            for (int i = 0; i < bits.length; i++)
-            	if (bits[i]!=null)
-            		notnull++;
-        }
-
-        public int getCount() {
-            return count;
-        }
-
-        public void setCount(int count) {
-            this.count = count;
-        }
-
-        public double getCredibility() {
-            return credibility;
-        }
-        
-        public int getNotNull(){
-        	return notnull;
-        }
-
-        public void setCredibility(double credibility) {
-            this.credibility = credibility;
-        }
-
-        public List<Object[]> getAttributeValues() {
-            return attributeValues;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            final ReassortmentClade clade = (ReassortmentClade) o;
-            
-
-            for (int i = 0; i < bits.length; i++)
-            	if (!(bits[i] == null && clade.bits[i] == null) || !(bits[i].equals(clade.bits[i])) )
-            		return false;
-
-            
-            return true;
-
-        }
-
-        @Override
-        public int hashCode() {
-            return (bits != null ? bits.hashCode() : 0);
-        }
-
-        @Override
-        public String toString() {
-//            return "clade1 " + bits + " relative" + Arrays.toString(split) + " #" + count + " count " + getCount();
-            return "count " + getCount();
-       }
-
-        int count;
-        double credibility;
-        int notnull;
-        BitSet[] bits;
-        int[] split;
-        List<Object[]> attributeValues = null;
-    }
-        
-    public class BitSetArray {
-        public BitSetArray(BitSet[] bits) {
-            this.bits = Arrays.copyOf(bits, bits.length);
-        }
-
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            final BitSetArray array = (BitSetArray) o;
-        	return Arrays.equals(this.bits, array.bits);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(bits);
-        }
-
-        BitSet[] bits;
-    }
-
     
 }

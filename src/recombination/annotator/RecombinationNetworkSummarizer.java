@@ -40,7 +40,7 @@ import java.util.List;
  */
 public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
-    private enum SummaryStrategy { MEAN, MEDIAN }
+    private enum SummaryStrategy { MEAN, MEDIAN, NONE }
 
     private static class NetworkAnnotatorOptions {
         File inFile;
@@ -166,9 +166,11 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
         // print the network to file
         System.out.println("\nSummarize Atributes...");        
     	if (options.summaryStrategy == SummaryStrategy.MEAN)
-    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, true, logReader.getCorrectedNetworkCount(), onTarget);
+    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, 1, logReader.getCorrectedNetworkCount(), onTarget);
+    	else if (options.summaryStrategy == SummaryStrategy.MEDIAN)
+    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, 2, logReader.getCorrectedNetworkCount(), onTarget);
     	else
-    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, false, logReader.getCorrectedNetworkCount(), onTarget);
+    		bestCladeSystem.summarizeAttributes(bestNetwork, attributeNames, 3, logReader.getCorrectedNetworkCount(), onTarget);
 //
     	// print the network to file
         System.out.println("\nWriting output to " + options.outFile.getName()
@@ -533,7 +535,7 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
                 case "-positions":
                     if (args.length<=i+1) {
-                        printUsageAndError("-positions must be followed by either 'MEAN' or 'MEDIAN'.");
+                        printUsageAndError("-positions must be followed by either 'MEAN', 'MEDIAN' or 'NONE' (uses mcc network height).");
                     }
 
                     if (args[i+1].toLowerCase().equals("mean")) {
@@ -549,6 +551,14 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                         i += 1;
                         break;
                     }
+                    
+                    if (args[i+1].toLowerCase().equals("none")) {
+                        options.summaryStrategy = SummaryStrategy.NONE;
+
+                        i += 1;
+                        break;
+                    }
+
 
                     printUsageAndError("-positions must be followed by either 'MEAN' or 'MEDIAN'.");
 

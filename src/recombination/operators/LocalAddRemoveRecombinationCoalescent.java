@@ -35,7 +35,6 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
         }else {
             logHR = removeRecombination();
         }
-
         return logHR;
     }
 
@@ -197,6 +196,10 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
         logHR -= addLociToAncestors(reassortmentEdge, lociToDivert);
         logHR += removeLociFromAncestors(newEdge1, lociToDivert);
         
+        markDirty(reassortmentEdge);
+        markDirty(newEdge1);
+
+        
         newEdge1.passingRange = new BreakPoints(0,network.totalLength-1);        
         newEdge1.passingRange.andNot(rangeToDivert);        
 
@@ -306,8 +309,8 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
         logHR += removeLociFromAncestors(edgeToRemove, lociToDivert);
         logHR += Math.log(0.5) + Math.log(1/(edgeToRemoveSpouse.breakPoints.getLength()-1));
         
-        
-                
+        markDirty(edgeToRemoveSpouse);
+        markDirty(edgeToRemove);
         
         // Remove edge and associated nodes
         RecombinationNetworkEdge edgeToExtend = nodeToRemove.getChildEdges().get(0);

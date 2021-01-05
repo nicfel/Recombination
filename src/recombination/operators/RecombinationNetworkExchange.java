@@ -224,6 +224,9 @@ public class RecombinationNetworkExchange extends DivertLociOperator {
 		logHR -= addLociToAncestors(jPEdge, iSegsToAdd);
 		logHR -= addLociToAncestors(pEdge, jSegsToAdd);
 		
+        p.setFilty();
+        jP.setFilty();
+        
 		return logHR;
 	}
 

@@ -6,6 +6,7 @@ import beast.core.Input.Validate;
 import beast.core.parameter.RealParameter;
 import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
+import beast.evolution.tree.Tree;
 import beast.math.distributions.ParametricDistribution;
 import beast.util.Randomizer;
 import coalre.network.NetworkNode;
@@ -89,29 +90,32 @@ public class TipReheight extends RecombinationNetworkOperator {
                 
                 // set the height of the leaf node, even if the height drops below 0
                 operatingNode.setHeight(newHeight);               
-                
-                // if the height drops below 0, reheight the whole network (probably inefficient, due to making nodes dirty)
-                if (newHeight < 0){
-                	double diff = newHeight;
-                	for (RecombinationNetworkNode node : network.getNodes())
-                		node.setHeight(node.getHeight()-diff);  
-                	
-                }else if (oldHeight==0){
-                	// get the second lowest height    
-                	double minHeight = Double.POSITIVE_INFINITY;
-                	for (RecombinationNetworkNode node : network.getLeafNodes()){
-                		if (!node.equals(operatingNode)){
-                			if (node.getHeight()<minHeight)
-                				minHeight = node.getHeight();
-                		}  
-                	}
-                	
-                	// rescale all internal nodes relative to the newest most recently sampled individual
-                	if (newHeight>minHeight){
-                    	for (RecombinationNetworkNode node : network.getNodes())
-                    		node.setHeight(node.getHeight()-minHeight);                	
-                	}                	
-                }
+                operatingNode.getParentEdges().get(0).makeDirty(Tree.IS_FILTHY);
+               
+//                // if the height drops below 0, reheight the whole network (probably inefficient, due to making nodes dirty)
+//                if (newHeight < 0){
+//                	double diff = newHeight;
+//                	for (RecombinationNetworkNode node : network.getNodes()) {
+//                		node.setHeight(node.getHeight()-diff);
+//                		node.getParentEdges().get(0).parentNode.setFilty();
+//                	}
+//                	
+//                }else if (oldHeight==0){
+//                	// get the second lowest height    
+//                	double minHeight = Double.POSITIVE_INFINITY;
+//                	for (RecombinationNetworkNode node : network.getLeafNodes()){
+//                		if (!node.equals(operatingNode)){
+//                			if (node.getHeight()<minHeight)
+//                				minHeight = node.getHeight();
+//                		}  
+//                	}
+//                	
+//                	// rescale all internal nodes relative to the newest most recently sampled individual
+//                	if (newHeight>minHeight){
+//                    	for (RecombinationNetworkNode node : network.getNodes())
+//                    		node.setHeight(node.getHeight()-minHeight);                	
+//                	}                	
+//                }
 
         		break;
         	}

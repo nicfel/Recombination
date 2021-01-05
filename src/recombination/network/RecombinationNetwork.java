@@ -239,9 +239,22 @@ public class RecombinationNetwork extends StateNode {
 //            result.append(",").append(i).append("=").append(currentEdge.breakPoints.contains(i));
 
         	
-//        result.append(",dirty=").append(currentEdge.isDirty);
-//        result.append(",dirtyEdges={").append(currentEdge.childNode.dirtyBreakPoints);
-//        result.append("}");
+        result.append(",dirty=").append(currentEdge.isDirty);
+        result.append(",dirtyEdges={").append(currentEdge.childNode.dirtyBreakPoints);
+        result.append("}");
+        if (currentEdge.childNode.dummy4!=null) {
+	        if (currentEdge.childNode.dummy4.size()>0) {
+		        result.append(",dummy=\"");
+		        
+		        for (int i = 0; i < currentEdge.childNode.dummy4.size()-1; i++)
+		        	result.append(currentEdge.childNode.dummy4.get(i)).append(":");
+		        
+	        	result.append(currentEdge.childNode.dummy4.get(currentEdge.childNode.dummy4.size()-1));
+		        
+		        result.append("\"");
+	        }
+        }
+
 
         
 

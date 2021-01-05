@@ -77,7 +77,7 @@ public class RecombinationNetworkScaleOperator extends RecombinationNetworkOpera
 
         	RecombinationNetworkNode rootNode = network.getRootEdge().childNode;
 
-            rootNode.setHeight(rootNode.getHeight() * f);
+            rootNode.setHeightFilty(rootNode.getHeight() * f);
             count += 1;
 
             if (f<1.0) {
@@ -93,7 +93,7 @@ public class RecombinationNetworkScaleOperator extends RecombinationNetworkOpera
             // Scale network nodes
 
             for (RecombinationNetworkNode node : network.getInternalNodes()) {
-                node.setHeight(node.getHeight() * f);
+                node.setHeightFilty(node.getHeight() * f);
                 count += 1;
             }
 

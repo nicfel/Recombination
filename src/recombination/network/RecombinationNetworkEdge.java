@@ -12,6 +12,10 @@ public class RecombinationNetworkEdge {
     public BreakPoints passingRange;
     public BreakPoints carryingRange;
     
+    public List<BreakPoints> prevBreakPoints;
+    public List<RecombinationNetworkEdge> prevPointer;
+
+    
     public Integer ID;
     
     /**
@@ -23,7 +27,7 @@ public class RecombinationNetworkEdge {
    
     public RecombinationNetworkEdge(NodeEdgeID nodeEdgeIDs) { 
         ID = nodeEdgeIDs.getNewEdgeID();
-        isDirty = Tree.IS_FILTHY;
+        isDirty = Tree.IS_DIRTY;
     }
 
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
@@ -33,7 +37,7 @@ public class RecombinationNetworkEdge {
         this.breakPoints = breakPoints;
         this.passingRange = passingRange;
         ID = nodeEdgeIDs.getNewEdgeID();
-        isDirty = Tree.IS_FILTHY;
+        isDirty = Tree.IS_DIRTY;
     }
     
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
@@ -43,7 +47,7 @@ public class RecombinationNetworkEdge {
         this.breakPoints = breakPoints;
         this.passingRange = passingRange;
         ID = id;
-        isDirty = Tree.IS_FILTHY;
+        isDirty = Tree.IS_DIRTY;
     }
 
     
@@ -151,6 +155,11 @@ public class RecombinationNetworkEdge {
     	if (isDirty!=Tree.IS_FILTHY)
     		isDirty = dirty;
     }
+    
+    public void forceDirty(final int dirty) {
+   		isDirty = dirty;
+    }
+
 
 
 

@@ -7,6 +7,8 @@ import beast.core.Function;
 import beast.core.Input;
 import beast.core.Input.Validate;
 import beast.core.parameter.RealParameter;
+import cern.colt.Arrays;
+import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 
 import java.util.ArrayList;
@@ -20,22 +22,52 @@ import java.util.stream.Collectors;
 public class RecombinationNetworkIntervals extends CalculationNode {
     public Input<RecombinationNetwork> recombinationNetworkInput = new Input<>("recombinationNetwork",
             "recombinationNetwork for which to calculate the intervals", Validate.REQUIRED);
+    
+	public Input<String> recombinationRatesChangePointsInput = new Input<>(
+	        "recombinationRatesChangePoints",
+            "if true, only coalescent events are allowed after the .",
+            Input.Validate.OPTIONAL);
 
-    public Input<RealParameter> binomialProbInput = new Input<>("binomialProb",
-            "Probability of a given segment choosing a particular parent.");
 
     private RecombinationNetwork recombinationNetwork;
 
     private List<RecombinationNetworkEvent> recombinationNetworkEventList, storedRecombinationNetworkEventList;
 
-    public boolean eventListDirty = true;
+    public boolean eventListDirty = true;    
+    public boolean hasBreakPoints = false;
+    
+    public BreakPoints[] recBP;
+
+
     
     @Override
     public void initAndValidate() {
         recombinationNetwork = recombinationNetworkInput.get();
-
         storedRecombinationNetworkEventList = new ArrayList<>();
-
+        
+        
+        if (recombinationRatesChangePointsInput.get()!=null) {
+        	
+        	hasBreakPoints = true;
+        	String[] tmp = recombinationRatesChangePointsInput.get().trim().split("\\s+");
+        	recBP = new BreakPoints[tmp.length+1];
+        	List<Integer> bpList = new ArrayList<>();
+        	bpList.add(0);
+        	for (int i = 0; i < tmp.length; i++) {            	
+            	bpList.add(Integer.parseInt(tmp[i]));
+            	bpList.add(Integer.parseInt(tmp[i]));
+        		if (Integer.parseInt(tmp[i])>recombinationNetworkInput.get().totalLength) {
+            		throw new IllegalArgumentException("recombination rate break point value is larger than the network size");
+        		}
+        	}   
+        	bpList.add(recombinationNetworkInput.get().totalLength);
+        	
+        	for (int i = 0; i < recBP.length; i++) 
+        		recBP[i] = new BreakPoints(bpList.get(2*i), bpList.get(2*i+1));
+        }else {
+        	recBP = new BreakPoints[1];
+    		recBP[0] = new BreakPoints(0, recombinationNetworkInput.get().totalLength);
+        }
     }
 
     public List<RecombinationNetworkEvent> getRecombinationNetworkEventList() {
@@ -45,8 +77,8 @@ public class RecombinationNetworkIntervals extends CalculationNode {
     }
 
     void update() {
-        if (!eventListDirty)
-            return;
+//        if (!eventListDirty)
+//            return;
         
         recombinationNetworkEventList = recombinationNetwork.getNodes().stream().map(n -> {
             RecombinationNetworkEvent event = new RecombinationNetworkEvent();
@@ -72,33 +104,79 @@ public class RecombinationNetworkIntervals extends CalculationNode {
         }).sorted(Comparator.comparingDouble(e -> e.time)).collect(Collectors.toList());
 
         int lineages = 0;
-        double totalReassortmentObsProb = 0;
+        double[] totalReassortmentObsProb = new double[recBP.length];
 
         for (RecombinationNetworkEvent event : recombinationNetworkEventList) {
             switch(event.type) {
                 case SAMPLE:
                     lineages += 1;
-                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength();
+                    for (int i = 0; i < recBP.length;i++) {
+                    	BreakPoints bp = new BreakPoints(event.node.getParentEdges().get(0).breakPoints.getMin(), 
+                    			event.node.getParentEdges().get(0).breakPoints.getMax());
+                    	bp.and(recBP[i]);
+                    	totalReassortmentObsProb[i] += bp.getNullLength();
+                    }
                     break;
 
                 case RECOMBINATION:
                     lineages += 1;
-                    totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationLength();
-                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength();
-                    totalReassortmentObsProb += event.node.getParentEdges().get(1).getRecombinationLength();
+
+                    for (int i = 0; i < recBP.length;i++) {
+                    	
+                    	BreakPoints bp1 = new BreakPoints(event.node.getChildEdges().get(0).breakPoints.getMin(), 
+                    										event.node.getChildEdges().get(0).breakPoints.getMax());
+                    	
+                    	BreakPoints bp2 = new BreakPoints(event.node.getParentEdges().get(0).breakPoints.getMin(), 
+                    										event.node.getParentEdges().get(0).breakPoints.getMax());
+                    	
+                    	BreakPoints bp3 = new BreakPoints(event.node.getParentEdges().get(1).breakPoints.getMin(), 
+                    										event.node.getParentEdges().get(1).breakPoints.getMax());
+
+                    	bp1.and(recBP[i]);
+                    	bp2.and(recBP[i]);
+                    	bp3.and(recBP[i]);
+                    	totalReassortmentObsProb[i] -= bp1.getNullLength();
+                    	totalReassortmentObsProb[i] += bp2.getNullLength();
+                    	totalReassortmentObsProb[i] += bp3.getNullLength();
+                    }
 
                     event.lociToSort = event.node.getChildEdges().get(0).getRecombinationLength();
+                    
+                    event.breakPoint = Math.max(event.node.getParentEdges().get(0).passingRange.getMin(), 
+                    		event.node.getParentEdges().get(1).passingRange.getMin());
+                    
                     break;
 
                 case COALESCENCE:
                     lineages -= 1;
-                    totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationLength();
-                    totalReassortmentObsProb -= event.node.getChildEdges().get(1).getRecombinationLength();
-                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength();
+                    for (int i = 0; i < recBP.length;i++) {
+                    	
+                    	BreakPoints bp1 = new BreakPoints(event.node.getChildEdges().get(0).breakPoints.getMin(), 
+                    										event.node.getChildEdges().get(0).breakPoints.getMax());
+                    	BreakPoints bp2 = new BreakPoints(event.node.getChildEdges().get(1).breakPoints.getMin(), 
+                    										event.node.getChildEdges().get(1).breakPoints.getMax());
+                    	BreakPoints bp3 = new BreakPoints(event.node.getParentEdges().get(0).breakPoints.getMin(), 
+                    										event.node.getParentEdges().get(0).breakPoints.getMax());
+                    	
+                    	bp1.and(recBP[i]);
+                    	bp2.and(recBP[i]);
+                    	bp3.and(recBP[i]);
+                    	
+                    	totalReassortmentObsProb[i] -= bp1.getNullLength();
+                    	totalReassortmentObsProb[i] -= bp2.getNullLength();
+                    	totalReassortmentObsProb[i] += bp3.getNullLength();
+                    }
+
+                    
+                    
+//                    totalReassortmentObsProb -= event.node.getChildEdges().get(0).getRecombinationLength();
+//                    totalReassortmentObsProb -= event.node.getChildEdges().get(1).getRecombinationLength();
+//                    totalReassortmentObsProb += event.node.getParentEdges().get(0).getRecombinationLength();
                     break;
             }
             event.lineages = lineages;
-            event.totalRecombinationObsProb = totalReassortmentObsProb;
+            event.totalRecombinationObsProb = new double[totalReassortmentObsProb.length];
+            System.arraycopy(totalReassortmentObsProb, 0, event.totalRecombinationObsProb, 0, totalReassortmentObsProb.length);
         }
         eventListDirty = false;
     }

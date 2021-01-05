@@ -32,7 +32,7 @@ public class UniformRecombinationNetworkNodeHeightOperator extends Recombination
                 minHeight = childEdge.childNode.getHeight();
 
         network.startEditing(this);
-        node.setHeight(minHeight + Randomizer.nextDouble()*(maxHeight-minHeight));
+        node.setHeightFilty(minHeight + Randomizer.nextDouble()*(maxHeight-minHeight));
 
         return 0.0;
     }

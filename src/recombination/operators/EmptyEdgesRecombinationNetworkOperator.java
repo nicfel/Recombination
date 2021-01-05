@@ -22,7 +22,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     
     public Input<Double> lambdaInput = new Input<>("lambda",
             "lambda of the poisson distribution for how many empty edges to add.",
-            0.1);
+            0.01);
     
     public Input<Boolean> addRemoveEmptyEdgesInput = new Input<>("addRemoveEmptyEdges",
             "adds empty edges before calling the networkproposal and then removes all empty edges at the end again",

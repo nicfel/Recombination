@@ -63,10 +63,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         	edge1 = node.getParentEdges().get(0);
         	edge2 = node.getParentEdges().get(1);       	
         }
-              
-
-        edge1.makeDirty(Tree.IS_DIRTY);
-        edge2.makeDirty(Tree.IS_DIRTY);
 
     	edge2.passingRange = new BreakPoints(newBreakPoint, totalLength-1);
     	edge1.passingRange = new BreakPoints(0,newBreakPoint-1);
@@ -76,12 +72,16 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         	rangeToDivert.and(edge1.breakPoints);
 	        logHR -= addLociToAncestors(edge2, rangeToDivert);
 	        logHR += removeLociFromAncestors(edge1, rangeToDivert);
+	        markDirty(edge1);
+	        markDirty(edge2);
         }else {
         	BreakPoints rangeToDivert = new BreakPoints(edge2.breakPoints.getMin(), newBreakPoint-1);
         	rangeToDivert.and(edge2.breakPoints);
 	        logHR -= addLociToAncestors(edge1, rangeToDivert);
 	        logHR += removeLociFromAncestors(edge2, rangeToDivert);
-        }
+	        markDirty(edge1);
+	        markDirty(edge2);
+       }
         
         int reverseSourceEdgeCount = (int)(network.getNodes().stream()
                 .filter(e -> e.isRecombination())
@@ -93,6 +93,15 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         return logHR;
     }
 
+    public double removeLociFromAncestors(RecombinationNetworkEdge edge, BreakPoints rangeToRemove) {
+        double logP = 0.0;
+        
+        if (edge.isRootEdge())
+            return logP;
+
+        markDirty(edge, rangeToRemove);        
+        return removeLociFromAncestors2(edge, rangeToRemove);
+    }
 
     /**
      * Remove segments from this edge and ancestors.
@@ -101,10 +110,12 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
      * @param segsToRemove segments to remove from edge and ancestors
      * @return log probability of reverse operation
      */
-    public double removeLociFromAncestors(RecombinationNetworkEdge edge, BreakPoints rangeToRemove) {
+    public double removeLociFromAncestors2(RecombinationNetworkEdge edge, BreakPoints rangeToRemove) {
         double logP = 0.0;
         
-
+        if (edge.isRootEdge())
+            return logP;
+        
         rangeToRemove = rangeToRemove.copy();
         
         rangeToRemove.and(edge.breakPoints);
@@ -112,26 +123,22 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (rangeToRemove.isEmpty())
             return logP;
         
-        if (edge.isRootEdge())
-            return logP;
-
-        edge.childNode.dirtyBreakPoints = new BreakPoints(0,totalLength-1);
 
         edge.breakPoints.andNot(rangeToRemove);                      
         
-        edge.makeDirty(Tree.IS_FILTHY); 
+        edge.makeDirty(Tree.IS_DIRTY); 
 
         if (edge.parentNode.isRecombination()) {        	
-            logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
-            logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(1), rangeToRemove);
+            logP += removeLociFromAncestors2(edge.parentNode.getParentEdges().get(0), rangeToRemove);
+            logP += removeLociFromAncestors2(edge.parentNode.getParentEdges().get(1), rangeToRemove);
         } else {
         	rangeToRemove.andNot(getSisterEdge(edge).breakPoints);
-            logP += removeLociFromAncestors(edge.parentNode.getParentEdges().get(0), rangeToRemove);
+            logP += removeLociFromAncestors2(edge.parentNode.getParentEdges().get(0), rangeToRemove);
         }
 
         return logP;
     }
-
+    
     /**
      * Add segments to this edge and ancestors.
      *
@@ -141,25 +148,45 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
      */
     public double addLociToAncestors(RecombinationNetworkEdge edge, BreakPoints rangeToAdd) {
         double logP = 0.0;
+        if (edge.isRootEdge())
+            return logP;        
+        
+        markDirty(edge, rangeToAdd);
+        return addLociToAncestors2(edge, rangeToAdd);
+    }       
 
-        rangeToAdd = rangeToAdd.copy();
+
+    /**
+     * Add segments to this edge and ancestors.
+     *
+     * @param edge edge at which to start addition
+     * @param segsToAdd segments to add to the edge and ancestors
+     * @return log probability of operation
+     */
+    public double addLociToAncestors2(RecombinationNetworkEdge edge, BreakPoints rangeToAdd) {
+        double logP = 0.0;
+        if (edge.isRootEdge())
+            return logP;        
+
+
+        rangeToAdd = rangeToAdd.copy();        
                
         if (rangeToAdd.isEmpty())
             return logP;
 
         rangeToAdd.andNot(edge.breakPoints);
 
-        if (rangeToAdd.isEmpty())
+        if (rangeToAdd.isEmpty()) {
+        	
             return logP;        
+        }
 
 
         edge.breakPoints.or(rangeToAdd);
         
-        edge.makeDirty(Tree.IS_FILTHY); 
+        edge.makeDirty(Tree.IS_DIRTY); 
 
 
-        if (edge.isRootEdge())
-            return logP;        
         
         if (edge.parentNode.isRecombination()) {        	
             BreakPoints rangeToAddLeft = rangeToAdd.copy();
@@ -168,11 +195,71 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
             rangeToAddLeft.and(edge.parentNode.getParentEdges().get(0).passingRange);
             rangeToAddRight.and(edge.parentNode.getParentEdges().get(1).passingRange);
                         
-            logP += addLociToAncestors(edge.parentNode.getParentEdges().get(0), rangeToAddLeft);
-            logP += addLociToAncestors(edge.parentNode.getParentEdges().get(1), rangeToAddRight);
+            logP += addLociToAncestors2(edge.parentNode.getParentEdges().get(0), rangeToAddLeft);
+            logP += addLociToAncestors2(edge.parentNode.getParentEdges().get(1), rangeToAddRight);
         } else {
-            logP += addLociToAncestors(edge.parentNode.getParentEdges().get(0), rangeToAdd);
+            logP += addLociToAncestors2(edge.parentNode.getParentEdges().get(0), rangeToAdd);
         }
         return logP;
     }       
+
+    /**
+     * Remove segments from this edge and ancestors.
+     *
+     * @param edge edge at which to start removal
+     * @param segsToRemove segments to remove from edge and ancestors
+     * @return log probability of reverse operation
+     */
+    public void markDirty(RecombinationNetworkEdge edge) {
+    	return;
+//        if (edge.isRootEdge())
+//            return;
+//        
+//    	System.out.println(edge.parentNode.getHeight() + " " + edge.parentNode.dirtyBreakPoints);
+//
+//        
+//        if (edge.parentNode.isRecombination()) {        	
+//        	for (RecombinationNetworkEdge e : edge.parentNode.getParentEdges()) {
+//            	BreakPoints passOn = edge.parentNode.dirtyBreakPoints.copy();
+////            	passOn.and(e.passingRange);
+////            	if (!passOn.isEmpty())
+//            		markDirty(e, passOn);
+//        	}
+//        } else {
+//        	BreakPoints passOn = edge.parentNode.dirtyBreakPoints.copy();
+//       		markDirty(edge.parentNode.getParentEdges().get(0), passOn);
+//        }
+    }
+    
+    public void markDirty(RecombinationNetworkEdge edge, BreakPoints dirtyBreakPoints) {
+        if (edge.isRootEdge())
+            return;       
+        
+        BreakPoints dirtyBreakPoints_local = dirtyBreakPoints.copy();
+
+        
+        if (edge.parentNode.dirtyBreakPoints==null) {
+        	edge.parentNode.dirtyBreakPoints = new BreakPoints();
+        }else {    
+        	dirtyBreakPoints_local.andNot(edge.parentNode.dirtyBreakPoints);
+        }
+        
+        if (dirtyBreakPoints_local.isEmpty())
+        	return;
+        
+    	edge.parentNode.dirtyBreakPoints.or(dirtyBreakPoints_local);
+    	
+    	
+        
+        if (edge.parentNode.isRecombination()) {        	
+        	for (RecombinationNetworkEdge e : edge.parentNode.getParentEdges()) {
+           		markDirty(e, dirtyBreakPoints_local);
+        	}
+        } else {
+       		markDirty(edge.parentNode.getParentEdges().get(0), dirtyBreakPoints_local);
+        }
+        return;
+    }
+
+
 }

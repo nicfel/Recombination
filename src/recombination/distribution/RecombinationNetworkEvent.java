@@ -21,11 +21,12 @@ public class RecombinationNetworkEvent {
     int segsSortedLeft;
 
     public int lineages;
-    public double totalRecombinationObsProb;
+    public double[] totalRecombinationObsProb;
 
     /**
      * Only used when setting up event list.
      * May not point to a compatible node at other times.
      */
     public RecombinationNetworkNode node;
+	public int breakPoint;
 }

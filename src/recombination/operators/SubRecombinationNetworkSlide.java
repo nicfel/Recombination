@@ -48,7 +48,6 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
 
 	@Override
 	public double networkProposal() {
-
 		double logHR = 0.0;
 		network.startEditing(this);
 		// 1. Choose a random edge, avoiding root
@@ -124,7 +123,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 		newIpEdge.passingRange = newChildEdge.passingRange.copy();
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
-                	
+                	                	
                 	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
@@ -140,8 +139,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	BreakPoints segsToRemove = iEdge.breakPoints.copy();
                 	segsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
                 	logHR += removeLociFromAncestors(ipEdge, segsToRemove);
-                	
-                	
+                	                	
                 	pip.removeChildEdge(ipEdge);
                 	ip.removeChildEdge(jEdge);
                 	pip.addChildEdge(jEdge);
@@ -151,7 +149,11 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	ip.removeChildEdge(iEdge);
                 	ip.removeParentEdge(ipEdge);
                 	
-                	
+                	destNode.setFilty();
+                	i.setFilty();
+                	ip.setFilty();
+                	pip.setFilty();
+
                 	newIpEdge.parentNode = null;
                 	network.setRootEdge(newIpEdge);
                 	
@@ -162,6 +164,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
                 	destNode.setHeight(newHeight);
                 	
+                	
                 	RecombinationNetworkEdge newIpEdge = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	newIpEdge.breakPoints = newChildEdge.breakPoints.copy();
                 	if (newChildEdge.passingRange!=null)
@@ -170,7 +173,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
-                	
+                	                	
                 	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
@@ -196,6 +199,10 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	i.removeParentEdge(iEdge);
                 	ip.removeChildEdge(iEdge);
                 	ip.removeParentEdge(ipEdge);
+                	
+                	destNode.setFilty();
+                	pip.setFilty();
+
                 }
                 
                 // 3.1.3 count the hypothetical sources of this destination.
@@ -204,7 +211,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 logHR += Math.log(1.0/possibleSources);
 
             } else {
-                ip.setHeight(newHeight);
+                ip.setHeightFilty(newHeight);
             }
         }
         
@@ -213,7 +220,6 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
         	if (i.getHeight() > newHeight) {
         		return Double.NEGATIVE_INFINITY;
         	}
-  	
         	
             // 4.1 will the move change the topology
             if (j.getHeight() > newHeight) {	
@@ -248,7 +254,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	
-                	
+
                 	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
@@ -273,6 +279,9 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	jEdge.parentNode = null;
                 	network.setRootEdge(jEdge);
 
+                	destNode.setFilty();
+                	newParent.setFilty();
+
                 } else {
                 	RecombinationNetworkNode destNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
                 	destNode.setHeight(newHeight);
@@ -285,7 +294,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
-
+                	
                 	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
@@ -300,7 +309,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	BreakPoints segsToRemove = iEdge.breakPoints.copy();
                 	segsToRemove.andNot(getSisterEdge(iEdge).breakPoints);
                 	logHR += removeLociFromAncestors(ipEdge, segsToRemove);
-                	
+                	                	
                 	pip.removeChildEdge(ipEdge);
                 	ip.removeChildEdge(jEdge);
                 	pip.addChildEdge(jEdge);
@@ -308,16 +317,20 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	
                 	i.removeParentEdge(iEdge);
                 	ip.removeChildEdge(iEdge);
+                	
+                	destNode.setFilty();
+                	newParent.setFilty();
 
                 }
-                
-                ip.setHeight(newHeight);
+                ip.setHeightFilty(newHeight);
             	
             } else {
             	
-                ip.setHeight(newHeight);
+                ip.setHeightFilty(newHeight);
             }
         }
+        
+
         
         if(!networkTerminatesAtMRCA())
         	return Double.NEGATIVE_INFINITY;
@@ -370,13 +383,17 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
     		segsToRemoveParent.andNot(edge.breakPoints);
     		if (!segsToRemoveParent.isEmpty()) {
     			logHR += removeLociFromAncestors(parentEdge, segsToRemoveParent);
+                markDirty(parentEdge);
     		}
     		
     		BreakPoints segsToRemoveSpouse= spouseEdge.breakPoints.copy();
     		segsToRemoveSpouse.andNot(edge.breakPoints);
     		if (!segsToRemoveSpouse.isEmpty()) {
     			logHR += removeLociFromAncestors(spouseEdge, segsToRemoveSpouse);
+                markDirty(spouseEdge);
     		}
+    		
+
 	
     	} else {
     		RecombinationNetworkEdge parentEdge = parentNode.getParentEdges().get(0);
@@ -385,12 +402,16 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
     		
     		if (!segsToAdd.isEmpty()) {
     			logHR -= addLociToAncestors(parentEdge, segsToAdd);
+                markDirty(parentEdge);
+
     		}
     		
     		BreakPoints segsToRemoveParent = parentEdge.breakPoints.copy();
     		segsToRemoveParent.andNot(edge.breakPoints);
     		if (!segsToRemoveParent.isEmpty()) {
     			logHR += removeLociFromAncestors(parentEdge, segsToRemoveParent);
+                markDirty(parentEdge);
+
     		}
     	}
     	return logHR;

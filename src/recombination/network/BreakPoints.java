@@ -107,6 +107,19 @@ public class BreakPoints {
 	}
 	
 	/**
+	 * gets the difference between the first and last event
+	 * returns 0 instead of -1 when null
+	 * @return
+	 */
+	public double getNullLength() {
+		if (!isEmpty())
+			return breakPoints.get(breakPoints.size()-1).to-breakPoints.get(0).from;
+		
+		return 0;
+	}
+
+	
+	/**
 	 * gets the total amount of genetic material encompassed
 	 * by this break point as defined by 
 	 * @return
@@ -280,18 +293,24 @@ public class BreakPoints {
 	 */
 	public void and(BreakPoints breakPoints) {
 		List<Range> newBreaks = new ArrayList<>();
-		if (breakPoints==null || breakPoints.isEmpty() || isEmpty()) {
+		if (breakPoints==null) {
 			this.breakPoints = null;
 			return;
 		}
-
+		if (breakPoints.isEmpty() || isEmpty()) {
+			this.breakPoints = null;
+			return;
+		}
+		if (breakPoints.getMin() > getMax() || breakPoints.getMax() < getMin()) {
+			this.breakPoints = null;
+			return;
+		}
 		
 		if (this.equals(breakPoints))
 			return;
 		
 		int j = 0;
 		
-
 		for (int i = 0; i < this.breakPoints.size(); i++) {
 			while (breakPoints.breakPoints.get(j).to < this.breakPoints.get(i).from) {
 				j++;
@@ -626,6 +645,13 @@ public class BreakPoints {
 		public String toString() {
 			return from +"-"+to;
 			
+		}
+
+		public boolean contains(int breakPoint) {
+			if (breakPoint>=from && breakPoint<=to)
+				return true;
+						
+			return false;
 		}
 	}
 

@@ -540,8 +540,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 
 	@Override
 	protected void dummy(RecombinationNetworkNode node, BreakPoints bp) {
-		// TODO Auto-generated method stub
-		
+		List<BreakPoints> breaks = partials.getBreaks(node.ID);
+		System.out.println(breaks);		
 	}
 
 	
