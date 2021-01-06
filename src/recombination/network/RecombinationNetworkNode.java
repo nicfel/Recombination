@@ -52,10 +52,13 @@ public class RecombinationNetworkNode {
     public List<BreakPoints> dummy4;
     public List<int[]> edgePointer;
     public List<Double> prevLength;
-    public List<RecombinationNetworkEdge> prevPointer;
+    public List<Integer> prevPointer;
     public BreakPoints dirtyBreakPoints;
     public BreakPoints overlap;
     public boolean visited;
+    
+    
+
     
     
     public Integer ID;

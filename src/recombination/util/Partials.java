@@ -141,6 +141,8 @@ public class Partials {
 	}
 	
 	public List<BreakPoints> getBreaks(Integer new_id) {
+		if (ID.indexOf(new_id)==-1)
+			return null;
 		return breaks.get(ID.indexOf(new_id));
 	}
 
@@ -148,7 +150,6 @@ public class Partials {
 	public double[] getPartials(Integer new_id, BreakPoints bp) {
 		int i = ID.indexOf(new_id);
 		int j = breaks.get(i).indexOf(bp);
-		
 		
 		if (patternIndices[startPoint.get(i).get(j)]) {
 			return fancyPatterns[startPoint.get(i).get(j)][0];
@@ -192,6 +193,7 @@ public class Partials {
 	}
 
 	public void store() {
+
 		storeID = new ArrayList<>(ID);
 		
 		storedBreaks = new ArrayList<>();
@@ -227,6 +229,7 @@ public class Partials {
 	
 	
 	public void restore() {
+
     	List<Integer> tmp2 = ID;
     	ID = storeID;
     	storeID = tmp2;
@@ -296,14 +299,12 @@ public class Partials {
 		storedNextNr = newStoredNextNr;
 
 		double[][][] newFancyPatterns = new double[newsize][2][nrPatterns];
-		for (int i = 0; i <fancyPatterns.length;i++) {
-			for (int j= 0; j <fancyPatterns[i].length;j++) {
+		for (int i = 0; i < fancyPatterns.length;i++) {
+			for (int j= 0; j < fancyPatterns[i].length;j++) {
 				System.arraycopy(fancyPatterns[i][j], 0, newFancyPatterns[i][j], 0, fancyPatterns[i][j].length);
 			}
 		}			
 		fancyPatterns = newFancyPatterns;
-		
-		
 	}
 	
 	public void purge() {

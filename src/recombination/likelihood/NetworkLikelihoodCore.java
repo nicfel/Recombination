@@ -88,7 +88,7 @@ abstract public class NetworkLikelihoodCore {
      * NB Depending on whether the child nodes contain states or partials, the
      * calculation differs-*
      */
-    abstract public void calculatePartials(RecombinationNetworkEdge edge1, RecombinationNetworkEdge edge2, RecombinationNetworkNode node, 
+    abstract public void calculatePartials(Integer ID1, Integer ID2, Integer ID3, 
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
     		boolean[] computeForPatterns, double[] matrices1, double[] matrices2);
     //abstract public void calculatePartials(int node1, int node2Index, int node3, int[] matrixMap);
@@ -109,9 +109,9 @@ abstract public class NetworkLikelihoodCore {
 
     abstract public void setEdgeMatrix(RecombinationNetworkEdge edge, int i, double[] matrix);
     
-    abstract public void setStates(RecombinationNetworkNode node, int[] states);
+    abstract public void setStates(RecombinationNetworkEdge edge, int[] states);
 
-    abstract public void initPartials(RecombinationNetworkNode node, int length);
+    abstract public void initPartials(Integer iD, int length);
 
     abstract public void cleanMatrix(List<Integer> edges);
 
@@ -136,13 +136,13 @@ abstract public class NetworkLikelihoodCore {
 //    /** do internal diagnosics, and suggest an alternative core if appropriate **/ 
 //    abstract LikelihoodCore feelsGood();
 
-	protected abstract void cleanPartialsNode(RecombinationNetworkNode node);
+	protected abstract void cleanPartialsNode(Integer ID);
 
-	protected abstract void checkLabels(RecombinationNetworkNode node, BreakPoints computeFor);
+	protected abstract void checkLabels(Integer ID, BreakPoints computeFor);
 
-	protected abstract int reassignLabels(RecombinationNetworkNode node, BreakPoints computeFor, BreakPoints dirtyEdges);
+	protected abstract int reassignLabels(Integer ID, BreakPoints computeFor, BreakPoints dirtyEdges);
 	
-	protected abstract void dummy(RecombinationNetworkNode node, BreakPoints bp);
+	protected abstract void dummy(Integer ID, BreakPoints bp);
 
 	
 }

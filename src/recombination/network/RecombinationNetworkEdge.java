@@ -12,9 +12,6 @@ public class RecombinationNetworkEdge {
     public BreakPoints passingRange;
     public BreakPoints carryingRange;
     
-    public List<BreakPoints> prevBreakPoints;
-    public List<RecombinationNetworkEdge> prevPointer;
-
     
     public Integer ID;
     
@@ -99,6 +96,8 @@ public class RecombinationNetworkEdge {
         	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), passingRange.copy(), ID);
         else
         	edgeCopy = new RecombinationNetworkEdge(null, null, breakPoints.copy(), null, ID);
+        
+
        
         RecombinationNetworkNode childNodeCopy;
         boolean traverse = true;
@@ -113,6 +112,7 @@ public class RecombinationNetworkEdge {
             childNodeCopy.setTypeIndex(childNode.typeIndex);
             childNodeCopy.setTypeLabel(childNode.typeLabel);
             childNodeCopy.setTypeLabel(childNode.typeLabel);
+
             seenNodes.put(childNode, childNodeCopy);
         }
 
