@@ -1,15 +1,8 @@
 package recombination.likelihood;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-
-import beast.core.Logger;
 import beast.evolution.alignment.Alignment;
 import recombination.network.BreakPoints;
-import recombination.network.RecombinationNetworkEdge;
-import recombination.network.RecombinationNetworkNode;
 
 /**
  * standard likelihood core, uses no caching *

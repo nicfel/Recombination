@@ -208,8 +208,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         
         initPartials();
     	
-
-
         if (m_useAmbiguities.get() || m_useTipLikelihoods.get()) {
             setPartials(networkInput.get(), dataInput.get().getPatternCount());
         } else {
@@ -268,6 +266,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
             likelihoodCore.setStates(l.getParentEdges().get(0), states);
     	}
     }
+    
+    
 
     /**
      *
@@ -344,7 +344,10 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     public double calculateLogP() {
     	   	
         final RecombinationNetwork network = networkInput.get();
-//        System.out.println();System.out.println(network);
+        if (network.resume) {
+        	initCore();
+        	network.resume=false;
+        }
 
         List<RecombinationNetworkNode> nodes = network.getNodes().stream().filter(e -> !e.isLeaf()).collect(Collectors.toList());
         List<RecombinationNetworkEdge> edges = network.getEdges().stream().collect(Collectors.toList());
@@ -352,8 +355,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         List<Integer> edgeIDs = new ArrayList<>();
         
     	nodeHeight = new HashMap<>();
-
-        
         
         for (RecombinationNetworkEdge edge : edges) {
         	edge.visited=false;
@@ -395,8 +396,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
     	try {
 //    		if (iiiiii>300000)
-//    			System.out.println(network);
     		if (hasDirt == Tree.IS_FILTHY) {
+//    			System.out.println(network);
 		    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isLeaf()).collect(Collectors.toList())) {
 		    		getCoalChildren(n.getParentEdges().get(0).parentNode, n.getParentEdges().get(0).breakPoints, n.getParentEdges().get(0).ID, n.getParentEdges().get(0).breakPoints);
 		    	}
@@ -430,24 +431,23 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	        	if (e.childNode.isLeaf()) {
     		    		getCoalChildren(e.parentNode,e.breakPoints, e.ID, e.breakPoints);
     	        	}else {
-        	        	if (passOnPointer.get(e.ID)==null) {
+        	        	if (passOnPointer.get(e.ID)==null) { //start of calculations is "above" local root and doesn't affect likelihood
         	        		System.out.println(e.ID);
         	    	        System.out.println(network);
         	        		System.out.println(e.parentNode.getHeight() + " " + passOnRange.get(e.ID));
             	        	System.out.println(e.childNode.getHeight() + " " + passOnEdge.get(e.ID));
             	        	System.out.println(e.childNode.getHeight() + " " + passOnPointer.get(e.ID));
-            	        	System.out.println();
+        	        	}else {
+			        		for (int i=0;i < passOnPointer.get(e.ID).size(); i++) {
+		//	        			System.out.println(passOnEdge.get(e.ID));
+			        			if (nodeHeight.get(passOnEdge.get(e.ID).get(i))==null) {
+			        				System.out.println(e.ID);
+			        				System.out.println(passOnEdge.get(e.ID));
+			        				System.exit(0);
+			        			}
+		    					getCoalChildren(e.parentNode, passOnRange.get(e.ID).get(i), passOnEdge.get(e.ID).get(i), passOnPointer.get(e.ID).get(i));   
+			        		}
         	        	}
-
-		        		for (int i=0;i < passOnPointer.get(e.ID).size(); i++) {
-	//	        			System.out.println(passOnEdge.get(e.ID));
-		        			if (nodeHeight.get(passOnEdge.get(e.ID).get(i))==null) {
-		        				System.out.println(e.ID);
-		        				System.out.println(passOnEdge.get(e.ID));
-		        				System.exit(0);
-		        			}
-	    					getCoalChildren(e.parentNode, passOnRange.get(e.ID).get(i), passOnEdge.get(e.ID).get(i), passOnPointer.get(e.ID).get(i));   
-		        		}
     	        	}
     	        }
     		}
@@ -650,15 +650,15 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 //	        		                	System.out.println(nodeHeight.get(node.prevPointer.get(i)) + " " + nodeHeight.get(node.prevPointer.get(j)));
 	        		                	
 	        		                	mat1 = getLengthMatrix(node.getHeight() - nodeHeight.get(node.prevPointer.get(i)));
-	        		                	mat2 = getLengthMatrix(node.getHeight() - nodeHeight.get(node.prevPointer.get(j)));     	
-//	        		                	System.out.println(node.getHeight());
+	        		                	mat2 = getLengthMatrix(node.getHeight() - nodeHeight.get(node.prevPointer.get(j)));    
+	        		                	
 	        		        			likelihoodCore.calculatePartials(node.prevPointer.get(i), node.prevPointer.get(j), 
 	        		        					edge.ID, bp1, node.dummy2.get(i), node.dummy2.get(j), 
 	        		        					computeForPatterns, mat1, mat2);
 	        		                } else {
 	        		                    throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
 	        		                }	        		                
-	        	        		}else {        	 
+	        	        		}else {    
 //	        	        			System.out.println(edge.ID + " "+ node.dirtyBreakPoints);
 	        	    				// check label overlap
 	        	                    likelihoodCore.reassignLabels(edge.ID, bp1, node.dirtyBreakPoints);
@@ -691,10 +691,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
 
 		if (!passOnRange.containsKey(edge.ID)) {
-//			if (edge.ID==1697336245) {
-//				System.out.println("1");
-//			}
-
     		passOnRange.put(edge.ID, new ArrayList<>());
     		passOnPointer.put(edge.ID, new ArrayList<>());
     		passOnEdge.put(edge.ID, new ArrayList<>());
@@ -706,14 +702,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	    	edge.visited=true;	    
 	    	
 		}else {
-//			if (edge.ID==1697336245) {
-//				System.out.println("3");
-//			}
-//
 	    	if (!edge.visited) {
-//				if (edge.ID==1697336245) {
-//					System.out.println("2");
-//				}
 	    		passOnRange.replace(edge.ID, new ArrayList<>());
 	    		passOnPointer.replace(edge.ID, new ArrayList<>());
 	    		passOnEdge.replace(edge.ID, new ArrayList<>());

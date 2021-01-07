@@ -32,6 +32,8 @@ public class RecombinationNetwork extends StateNode {
         
     public Integer totalLength = null;
     
+    public boolean resume = false;
+    
     public NodeEdgeID nodeEdgeIDs;
     
     // keeps track of whether the last operator was the gibbs operator, meaning the likelihood does not requrie updating;
@@ -231,7 +233,7 @@ public class RecombinationNetwork extends StateNode {
 	        result.append(",pr={").append(currentEdge.passingRange);
 	        result.append("}");
         }
-        result.append(",id=\"").append(currentEdge.ID).append("\"");
+//        result.append(",id=\"").append(currentEdge.ID).append("\"");
 
 
         
@@ -239,9 +241,9 @@ public class RecombinationNetwork extends StateNode {
 //            result.append(",").append(i).append("=").append(currentEdge.breakPoints.contains(i));
 
         	
-        result.append(",dirty=").append(currentEdge.isDirty);
-        result.append(",dirtyEdges={").append(currentEdge.childNode.dirtyBreakPoints);
-        result.append("}");
+//        result.append(",dirty=").append(currentEdge.isDirty);
+//        result.append(",dirtyEdges={").append(currentEdge.childNode.dirtyBreakPoints);
+//        result.append("}");
 //        if (currentEdge.childNode.dummy4!=null) {
 //	        if (currentEdge.childNode.dummy4.size()>0) {
 //		        result.append(",dummy=\"");
@@ -379,6 +381,7 @@ public class RecombinationNetwork extends StateNode {
 
         // Restore taxon indices
         getLeafNodes().forEach(n -> n.setTaxonIndex(taxonToIndexMap.get(n.getTaxonLabel())));
+        resume = true;
     }
 
     @Override
