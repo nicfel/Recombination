@@ -124,7 +124,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	                	
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(iEdge.ID);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
                 		iEdgeCopy.passingRange = iEdge.passingRange.copy();
@@ -173,15 +173,14 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	newParent.addChildEdge(newIpEdge);
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
-                	                	
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
+                	
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(iEdge.ID);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
                 		iEdgeCopy.passingRange = iEdge.passingRange.copy();
                 	i.addParentEdge(iEdgeCopy);
                 	destNode.addChildEdge(iEdgeCopy);
                 	
-          	
                 	BreakPoints segsToAdd = iEdgeCopy.breakPoints.copy();
                 	segsToAdd.andNot(getSisterEdge(iEdgeCopy).breakPoints);
                 	logHR -= addLociToAncestors(newIpEdge, segsToAdd);
@@ -255,7 +254,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	destNode.addChildEdge(newChildEdge);
                 	
 
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(iEdge.ID);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
                 		iEdgeCopy.passingRange = iEdge.passingRange.copy();
@@ -295,7 +294,7 @@ public class SubRecombinationNetworkSlide extends DivertLociOperator {
                 	destNode.addParentEdge(newIpEdge);
                 	destNode.addChildEdge(newChildEdge);
                 	
-                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(network.nodeEdgeIDs);
+                	RecombinationNetworkEdge iEdgeCopy = new RecombinationNetworkEdge(iEdge.ID);
                 	iEdgeCopy.breakPoints = iEdge.breakPoints.copy();
                 	if (iEdge.passingRange!=null)
                 		iEdgeCopy.passingRange = iEdge.passingRange.copy();

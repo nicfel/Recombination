@@ -26,6 +26,12 @@ public class RecombinationNetworkEdge {
         ID = nodeEdgeIDs.getNewEdgeID();
         isDirty = Tree.IS_DIRTY;
     }
+    
+    public RecombinationNetworkEdge(Integer ID) { 
+        this.ID = ID;
+        isDirty = Tree.IS_DIRTY;
+    }
+
 
     public RecombinationNetworkEdge(RecombinationNetworkNode parentNode, RecombinationNetworkNode childNode,
     		BreakPoints breakPoints, BreakPoints passingRange, NodeEdgeID nodeEdgeIDs) {
@@ -106,6 +112,7 @@ public class RecombinationNetworkEdge {
             traverse = false;
         } else {
             childNodeCopy = new RecombinationNetworkNode(childNode.ID);
+            
             childNodeCopy.setHeight(childNode.getHeight());
             childNodeCopy.setTaxonLabel(childNode.getTaxonLabel());
             childNodeCopy.setTaxonIndex(childNode.getTaxonIndex());

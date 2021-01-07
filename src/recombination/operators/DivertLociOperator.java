@@ -99,9 +99,6 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (edge.isRootEdge())
             return logP;
         
-        if (edge.childNode.dirtyBreakPoints==null) {
-        	edge.childNode.dirtyBreakPoints = new BreakPoints();
-        }
         edge.childNode.dirtyBreakPoints.or(rangeToRemove);
 
         markDirty(edge, rangeToRemove);        
@@ -156,9 +153,7 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         if (edge.isRootEdge())
             return logP;        
         
-        if (edge.childNode.dirtyBreakPoints==null) {
-        	edge.childNode.dirtyBreakPoints = new BreakPoints();
-        }
+       
         edge.childNode.dirtyBreakPoints.or(rangeToAdd);
 
                 
@@ -249,11 +244,8 @@ public class DivertLociOperator extends EmptyEdgesRecombinationNetworkOperator {
         BreakPoints dirtyBreakPoints_local = dirtyBreakPoints.copy();
 
         
-        if (edge.parentNode.dirtyBreakPoints==null) {
-        	edge.parentNode.dirtyBreakPoints = new BreakPoints();
-        }else {    
-        	dirtyBreakPoints_local.andNot(edge.parentNode.dirtyBreakPoints);
-        }
+    	dirtyBreakPoints_local.andNot(edge.parentNode.dirtyBreakPoints);
+        
         
         if (dirtyBreakPoints_local.isEmpty())
         	return;

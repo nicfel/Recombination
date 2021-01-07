@@ -31,6 +31,7 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
         int[] stateIndex1 = states.get(ID1);
         int[] stateIndex2 = states.get(ID2);
 
+//        System.out.println(ID3);
         
         int v=0;
         	
@@ -122,11 +123,12 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
         int u = 0;
         int v = 0;      
         
+//        System.out.println(ID2);
+        
         double[] partials3 = partials.getPartialsOperation(ID3, computeFor);
         int[] states_child1 = this.states.get(ID1);
         double[] partials2 = partials.getPartials(ID2, compute2);
         
-       
         for (int l = 0; l < nrOfMatrices; l++) {
             for (int k = 0; k < nrOfPatterns; k++) {
             	if (computeForPatterns[k]) {

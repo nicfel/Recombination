@@ -394,16 +394,17 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		likelihoodCore.debug=false;
 
     	try {
-//	        System.out.println(network);
+//    		if (iiiiii>300000)
+//    			System.out.println(network);
     		if (hasDirt == Tree.IS_FILTHY) {
 		    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isLeaf()).collect(Collectors.toList())) {
-		    		getCoalChildren(n, n.getParentEdges().get(0).breakPoints, n.getParentEdges().get(0).ID, n.getParentEdges().get(0).breakPoints);
+		    		getCoalChildren(n.getParentEdges().get(0).parentNode, n.getParentEdges().get(0).breakPoints, n.getParentEdges().get(0).ID, n.getParentEdges().get(0).breakPoints);
 		    	}
     		}else {
     			List<RecombinationNetworkEdge> es = network.getEdges().stream()
     					.filter(e -> !e.isRootEdge())
-    					.filter(e -> e.parentNode.dirtyBreakPoints!=null)
-						.filter(e -> e.childNode.dirtyBreakPoints==null)
+    					.filter(e -> !e.parentNode.dirtyBreakPoints.isEmpty())
+						.filter(e -> e.childNode.dirtyBreakPoints.isEmpty())
     					.collect(Collectors.toList());
     			
 //    	        System.out.println(passOnPointer);
@@ -411,29 +412,53 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 //    			System.out.println(nodeHeight.size());
     			
     	        for (RecombinationNetworkEdge e : es) {
-//    	        	System.out.println(e.parentNode.getHeight() + " " + passOnRange.get(e.ID));
-//    	        	System.out.println(e.childNode.getHeight() + " " + passOnEdge.get(e.ID));
-//    	        	System.out.println(e.childNode.getHeight() + " " + passOnPointer.get(e.ID));
-//    	        	System.out.println();
-	        		for (int i=0;i < passOnPointer.get(e.ID).size(); i++) {
-//	        			System.out.println(passOnEdge.get(e.ID));
-	        			if (nodeHeight.get(passOnEdge.get(e.ID).get(i))==null) {
-	        				System.out.println(e.ID);
-	        				System.out.println(passOnEdge.get(e.ID));
-	        				System.exit(0);
-	        			}
-    					getCoalChildren(e.parentNode, passOnRange.get(e.ID).get(i), passOnEdge.get(e.ID).get(i), passOnPointer.get(e.ID).get(i));   
-	        		}
+    	        	e.visited=true;
+    	        }
+    	        
+//    	        if (iiiiii>300000) {
+//    	        	System.out.println(es.size());
+//    	        }
+    			
+    	        for (RecombinationNetworkEdge e : es) {
+//    	    		if (iiiiii>300000) {
+////    	        		System.out.println(e.ID);
+//		        		System.out.println(e.parentNode.getHeight() + " " + passOnRange.get(e.ID) +" "+ e.ID);
+////	    	        	System.out.println(e.childNode.getHeight() + " " + passOnEdge.get(e.ID));
+////	    	        	System.out.println(e.childNode.getHeight() + " " + passOnPointer.get(e.ID));
+//    	    		}
+
+    	        	if (e.childNode.isLeaf()) {
+    		    		getCoalChildren(e.parentNode,e.breakPoints, e.ID, e.breakPoints);
+    	        	}else {
+        	        	if (passOnPointer.get(e.ID)==null) {
+        	        		System.out.println(e.ID);
+        	    	        System.out.println(network);
+        	        		System.out.println(e.parentNode.getHeight() + " " + passOnRange.get(e.ID));
+            	        	System.out.println(e.childNode.getHeight() + " " + passOnEdge.get(e.ID));
+            	        	System.out.println(e.childNode.getHeight() + " " + passOnPointer.get(e.ID));
+            	        	System.out.println();
+        	        	}
+
+		        		for (int i=0;i < passOnPointer.get(e.ID).size(); i++) {
+	//	        			System.out.println(passOnEdge.get(e.ID));
+		        			if (nodeHeight.get(passOnEdge.get(e.ID).get(i))==null) {
+		        				System.out.println(e.ID);
+		        				System.out.println(passOnEdge.get(e.ID));
+		        				System.exit(0);
+		        			}
+	    					getCoalChildren(e.parentNode, passOnRange.get(e.ID).get(i), passOnEdge.get(e.ID).get(i), passOnPointer.get(e.ID).get(i));   
+		        		}
+    	        	}
     	        }
     		}
 
     		calcLogP(network.getRootEdge());
     		
-    		for (Integer i : nodeHeight.keySet()) {
-    			for (Integer j :  passOnEdge.get(i))
-    				if (nodeHeight.get(j)==null)
-    					System.exit(0);
-    		}
+//    		for (Integer i : nodeHeight.keySet()) {
+//    			for (Integer j :  passOnEdge.get(i))
+//    				if (nodeHeight.get(j)==null)
+//    					System.exit(0);
+//    		}
 
         }catch (ArithmeticException e) {
         	return Double.NEGATIVE_INFINITY;
@@ -522,14 +547,14 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     	if (computeFor_BP.isEmpty())
     		return;   
       
-        if (node.isLeaf()) {        
-        	
-        	updateEdgeInfo(node.getParentEdges().get(0), computeFor_BP, node.getParentEdges().get(0).ID, computeFor_BP);
-        	getCoalChildren(node.getParentEdges().get(0).parentNode, computeFor_BP, node.getParentEdges().get(0).ID, computeFor_BP);
-        }else if (node.isRecombination()) {
+        if (node.isRecombination()) {
         	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
         		BreakPoints bp = computeFor_BP.copy();      		
         		bp.and(edge.passingRange);  
+        		if (edge.ID==1040018857) {
+        			System.out.println(":::::::::::::::::::::");
+        			System.out.println(bp);
+        		}
         		if (!bp.isEmpty()) {        		
 	            	updateEdgeInfo(edge, bp, prev_edge_ID, prev_Pointer);        		
 	        		getCoalChildren(edge.parentNode, bp, prev_edge_ID, prev_Pointer);
@@ -575,21 +600,14 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 		    		node.dummy.get(i).or(computeFor);		    		
 		    		exists = true;
 	    		}
-//	    		System.out.println(node.dummy2.get(i) + " " + prev_Pointer + " " + node.dummy2.get(i).equals(prev_Pointer));
     		}
     		
     		if (!exists) {
-
 	    		node.dummy.add(computeFor.copy());		    		
 	    		node.prevPointer.add(prev_edge_ID);
 	    		node.dummy2.add(prev_Pointer.copy());
     		}
     		   		
-//			if (node.getHeight()==2.68187064061905) {
-//				System.out.println(exists);
-//            	System.out.println("........");
-//            	System.out.println(node.getHeight() + " " + prev_Pointer + " " + node.dummy + " " + node.prevPointer + " " + node.dummy2);
-//			}
 
     		BreakPoints bp_in = computeFor.copy();
     		
@@ -609,6 +627,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	        		}  
 	        	}
     		}
+    		
     		
     		
     		if (node.dummy3.equals(node.overlap)) {
@@ -632,7 +651,7 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	        		                	
 	        		                	mat1 = getLengthMatrix(node.getHeight() - nodeHeight.get(node.prevPointer.get(i)));
 	        		                	mat2 = getLengthMatrix(node.getHeight() - nodeHeight.get(node.prevPointer.get(j)));     	
-	        	        			
+//	        		                	System.out.println(node.getHeight());
 	        		        			likelihoodCore.calculatePartials(node.prevPointer.get(i), node.prevPointer.get(j), 
 	        		        					edge.ID, bp1, node.dummy2.get(i), node.dummy2.get(j), 
 	        		        					computeForPatterns, mat1, mat2);
@@ -643,9 +662,10 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 //	        	        			System.out.println(edge.ID + " "+ node.dirtyBreakPoints);
 	        	    				// check label overlap
 	        	                    likelihoodCore.reassignLabels(edge.ID, bp1, node.dirtyBreakPoints);
-	        	        		}	        		        	
+	        	        		}	        		        		        		        	
 	        		        	
                             	updateEdgeInfo(edge, bp1, edge.ID, bp1);
+//                            	System.out.println(edge.ID);
 	                        	if (!edge.isRootEdge()) {
 	                        		getCoalChildren(edge.parentNode, bp1, edge.ID, bp1);
 	                        	}
@@ -658,10 +678,23 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
     		
 		}        
     }
+	int jjjj=0;
 	
 	private void updateEdgeInfo(RecombinationNetworkEdge edge, BreakPoints computeFor, int ID, BreakPoints prevPointer) {
+//		if (edge.ID==1697336245) {
+//			System.out.println(computeFor);
+//			jjjj++;
+////			if (jjjj>3)
+////				System.exit(0);
+//		}
 		
+
+
 		if (!passOnRange.containsKey(edge.ID)) {
+//			if (edge.ID==1697336245) {
+//				System.out.println("1");
+//			}
+
     		passOnRange.put(edge.ID, new ArrayList<>());
     		passOnPointer.put(edge.ID, new ArrayList<>());
     		passOnEdge.put(edge.ID, new ArrayList<>());
@@ -673,8 +706,14 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 	    	edge.visited=true;	    
 	    	
 		}else {
-			
+//			if (edge.ID==1697336245) {
+//				System.out.println("3");
+//			}
+//
 	    	if (!edge.visited) {
+//				if (edge.ID==1697336245) {
+//					System.out.println("2");
+//				}
 	    		passOnRange.replace(edge.ID, new ArrayList<>());
 	    		passOnPointer.replace(edge.ID, new ArrayList<>());
 	    		passOnEdge.replace(edge.ID, new ArrayList<>());
@@ -775,7 +814,10 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
     @Override
     public void store() {
-//    	System.out.println("store");
+//		if (iiiiii>300000) {
+//	        System.out.println(passOnPointer.containsKey(1040018857));
+//	        System.out.println("store");
+//		}
 //        if (beagle != null) {
 //            beagle.store();
 //            super.store();
@@ -794,7 +836,6 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
         storedPassOnPointer = new HashMap<>();
         storedPassOnRange = new HashMap<>();
         storedPassOnEdge = new HashMap<>();
-        
         
         for (Integer key : passOnPointer.keySet()) {
         	if (storedNodeHeight.containsKey(key)) {
@@ -823,7 +864,8 @@ public class NetworkLikelihood extends GenericNetworkLikelihood {
 
     @Override
     public void restore() {
-//    	System.out.println("restore");
+//		if (iiiiii>300000) 
+//			System.out.println("restore");
 //        if (beagle != null) {
 //            beagle.restore();
 //            super.restore();

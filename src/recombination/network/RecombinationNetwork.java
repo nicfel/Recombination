@@ -338,7 +338,7 @@ public class RecombinationNetwork extends StateNode {
     	}
     	if (!isDirty) {
         	for (RecombinationNetworkNode n : getNodes().stream().collect(Collectors.toList())) {
-            	n.dirtyBreakPoints = null;
+            	n.dirtyBreakPoints = new BreakPoints();
         	}
     	}
         setSomethingIsDirty(isDirty);

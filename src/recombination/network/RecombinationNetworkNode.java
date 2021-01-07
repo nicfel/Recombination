@@ -70,10 +70,13 @@ public class RecombinationNetworkNode {
 
     public RecombinationNetworkNode(NodeEdgeID nodeEdgeIDs) {
     	ID = nodeEdgeIDs.getNewNodeID();
+    	dirtyBreakPoints = new BreakPoints();
     }
     
     public RecombinationNetworkNode(int id) {   	
     	ID = id;
+    	dirtyBreakPoints = new BreakPoints();
+    	
     }
 
 

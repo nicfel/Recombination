@@ -191,7 +191,7 @@ public class BreakPoints {
 		
 	public String toString() {
 		if (isEmpty())
-			return "null";
+			return "";
 		
 		String val="";
 		for (int i = 0; i < this.breakPoints.size(); i++) {
