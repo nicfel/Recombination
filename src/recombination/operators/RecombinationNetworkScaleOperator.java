@@ -97,12 +97,11 @@ public class RecombinationNetworkScaleOperator extends RecombinationNetworkOpera
                 count += 1;
             }
 
-            if (f < 1.0) {
-                for (RecombinationNetworkNode leaf : network.getLeafNodes()) {
-                    if (leaf.getParentEdges().get(0).parentNode.getHeight() < leaf.getHeight())
-                        return Double.NEGATIVE_INFINITY;
-                }
+            for (RecombinationNetworkNode leaf : network.getLeafNodes()) {
+                if (leaf.getParentEdges().get(0).parentNode.getHeight() < leaf.getHeight())
+                    return Double.NEGATIVE_INFINITY;
             }
+            
 
         }
 

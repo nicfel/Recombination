@@ -28,13 +28,13 @@ import recombination.network.RecombinationNetworkNode;
         + "distributions over MRCA times or (sets of) tips of trees")
 public class TipPrior extends Distribution {
     public final Input<RecombinationNetwork> networkInput = new Input<>("network", "the network containing the taxon set", Validate.REQUIRED);
-    public final Input<TaxonSet> taxonsetInput = new Input<>("taxonset",
-            "set of taxa for which prior information is available");
+    public final Input<List<TaxonSet>> taxonsetInput = new Input<>("taxonset",
+            "set of taxa for which prior information is available", new ArrayList<>());
     public final Input<Boolean> isMonophyleticInput = new Input<>("monophyletic",
             "whether the taxon set is monophyletic (forms a clade without other taxa) or nor. Default is false.", false);
-    public final Input<ParametricDistribution> distInput = new Input<>("distr",
+    public final Input<List<ParametricDistribution>> distInput = new Input<>("distr",
             "distribution used to calculate prior over MRCA time, "
-                    + "e.g. normal, beta, gamma. If not specified, monophyletic must be true");
+                    + "e.g. normal, beta, gamma. If not specified, monophyletic must be true", new ArrayList<>());
     public Input<Double> dateOffsetInput = new Input<>("dateOffset", 
     		"keeps track of how much the dates have change", Validate.REQUIRED);
 
@@ -60,31 +60,17 @@ public class TipPrior extends Distribution {
     
     RecombinationNetworkNode operatingNode;
     Double dateOffset;
+    
+    List<String> tipNames;
 
     @Override
     public void initAndValidate() {
-        dist = distInput.get();
+//        dist = distInput.get();
         network = networkInput.get();
-        dateOffset = dateOffsetInput.get();
         
-                                
-        if (taxonsetInput.get().asStringList().size()!= 1) {
-        	throw new IllegalArgumentException("TipPrior expects the number of tips to be 1");
-        }
-
-        for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
-        	if (taxon.getTaxonLabel()==taxonsetInput.get().getTaxonId(0)){
-        		operatingNode = taxon;
-        		break;
-        	}
-        }    
-        MRCATime = dateOffsetInput.get() - operatingNode.getHeight();
-
-        initialised = false;
+        getTipNames();
     }
 
-    boolean [] nodesTraversed;
-    int nseen;
 
 
     // A lightweight version for finding the most recent common ancestor of a group of taxa.
@@ -92,66 +78,48 @@ public class TipPrior extends Distribution {
 
     @Override
     public double calculateLogP() {
-    	if (!initialised) {
-    		initialise();
+    	if (tipNames==null || tipNames.size()==0) {
+    		getTipNames();
     	}
         logP = 0;
-        
-        // tip date
-    	if (dist == null) {
-    		return logP;
+        int i = 0;
+    	for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
+    		int index = tipNames.indexOf(taxon.getTaxonLabel());
+    		if (index!=-1) {
+                logP += distInput.get().get(index).logDensity(dateOffsetInput.get() - taxon.getHeight());
+                i++;
+    		}
     	}
-        for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
-        	if (taxon.getTaxonLabel().equals(taxonsetInput.get().getTaxonId(0))){
-        		operatingNode = taxon;
-                MRCATime = dateOffsetInput.get() - operatingNode.getHeight();
-                logP += dist.logDensity(MRCATime);
-        		break;
+    	
+    	if (i!=tipNames.size()){
+    		getTipNames();
+    		logP = 0;
+        	for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
+        		int index = tipNames.indexOf(taxon.getTaxonLabel());
+        		if (index!=-1) {
+                    logP += distInput.get().get(index).logDensity(dateOffsetInput.get() - taxon.getHeight());
+        		}
         	}
-        }    
+    	}
+    	    	
         return logP;
     }
     
-    public void initialise() {
-        dist = distInput.get();
-        network = networkInput.get();        
-        
-        final List<String> taxaNames = new ArrayList<>();
-        for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
-            taxaNames.add(taxon.getTaxonLabel());
+    private void getTipNames() {
+    	tipNames = new ArrayList<>();
+        for (TaxonSet taxon : taxonsetInput.get()) {
+        	tipNames.add(taxon.getTaxonId(0));
         }
-        
-        // determine nr of taxa in taxon set
-        List<String> set = null;
-        if (taxonsetInput.get() != null) {
-            set = taxonsetInput.get().asStringList();
-            nrOfTaxa = set.size();
-        } else {
-            // assume all taxa
-            nrOfTaxa = taxaNames.size();
-        }
-
-        if (nrOfTaxa == 1) {
-        }else{
-        	throw new IllegalArgumentException("TipPrior expects the number of tips to be 1");
-        }
-        
-        initialised = true;
     }
-
-
+    
 
     @Override
     public void store() {
-        storedMRCATime = MRCATime;
-        // don't need to store m_bIsMonophyletic since it is never reported
-        // explicitly, only logP and MRCA time are (re)stored
         super.store();
     }
 
     @Override
     public void restore() {
-        MRCATime = storedMRCATime;
         super.restore();
     }
 
@@ -166,22 +134,29 @@ public class TipPrior extends Distribution {
      */
     @Override
     public void init(final PrintStream out) {
-    	if (!initialised) {
-    		initialise();
+    	if (tipNames==null || tipNames.size()==0) {
+    		getTipNames();
     	}
-        if (dist != null) {
-            out.print("logP(mrca(" + getID() + "))\t");
-        }
-        out.print("height(" + operatingNode.getTaxonLabel() + ")\t");
-        
+
+    	for (String s : tipNames)
+    		out.print(s + ".height" + "\t");
     }
 
     @Override
     public void log(final long sample, final PrintStream out) {
-        if (dist != null) {
-            out.print(getCurrentLogP() + "\t");
-        }
-        out.print(MRCATime + "\t");
+    	if (tipNames==null || tipNames.size()==0) {
+    		getTipNames();
+    	}
+
+    	double[] heights = new double[tipNames.size()];
+    	for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
+    		int index = tipNames.indexOf(taxon.getTaxonLabel());
+    		if (index!=-1) {
+    			heights[index] = dateOffsetInput.get() - taxon.getHeight();
+    		}
+    	}
+    	for (int i = 0; i < heights.length; i++)
+    		out.print(heights[i] + "\t");
     }
 
     @Override
@@ -207,25 +182,6 @@ public class TipPrior extends Distribution {
     		}
     	}
         return logP;
-    }
-
-    @Override
-    public double getArrayValue(final int dim) {
-    	if (Double.isNaN(logP)) {
-    		try {
-    			calculateLogP();
-    		}catch (Exception e) {
-    			logP  = Double.NaN;
-    		}
-    	}
-        switch (dim) {
-            case 0:
-                return logP;
-            case 1:
-                return MRCATime;
-            default:
-                return 0;
-        }
     }
 
     @Override

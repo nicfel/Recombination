@@ -91,12 +91,13 @@ abstract public class NetworkLikelihoodCore {
     abstract public void calculatePartials(Integer ID1, Integer ID2, Integer ID3, 
     		BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
     		boolean[] computeForPatterns, double[] matrices1, double[] matrices2);
+    
     //abstract public void calculatePartials(int node1, int node2Index, int node3, int[] matrixMap);
 
     /**
      * integrate partials over categories (if any). *
      */
-    abstract public double integratePartials(double[] proportions, double[] frequencies, Alignment data, HashMap<Integer, BreakPoints> rootBreaks);
+    abstract public double integratePartials(double[] proportions, double[] frequencies, Alignment data, Integer i, BreakPoints rootBreaks);
 
     /**
      * calculate log likelihoods at the root of the tree,
@@ -109,7 +110,7 @@ abstract public class NetworkLikelihoodCore {
 
     abstract public void setEdgeMatrix(RecombinationNetworkEdge edge, int i, double[] matrix);
     
-    abstract public void setStates(RecombinationNetworkEdge edge, int[] states);
+    abstract public void setStates(int j, int[] states);
 
     abstract public void initPartials(Integer iD, int length);
 

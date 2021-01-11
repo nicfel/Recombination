@@ -287,73 +287,70 @@ public class BeerNetworkLikelihood4 extends BeerNetworkLikelihoodCore {
     }
     
 	@Override
-	public double integratePartials(double[] proportions, double[] frequencies, Alignment data, HashMap<Integer, BreakPoints> rootBreaks) {
+	public double integratePartials(double[] proportions, double[] frequencies, Alignment data, Integer i, BreakPoints rootBreaks) {
 		
         double logP = 0;
         int[] nrInPattern;
         double[] outPartials = new double[4*nrOfPatterns];
         
-        
-        
-        for (Integer i : rootBreaks.keySet()) {
-        	for (BreakPoints bp : partials.getBreaks(i)) {
-        		if (!bp.isEmpty()) {
-	        		BreakPoints bp1 = bp.copy();
-	        		bp1.and(rootBreaks.get(i));
-	        		
-	        		if (!bp1.isEmpty()) {   	
-	        	        nrInPattern = new int[nrOfPatterns];      
-	        			computeInPatterns(nrInPattern, data, bp1);
-	        			
-	                    double[] inPartials = partials.getPartials(i, bp);                    
-	                    
-	                    int u = 0;
-	                    int v = 0;
-	                    for (int k = 0; k < nrOfPatterns; k++) {
-	                    	if (nrInPattern[k]!=0) {
-		                        for (int s = 0; s < nrOfStates; s++) {
-	
-		                            outPartials[u] = inPartials[v] * proportions[0];
-		                            outPartials[u+1] = inPartials[v+1] * proportions[0];
-		                            outPartials[u+2] = inPartials[v+2] * proportions[0];
-		                            outPartials[u+3] = inPartials[v+3] * proportions[0];
-		                        }
-	                    	}
-                    		u+=4;
-                    		v+=4;
-	                    }
+    	for (BreakPoints bp : partials.getBreaks(i)) {
+    		if (!bp.isEmpty()) {
+        		BreakPoints bp1 = bp.copy();
+        		bp1.and(rootBreaks);
+        		
+        		if (!bp1.isEmpty()) {   	
+        	        nrInPattern = new int[nrOfPatterns];      
+        			computeInPatterns(nrInPattern, data, bp1);
+        			
+                    double[] inPartials = partials.getPartials(i, bp);                    
+                    
+                    int u = 0;
+                    int v = 0;
+                    for (int k = 0; k < nrOfPatterns; k++) {
+                    	if (nrInPattern[k]!=0) {
+	                        for (int s = 0; s < nrOfStates; s++) {
 
-
-	                    for (int l = 1; l < nrOfMatrices; l++) {
-	                        u = 0;
-	                        for (int k = 0; k < nrOfPatterns; k++) {
-	                        	if (nrInPattern[k]!=0) {
-	                                outPartials[u] += inPartials[v] * proportions[l];
-	                                outPartials[u+1] += inPartials[v+1] * proportions[l];
-	                                outPartials[u+2] += inPartials[v+2] * proportions[l];
-	                                outPartials[u+3] += inPartials[v+3] * proportions[l];
-	                        	}
-	                    		u+=4;
-	                    		v+=4;
-
+	                            outPartials[u] = inPartials[v] * proportions[0];
+	                            outPartials[u+1] = inPartials[v+1] * proportions[0];
+	                            outPartials[u+2] = inPartials[v+2] * proportions[0];
+	                            outPartials[u+3] = inPartials[v+3] * proportions[0];
 	                        }
-	                    }
-	                    u = 0;
+                    	}
+                		u+=4;
+                		v+=4;
+                    }
+
+
+                    for (int l = 1; l < nrOfMatrices; l++) {
+                        u = 0;
                         for (int k = 0; k < nrOfPatterns; k++) {
                         	if (nrInPattern[k]!=0) {
-                        		double sum = frequencies[0] * outPartials[u];
-                        		sum+= frequencies[1] * outPartials[u+1];
-                        		sum+= frequencies[2] * outPartials[u+2];
-                        		sum+= frequencies[3] * outPartials[u+3];
-                                logP += Math.log(sum)*nrInPattern[k];
-                        	
+                                outPartials[u] += inPartials[v] * proportions[l];
+                                outPartials[u+1] += inPartials[v+1] * proportions[l];
+                                outPartials[u+2] += inPartials[v+2] * proportions[l];
+                                outPartials[u+3] += inPartials[v+3] * proportions[l];
                         	}
-                        	u+=4;
-                        }	                                                
-	        		}   	        		
-        		}         		
-        	}        	
-        }  
+                    		u+=4;
+                    		v+=4;
+
+                        }
+                    }
+                    u = 0;
+                    for (int k = 0; k < nrOfPatterns; k++) {
+                    	if (nrInPattern[k]!=0) {
+                    		double sum = frequencies[0] * outPartials[u];
+                    		sum+= frequencies[1] * outPartials[u+1];
+                    		sum+= frequencies[2] * outPartials[u+2];
+                    		sum+= frequencies[3] * outPartials[u+3];
+                            logP += Math.log(sum)*nrInPattern[k];
+                    	
+                    	}
+                    	u+=4;
+                    }	                                                
+        		}   	        		
+    		}         		
+    	}        	
+          
         return logP;
     }
 	

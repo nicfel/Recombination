@@ -160,15 +160,16 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	public void calculatePartials(Integer ID1, Integer ID2, Integer ID3, 
 			BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
 			boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
+    
 
-        if (states.containsKey(ID1)) {
-            if (states.containsKey(ID2)) {
+        if (ID1>=0) {
+            if (ID2>=0) {
                 calculateStatesStatesPruning(ID1,ID2,ID3,computeFor,compute1,compute2,computeForPatterns, matrices1, matrices2);
             } else {
                 calculateStatesPartialsPruning(ID1,ID2,ID3,computeFor,compute1,compute2,computeForPatterns, matrices1, matrices2);
             }
         } else {
-            if (states.containsKey(ID2)) {
+            if (ID2>=0) {
                 calculateStatesPartialsPruning(ID2,ID1,ID3,computeFor,compute2,compute1,computeForPatterns, matrices2, matrices1);
             } else {
                 calculatePartialsPartialsPruning(ID1,ID2,ID3,computeFor,compute1,compute2,computeForPatterns, matrices1, matrices2);
@@ -180,77 +181,75 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     }
     
 	@Override
-	public double integratePartials(double[] proportions, double[] frequencies, Alignment data, HashMap<Integer, BreakPoints> rootBreaks) {
+	public double integratePartials(double[] proportions, double[] frequencies, Alignment data, Integer i, BreakPoints rootBreaks) {
         double logP = 0;
         int[] nrInPattern;
         double[] outPartials = new double[nrOfStates*nrOfPatterns];
         
-        for (Integer i : rootBreaks.keySet()) {
-        	for (BreakPoints bp : partials.getBreaks(i)) {
-        		if (!bp.isEmpty()) {
-	        		BreakPoints bp1 = bp.copy();
-	        		bp1.and(rootBreaks.get(i));
-	        		
-	        		if (!bp1.isEmpty()) {
-	        			
-	        	        nrInPattern = new int[nrOfPatterns];      
-	        			computeInPatterns(nrInPattern, data, bp1);
-	        			
-	                    double[] inPartials = partials.getPartials(i, bp);                    
-	                    
-	                    int u = 0;
-	                    int v = 0;
-	                    for (int k = 0; k < nrOfPatterns; k++) {
-	                    	if (nrInPattern[k]!=0) {
-		                        for (int s = 0; s < nrOfStates; s++) {
-	
-		                            outPartials[u] = inPartials[v] * proportions[0];
-		                            u++;
-		                            v++;
-		                        }
-	                    	}else {
-	                    		u+=nrOfStates;
-	                    		v+=nrOfStates;
-	                    	}
-	                    }
+    	for (BreakPoints bp : partials.getBreaks(i)) {
+    		if (!bp.isEmpty()) {
+        		BreakPoints bp1 = bp.copy();
+        		bp1.and(rootBreaks);
+        		
+        		if (!bp1.isEmpty()) {
+        			
+        	        nrInPattern = new int[nrOfPatterns];      
+        			computeInPatterns(nrInPattern, data, bp1);
+        			
+                    double[] inPartials = partials.getPartials(i, bp);                    
+                    
+                    int u = 0;
+                    int v = 0;
+                    for (int k = 0; k < nrOfPatterns; k++) {
+                    	if (nrInPattern[k]!=0) {
+	                        for (int s = 0; s < nrOfStates; s++) {
 
-
-	                    for (int l = 1; l < nrOfMatrices; l++) {
-	                        u = 0;
-	                        for (int k = 0; k < nrOfPatterns; k++) {
-	                        	if (nrInPattern[k]!=0) {
-		                            for (int s = 0; s < nrOfStates; s++) {
-	
-		                                outPartials[u] += inPartials[v] * proportions[l];
-		                                u++;
-		                                v++;
-		                            }
-	                        	}else {
-		                    		u+=nrOfStates;
-		                    		v+=nrOfStates;
-	                        	}
+	                            outPartials[u] = inPartials[v] * proportions[0];
+	                            u++;
+	                            v++;
 	                        }
-	                    }
-	                    u = 0;
+                    	}else {
+                    		u+=nrOfStates;
+                    		v+=nrOfStates;
+                    	}
+                    }
+
+
+                    for (int l = 1; l < nrOfMatrices; l++) {
+                        u = 0;
                         for (int k = 0; k < nrOfPatterns; k++) {
                         	if (nrInPattern[k]!=0) {
-                        		double sum = 0;
-                                for (int s = 0; s < nrOfStates; s++) {
-                                    sum += frequencies[s] * outPartials[u];
-                                    u++;
-                                }
-                                logP += Math.log(sum)*nrInPattern[k];
+	                            for (int s = 0; s < nrOfStates; s++) {
+
+	                                outPartials[u] += inPartials[v] * proportions[l];
+	                                u++;
+	                                v++;
+	                            }
                         	}else {
-                        		u+=nrOfStates;
+	                    		u+=nrOfStates;
+	                    		v+=nrOfStates;
                         	}
-                        }	                    
-	        		}   	        		
-        		}         		
-        	}        	
-        }  
+                        }
+                    }
+                    u = 0;
+                    for (int k = 0; k < nrOfPatterns; k++) {
+                    	if (nrInPattern[k]!=0) {
+                    		double sum = 0;
+                            for (int s = 0; s < nrOfStates; s++) {
+                                sum += frequencies[s] * outPartials[u];
+                                u++;
+                            }
+                            logP += Math.log(sum)*nrInPattern[k];
+                    	}else {
+                    		u+=nrOfStates;
+                    	}
+                    }	                    
+        		}   	        		
+    		}         		
+    	}        	
+    
         return logP;
     }
-	
 	
     private void computeInPatterns(int[] nrInPattern, Alignment data, BreakPoints computeFor) {
         for (int j = 0; j < computeFor.size();j++) {
@@ -259,8 +258,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         	}			
 		}
 	}
-
-
 
     /**
      * Scale the partials at a given node. This uses a scaling suggested by Ziheng Yang in
@@ -315,8 +312,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
         }
     }
 
-    
-    
     /**
      * This function returns the scaling factor for that pattern by summing over
      * the log scalings used at each node. If scaling is off then this just returns
@@ -402,10 +397,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	}
 	
 	@Override
-	public void setStates(RecombinationNetworkEdge edge, int[] states) {
+	public void setStates(int j, int[] states) {
         int[] newstates = new int[states.length];
 		System.arraycopy(states, 0, newstates, 0, states.length);
-		this.states.put(edge.ID, newstates);
+		this.states.put(j, newstates);
 	}
 
 
@@ -446,7 +441,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 	protected void cleanPartialsNode(Integer ID) {
 		partials.removeBreaks(ID);
 	}
-
+	
 	protected void ensureLables(Integer ID, BreakPoints computeFor) {
 
 		List<BreakPoints> breaks = partials.getBreaks(ID);
@@ -454,9 +449,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		for (BreakPoints bp : breaks) {
 			if (!bp.isEmpty()) {
 				if (!computeFor.equals(bp)) {
-					BreakPoints cp = computeFor.copy();
-					cp.and(bp);
-					if (!cp.isEmpty()) {
+					if (computeFor.overlap(bp)) {
 						BreakPoints cp2 = bp.copy();
 						cp2.andNot(computeFor);
 						partials.replaceBreaks(ID, bp, cp2);
@@ -466,6 +459,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		}	
 		
 	}
+
 	
 	@Override
 	protected void checkLabels(Integer ID, BreakPoints computeFor) {

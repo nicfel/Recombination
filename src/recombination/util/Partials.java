@@ -266,18 +266,7 @@ public class Partials {
 	 * resizes the partials etc.
 	 */
 	private void resize() {
-		int c=0;
-		for (int i = 0; i < breaks.size(); i++) {
-			if (breaks.get(i)!=null) {
-				for (BreakPoints bp : breaks.get(i)) {
-					if (!bp.isEmpty()) {
-						c++;						
-					}				
-				}			
-			}
-		}
-		
-		System.err.println("resize matrices to allow for more nodes curr size = " + currentSize + " " + c);
+//		System.err.println("resize matrices to allow for more nodes curr size = " + currentSize + " " + c);
 		int newsize = (int) (currentSize*1.5);
 		currentSize = newsize;
 		

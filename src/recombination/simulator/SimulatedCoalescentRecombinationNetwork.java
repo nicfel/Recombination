@@ -40,6 +40,10 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
     public Input<TaxonSet> taxonSetInput = new Input<>("taxonSet",
             "Taxon set used to define leaves");
+    
+    public Input<Tree> treeInput = new Input<>("tree",
+            "tree from where to get taxa etc.");
+
 
     public Input<String> fileNameInput = new Input<>("fileName",
             "Name of file to write simulated network to.");
@@ -87,17 +91,24 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
         TaxonSet taxonSet = null;
         
-        if (traitSetInput.get() != null)
+        if (traitSetInput.get() != null) {
             taxonSet = traitSetInput.get().taxaInput.get();
-        else if (taxonSetInput.get() != null)
+        }else if (taxonSetInput.get() != null) {
             taxonSet = taxonSetInput.get();
-        else
+    	}else if (treeInput.get()!=null) {
+            taxonSet = treeInput.get().m_taxonset.get();
+        }
+        else {
             throw new IllegalArgumentException("Taxon set must be specified " +
-                    "using either taxonSet, traitSet or provided by a segmentTree input.");
+                    "using either taxonSet, traitSet or provided by a tree input.");
+        }
 
         TraitSet traitSet = null;
-        if (traitSetInput.get() != null)
+        if (traitSetInput.get() != null) {
             traitSet = traitSetInput.get();
+        }else if (treeInput.get()!=null && treeInput.get().hasDateTrait()) {	
+        	traitSet = treeInput.get().getDateTrait();
+        }
 
         for (int taxonIndex=0; taxonIndex<taxonSet.getTaxonCount(); taxonIndex++) {
             String taxonName = taxonSet.getTaxonId(taxonIndex);

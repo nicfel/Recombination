@@ -50,27 +50,19 @@ public class TipReheight extends RecombinationNetworkOperator {
 	public void initAndValidate() {
 		super.initAndValidate();
 
-        size = sizeInput.get();
+        size = sizeInput.get();  
         
         if (taxonsetInput.get().asStringList().size()!= 1) {
         	throw new IllegalArgumentException("TipPrior expects the number of tips to be 1");
         }
         
-        for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
-        	if (taxon.getTaxonLabel().equals(taxonsetInput.get().getTaxonId(0))){
-        		operatingNode = taxon;    		
-        		
-        		break;
-        	}
-        }    
 	}
 
 	@Override
 	public double networkProposal() {
 
 		double logHR = 0.0;
-		network.startEditing(this);
-				
+		network.startEditing(this);				
 		
         for (final RecombinationNetworkNode taxon : network.getLeafNodes()) {
         	if (taxon.getTaxonLabel().equals(taxonsetInput.get().getTaxonId(0))){
@@ -84,39 +76,37 @@ public class TipReheight extends RecombinationNetworkOperator {
                 if (newHeight<0)
                 	return Double.NEGATIVE_INFINITY;
                                 
-                // check if ne height is valid
-                if (operatingNode.getParentEdges().get(0).parentNode.getHeight()<=newHeight)
-                	return Double.NEGATIVE_INFINITY;
+                if (newHeight >= operatingNode.getParentEdges().get(0).parentNode.getHeight())
+                	return Double.NEGATIVE_INFINITY;               
                 
                 // set the height of the leaf node, even if the height drops below 0
                 operatingNode.setHeight(newHeight);               
                 operatingNode.getParentEdges().get(0).makeDirty(Tree.IS_FILTHY);
                
-//                // if the height drops below 0, reheight the whole network (probably inefficient, due to making nodes dirty)
-//                if (newHeight < 0){
-//                	double diff = newHeight;
-//                	for (RecombinationNetworkNode node : network.getNodes()) {
-//                		node.setHeight(node.getHeight()-diff);
-//                		node.getParentEdges().get(0).parentNode.setFilty();
-//                	}
-//                	
-//                }else if (oldHeight==0){
-//                	// get the second lowest height    
-//                	double minHeight = Double.POSITIVE_INFINITY;
-//                	for (RecombinationNetworkNode node : network.getLeafNodes()){
-//                		if (!node.equals(operatingNode)){
-//                			if (node.getHeight()<minHeight)
-//                				minHeight = node.getHeight();
-//                		}  
-//                	}
-//                	
-//                	// rescale all internal nodes relative to the newest most recently sampled individual
-//                	if (newHeight>minHeight){
-//                    	for (RecombinationNetworkNode node : network.getNodes())
-//                    		node.setHeight(node.getHeight()-minHeight);                	
-//                	}                	
-//                }
-
+                // if the height drops below 0, reheight the whole network (probably inefficient, due to making nodes dirty)
+                if (newHeight < 0){
+                	double diff = newHeight;
+                	for (RecombinationNetworkNode node : network.getNodes()) {
+                		node.setHeight(node.getHeight()-diff);
+                		node.getParentEdges().get(0).parentNode.setFilty();
+                	}
+                	
+                }else if (oldHeight==0){
+                	// get the second lowest height    
+                	double minHeight = Double.POSITIVE_INFINITY;
+                	for (RecombinationNetworkNode node : network.getLeafNodes()){
+                		if (!node.equals(operatingNode)){
+                			if (node.getHeight()<minHeight)
+                				minHeight = node.getHeight();
+                		}  
+                	}
+                	
+                	// rescale all internal nodes relative to the newest most recently sampled individual
+                	if (newHeight>minHeight){
+                    	for (RecombinationNetworkNode node : network.getNodes())
+                    		node.setHeight(node.getHeight()-minHeight);                	
+                	}                	
+                }
         		break;
         	}
         }    

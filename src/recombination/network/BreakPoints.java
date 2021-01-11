@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.commons.math3.util.FastMath;
+
 import beast.evolution.tree.Node;
 
 /**
@@ -109,6 +111,20 @@ public class BreakPoints {
 	/**
 	 * gets the difference between the first and last event
 	 * returns 0 instead of -1 when null
+	 * @param recBP 
+	 * @return
+	 */
+	public double getNullLength(BreakPoints recBP) {
+		
+		int min = FastMath.max(getMin(), recBP.getMin());
+		int max = FastMath.min(getMax(), recBP.getMax());
+		return min>max ? 0 : max-min;
+	}
+	
+	/**
+	 * gets the difference between the first and last event
+	 * returns 0 instead of -1 when null
+	 * @param recBP 
 	 * @return
 	 */
 	public double getNullLength() {
@@ -117,6 +133,7 @@ public class BreakPoints {
 		
 		return 0;
 	}
+
 
 	
 	/**
@@ -215,76 +232,17 @@ public class BreakPoints {
 	    }
 	}
 	
-//	/**
-//	 * compute the intersection between this.breakpoonts and breakpoints
-//	 * @param breakPoints
-//	 */
-//	public void andFast(BreakPoints breakPoints) {		
-//		List<Range> newBreaks = new ArrayList<>();
-//		if (breakPoints==null || breakPoints.isEmpty() || isEmpty()) {
-//			this.breakPoints = null;
-//			return;
-//		}
-//
-//		if (this.equals(breakPoints))
-//			return;
-//		
-//		int i = 0, j = 0;
-//		
-//		while (i < this.breakPoints.size() && j < breakPoints.size()) {
-//			if (getRange(i).from<breakPoints.getRange(j).from) {
-//				
-//				if (getRange(i).to<breakPoints.getRange(j).from) {
-//					i++;
-//				}else{
-//					if (getRange(i).to>breakPoints.getRange(j).to) {
-//						newBreaks.add(new Range(breakPoints.getRange(j).from, breakPoints.getRange(j).to));
-//						j++;				
-//					}else if (getRange(i).to<breakPoints.getRange(j).to){
-//						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
-//						i++;
-//					}else {
-//						newBreaks.add(new Range(breakPoints.getRange(j).from, getRange(i).to));
-//						i++;
-//						j++;
-//					}
-//					
-//				}
-//			}else if (getRange(i).from>breakPoints.getRange(j).from) {
-//				if (breakPoints.getRange(j).to<getRange(i).from) {
-//					j++;
-//				}else {					
-//					if (breakPoints.getRange(j).to>getRange(i).to) {
-//						newBreaks.add(new Range(getRange(i).from, getRange(i).to));
-//						i++;				
-//					}else if (breakPoints.getRange(j).to<getRange(i).to){
-//						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
-//						j++;
-//					}else {
-//						newBreaks.add(new Range(getRange(i).from, breakPoints.getRange(j).to));
-//						i++;
-//						j++;
-//					}
-//				}
-//			}else {
-//				if (getRange(i).to<breakPoints.getRange(j).to) {
-//					newBreaks.add(getRange(i).copy());
-//					i++;
-//				}else if (getRange(i).to>breakPoints.getRange(j).to) {
-//					newBreaks.add(breakPoints.getRange(j).copy());
-//					j++;
-//				}else {
-//					newBreaks.add(getRange(i).copy());
-//					i++;
-//					j++;
-//				}				
-//			}			
-//		}
-//		
-//		this.breakPoints = new ArrayList<>(newBreaks);		
-//
-//			
-//	}
+	public boolean overlap(BreakPoints dirtyBreakPoints) {
+		for (int i=0; i < size();i++) {
+			for (int k=0;k<dirtyBreakPoints.size();k++) {
+				if(FastMath.min(getRange(i).to, dirtyBreakPoints.getRange(k).to) >=
+					FastMath.max(getRange(i).from, dirtyBreakPoints.getRange(k).from)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
 
 	/**
@@ -345,45 +303,24 @@ public class BreakPoints {
 	 * @param breakPoints
 	 */
 	public void andPR(BreakPoints passingRange) {
-		
-		List<Range> newBreaks = new ArrayList<>();
-
 		if (passingRange.getRange(0).from==0) {
-			int i=0;
-			while (this.breakPoints.get(i).to <= passingRange.getRange(0).to) {
-				newBreaks.add(breakPoints.get(i).copy());
-				i++;
-				if (i>=size())
-					return;
-			}
-
-			if (this.breakPoints.get(i).from<passingRange.getRange(0).to) {
-				newBreaks.add(new Range(breakPoints.get(i).from, passingRange.getRange(0).to));
-				i++;
-			}
-			
-		}else {
-			int i=0;
-			while (this.breakPoints.get(i).to < passingRange.getRange(0).from) {
-				i++;
-				if (i>=size()) {
-					this.breakPoints=null;
-					return;
+			for (int i=size()-1; i >=0;i--) {
+				if (breakPoints.get(i).from > passingRange.getRange(0).to) {
+					breakPoints.remove(i);
+				}else {
+					breakPoints.set(i, new Range(breakPoints.get(i).from, FastMath.min(breakPoints.get(i).to, passingRange.getRange(0).to)));
+					break;
 				}
 			}
-			
-			if (this.breakPoints.get(i).from<passingRange.getRange(0).from) {
-				newBreaks.add(new Range(passingRange.getRange(0).from, breakPoints.get(i).to));
-				i++;
-			}
-			
-			while (i < size()) {
-				newBreaks.add(breakPoints.get(i).copy());
-				i++;
-			}
+		}else {
+			for (int i=size()-1; i >=0;i--) {
+				if (breakPoints.get(i).to < passingRange.getRange(0).from) {
+					breakPoints.remove(i);
+				}else {
+					breakPoints.set(i, new Range(FastMath.max(breakPoints.get(i).from, passingRange.getRange(0).from), breakPoints.get(i).to));
+				}
+			}	
 		}
-		
-		this.breakPoints = new ArrayList<>(newBreaks);		
 	}
 
 
@@ -654,6 +591,5 @@ public class BreakPoints {
 			return false;
 		}
 	}
-
 	
 }

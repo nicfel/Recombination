@@ -51,10 +51,9 @@ import java.util.stream.Collectors;
 @Description("Calculates the probability of sequence data on a beast.tree given a site and substitution model using " +
         "a variant of the 'peeling algorithm'. For details, see" +
         "Felsenstein, Joseph (1981). Evolutionary trees from DNA sequences: a maximum likelihood approach. J Mol Evol 17 (6): 368-376.")
-public class NetworkLikelihood extends GenericTreeLikelihood {
-
+public class NetworkLikelihoodBeauti extends GenericTreeLikelihood {
+	
     final public Input<RecombinationNetwork> networkInput = new Input<>("recombinationNetwork", "phylogenetic beast.tree with sequence data in the leafs", Validate.REQUIRED);
-
     final public Input<Boolean> m_useAmbiguities = new Input<>("useAmbiguities", "flag to indicate that sites containing ambiguous states should be handled instead of ignored (the default)", false);
     final public Input<Boolean> m_useTipLikelihoods = new Input<>("useTipLikelihoods", "flag to indicate that partial likelihoods are provided at the tips", false);
     final public Input<String> implementationInput = new Input<>("implementation", "name of class that implements this treelikelihood potentially more efficiently. "
@@ -65,6 +64,10 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
     final public Input<Scaling> scaling = new Input<>("scaling", "type of scaling to use, one of " + Arrays.toString(Scaling.values()) + ". If not specified, the -beagle_scaling flag is used.", Scaling._default, Scaling.values());
     
 
+    public NetworkLikelihoodBeauti() {
+    	treeInput.setRule(Validate.FORBIDDEN);
+    }
+    
     /**
      * calculation engine *
      */
@@ -114,6 +117,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
     HashMap<Integer, BreakPoints> rootBreaks;
     
     Partials rootPartials;
+        
     
     /**
      * Dummy node to deal with subs models requiring nodes
@@ -135,17 +139,11 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
     
     Map<Integer, Double> nodeLogP;
     Map<Integer, Double> storedNodeLogP;
-    
-    List<String> taxaLabels;
-    
-    public NetworkLikelihood() {
-    	treeInput.setRule(Validate.OPTIONAL);
-    }
-
 
 
     @Override
     public void initAndValidate() {
+    	
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
         	throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
         }
@@ -253,12 +251,8 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
                 .filter(e -> e.isLeaf())
                 .collect(Collectors.toList());
     	
-    	taxaLabels = new ArrayList<>();
-    	int j=0;
-    	
     	Alignment data = dataInput.get();
     	for (RecombinationNetworkNode l : leafs) {            
-    		taxaLabels.add(l.getTaxonLabel());
             int i;
             int[] states = new int[patternCount];
             int taxonIndex = getTaxonIndex(l.getTaxonLabel(), data);
@@ -270,8 +264,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
                 else
                     states[i] = code; // Causes ambiguous states to be ignored.
             }
-            likelihoodCore.setStates(j, states);
-            j++;
+            likelihoodCore.setStates(l.getParentEdges().get(0), states);
     	}
     }
     
@@ -365,10 +358,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
         for (RecombinationNetworkEdge edge : edges.stream().collect(Collectors.toList())) {
         	edge.visited=false;
         	edgeIDs.add(edge.ID);
-        	if (edge.childNode.isLeaf())
-        		nodeHeight.put(taxaLabels.indexOf(edge.childNode.getTaxonLabel()), edge.childNode.getHeight());
-        	else
-        		nodeHeight.put(edge.ID, edge.childNode.getHeight());
+        	nodeHeight.put(edge.ID, edge.childNode.getHeight());
         }
         
         likelihoodCore.cleanPartials(edgeIDs);
@@ -405,7 +395,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
     	try {
 //    		if (hasDirt == Tree.IS_FILTHY) {
 		    	for (RecombinationNetworkNode n : network.getNodes().stream().filter(e -> e.isLeaf()).collect(Collectors.toList())) {
-		    		getCoalChildren(n.getParentEdges().get(0).parentNode, n.getParentEdges().get(0).breakPoints, taxaLabels.indexOf(n.getTaxonLabel()), n.getParentEdges().get(0).breakPoints);
+		    		getCoalChildren(n.getParentEdges().get(0).parentNode, n.getParentEdges().get(0).breakPoints, n.getParentEdges().get(0).ID, n.getParentEdges().get(0).breakPoints);
 		    	}
 //    		}else {
 //    			List<RecombinationNetworkEdge> es = edges.stream()
@@ -440,12 +430,6 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
         }catch (ArithmeticException e) {
         	return Double.NEGATIVE_INFINITY;
         }
-    	
-    	// TODO investigate why it was NaN
-    	if (logP==Double.NaN) {
-    		logP =  Double.NEGATIVE_INFINITY;
-    		return logP;
-    	}
 
         m_nScale++;
         if (logP > 0 || (likelihoodCore.getUseScaling() && m_nScale > X)) {

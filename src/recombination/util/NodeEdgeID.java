@@ -13,18 +13,18 @@ public class NodeEdgeID {
 	private List<Integer> storedNodeids = new ArrayList<>();
 		
 	public int getNewNodeID(){
-		int newID = Randomizer.nextInt();
+		int newID = -1*Randomizer.nextInt(Integer.MAX_VALUE);
 		while (nodeids.contains(newID))
-			newID = Randomizer.nextInt();
+			newID = -1*Randomizer.nextInt(Integer.MAX_VALUE);
 		
 		nodeids.add(newID);
 		return newID;
 	}
 	
 	public int getNewEdgeID(){
-		int newID = Randomizer.nextInt();
+		int newID = -1*Randomizer.nextInt(Integer.MAX_VALUE);
 		while (edgeids.contains(newID))
-			newID = Randomizer.nextInt();
+			newID = -1*Randomizer.nextInt(Integer.MAX_VALUE);
 		
 		edgeids.add(newID);
 		return newID;

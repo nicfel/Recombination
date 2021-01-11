@@ -111,10 +111,7 @@ public class RecombinationNetworkIntervals extends CalculationNode {
                 case SAMPLE:
                     lineages += 1;
                     for (int i = 0; i < recBP.length;i++) {
-                    	BreakPoints bp = new BreakPoints(event.node.getParentEdges().get(0).breakPoints.getMin(), 
-                    			event.node.getParentEdges().get(0).breakPoints.getMax());
-                    	bp.and(recBP[i]);
-                    	totalReassortmentObsProb[i] += bp.getNullLength();
+                    	totalReassortmentObsProb[i] += event.node.getParentEdges().get(0).breakPoints.getNullLength(recBP[i]);
                     }
                     break;
 
@@ -122,22 +119,9 @@ public class RecombinationNetworkIntervals extends CalculationNode {
                     lineages += 1;
 
                     for (int i = 0; i < recBP.length;i++) {
-                    	
-                    	BreakPoints bp1 = new BreakPoints(event.node.getChildEdges().get(0).breakPoints.getMin(), 
-                    										event.node.getChildEdges().get(0).breakPoints.getMax());
-                    	
-                    	BreakPoints bp2 = new BreakPoints(event.node.getParentEdges().get(0).breakPoints.getMin(), 
-                    										event.node.getParentEdges().get(0).breakPoints.getMax());
-                    	
-                    	BreakPoints bp3 = new BreakPoints(event.node.getParentEdges().get(1).breakPoints.getMin(), 
-                    										event.node.getParentEdges().get(1).breakPoints.getMax());
-
-                    	bp1.and(recBP[i]);
-                    	bp2.and(recBP[i]);
-                    	bp3.and(recBP[i]);
-                    	totalReassortmentObsProb[i] -= bp1.getNullLength();
-                    	totalReassortmentObsProb[i] += bp2.getNullLength();
-                    	totalReassortmentObsProb[i] += bp3.getNullLength();
+                    	totalReassortmentObsProb[i] -= event.node.getChildEdges().get(0).breakPoints.getNullLength(recBP[i]);
+                    	totalReassortmentObsProb[i] += event.node.getParentEdges().get(0).breakPoints.getNullLength(recBP[i]);
+                    	totalReassortmentObsProb[i] += event.node.getParentEdges().get(1).breakPoints.getNullLength(recBP[i]);
                     }
 
                     event.lociToSort = event.node.getChildEdges().get(0).getRecombinationLength();
@@ -150,21 +134,9 @@ public class RecombinationNetworkIntervals extends CalculationNode {
                 case COALESCENCE:
                     lineages -= 1;
                     for (int i = 0; i < recBP.length;i++) {
-                    	
-                    	BreakPoints bp1 = new BreakPoints(event.node.getChildEdges().get(0).breakPoints.getMin(), 
-                    										event.node.getChildEdges().get(0).breakPoints.getMax());
-                    	BreakPoints bp2 = new BreakPoints(event.node.getChildEdges().get(1).breakPoints.getMin(), 
-                    										event.node.getChildEdges().get(1).breakPoints.getMax());
-                    	BreakPoints bp3 = new BreakPoints(event.node.getParentEdges().get(0).breakPoints.getMin(), 
-                    										event.node.getParentEdges().get(0).breakPoints.getMax());
-                    	
-                    	bp1.and(recBP[i]);
-                    	bp2.and(recBP[i]);
-                    	bp3.and(recBP[i]);
-                    	
-                    	totalReassortmentObsProb[i] -= bp1.getNullLength();
-                    	totalReassortmentObsProb[i] -= bp2.getNullLength();
-                    	totalReassortmentObsProb[i] += bp3.getNullLength();
+                    	totalReassortmentObsProb[i] -= event.node.getChildEdges().get(0).breakPoints.getNullLength(recBP[i]);
+                    	totalReassortmentObsProb[i] -= event.node.getChildEdges().get(1).breakPoints.getNullLength(recBP[i]);
+                    	totalReassortmentObsProb[i] += event.node.getParentEdges().get(0).breakPoints.getNullLength(recBP[i]);
                     }
 
                     
