@@ -393,7 +393,8 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
 
     	setDirty(network, edges);
     	// check where the roots of local trees are
-    	rootBreaks = new HashMap<>();    	
+    	rootBreaks = new HashMap<>();    
+    	
     	List<Integer> dirtyRoot = new ArrayList<>();    	
     	traversalRoots(network.getRootEdge(), new BreakPoints(network.totalLength), dirtyRoot);
 
@@ -549,7 +550,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
         if (node.isRecombination()) {
         	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
         		BreakPoints bp = computeFor_BP.copy();      		
-        		bp.andPR(edge.passingRange); 
+        		bp.and(edge.passingRange); 
         		if (!bp.isEmpty()) {        		
 //	            	updateEdgeInfo(edge, bp, prev_edge_ID, prev_Pointer);        		
 	        		getCoalChildren(edge.parentNode, bp, prev_edge_ID, prev_Pointer);
@@ -588,7 +589,6 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
     		for (int i = 0; i < node.prevPointer.size(); i++) {
 	    		if (node.prevPointer.get(i)==prev_edge_ID &&
 	    				node.dummy2.get(i).equals(prev_Pointer)) {	
-	    			
 		    		node.dummy.get(i).or(computeFor);		    		
 		    		exists = true;
 	    		}
@@ -632,9 +632,21 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
 	        		                	mat1 = getLengthMatrix(node.getHeight() - nodeHeight.get(node.prevPointer.get(i)));
 	        		                	mat2 = getLengthMatrix(node.getHeight() - nodeHeight.get(node.prevPointer.get(j)));    
 	        		                	
-	        		        			likelihoodCore.calculatePartials(node.prevPointer.get(i), node.prevPointer.get(j), 
+	        		        			try{
+	        		        				likelihoodCore.calculatePartials(node.prevPointer.get(i), node.prevPointer.get(j),	        		        			
 	        		        					edge.ID, bp1, node.dummy2.get(i), node.dummy2.get(j), 
 	        		        					computeForPatterns, mat1, mat2);
+	        		        			}catch (Exception e){
+	        		        				System.out.println(e);
+	        		        				System.out.println(networkInput.get());
+	        		        				System.out.println(node.getHeight());
+	        		        				System.out.println(bp1);
+	        		        				System.out.println(node.dummy2);
+	        		        				System.out.println(node.dummy);
+	        		        				System.out.println(node.prevPointer);
+	        		        				System.out.println(i + " " + j);
+	        		        				System.exit(0);
+	        		        			}
 	        		                } else {
 	        		                    throw new RuntimeException("Error TreeLikelihood 201: Site categories not supported");
 	        		                }	        		                

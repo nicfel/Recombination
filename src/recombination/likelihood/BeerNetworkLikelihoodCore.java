@@ -159,8 +159,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     @Override
 	public void calculatePartials(Integer ID1, Integer ID2, Integer ID3, 
 			BreakPoints computeFor, BreakPoints compute1, BreakPoints compute2, 
-			boolean[] computeForPatterns, double[] matrices1, double[] matrices2) {
-    
+			boolean[] computeForPatterns, double[] matrices1, double[] matrices2) { 
 
         if (ID1>=0) {
             if (ID2>=0) {
@@ -174,8 +173,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
             } else {
                 calculatePartialsPartialsPruning(ID1,ID2,ID3,computeFor,compute1,compute2,computeForPatterns, matrices1, matrices2);
             }
-        }
-        
+        }        
         ensureLables(ID3, computeFor);
 
     }
@@ -342,10 +340,10 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void restore() {
-        // Rather than copying the stored stuff back, just swap the pointers...
-        HashMap<Integer, double[]> tmp1 = matrix;
-        matrix = storedMatrix;
-        storedMatrix = tmp1;
+//        // Rather than copying the stored stuff back, just swap the pointers...
+//        HashMap<Integer, double[]> tmp1 = matrix;
+//        matrix = storedMatrix;
+//        storedMatrix = tmp1;
         
         partials.restore();
 
@@ -362,7 +360,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
      */
     @Override
     public void store() {
-    	storeMatrix();
+//    	storeMatrix();
     	partials.store();
     }
     
@@ -476,7 +474,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 					cp.andNot(bp);
 					if (cp.isEmpty()) {
 						partials.replaceBreaks(ID, bp, computeFor.copy());
-	
 					}			
 				}
 			}
@@ -494,19 +491,11 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		
 		if (breaks.contains(computeFor))
 			return 0;
-
-		BreakPoints cp = computeFor.copy();
-		cp.andNot(dirtyEdges);
-		
-		if (cp.isEmpty()) {
-			throw new IllegalArgumentException("caching issue with dirty edges");
-		}
-
 		
 		for (BreakPoints bp : breaks) {
 			if (!bp.isEmpty()) {
 				if (!computeFor.equals(bp)) {
-					BreakPoints cp_tmp = cp.copy();
+					BreakPoints cp_tmp = computeFor.copy();
 					cp_tmp.andNot(bp);
 					if (cp_tmp.isEmpty()) {
 				        partials.replaceBreaks(ID, bp, computeFor.copy());
@@ -514,7 +503,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 				}
 			}
 		}
-		ensureLables(ID, computeFor);
 
 		return 0;
 	}

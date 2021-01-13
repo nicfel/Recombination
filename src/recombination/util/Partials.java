@@ -135,10 +135,15 @@ public class Partials {
 		if (new_bp.isEmpty()) {
 			nextNr[startPoint.get(i).get(j)] = false;
 			startPoint.get(i).set(j, null);
-		}
-	
-		
+		}	
 	}
+	
+	public void removeBreaks(Integer new_id, BreakPoints remove) {
+		int i = ID.indexOf(new_id);
+		int j = breaks.get(i).indexOf(remove);
+		breaks.get(i).set(j, new BreakPoints());
+	}
+
 	
 	public List<BreakPoints> getBreaks(Integer new_id) {
 		if (ID.indexOf(new_id)==-1)
@@ -223,8 +228,6 @@ public class Partials {
 		System.arraycopy(patternIndices, 0, storedPatternIndices, 0, patternIndices.length);
 		
 		System.arraycopy(nextNr, 0, storedNextNr, 0, nextNr.length);
-
-		
 	}
 	
 	

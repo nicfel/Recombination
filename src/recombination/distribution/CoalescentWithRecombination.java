@@ -39,15 +39,21 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 	        "conditionOnCoalescentEvents",
             "if true, only coalescent events are allowed after the .",
             true);	
+	
+	public Input<Double> maxHeightRatioInput = new Input<>(
+	        "maxHeightRatio",
+            "if specified, above the ratio, only coalescent events are allowed.", Double.POSITIVE_INFINITY);	
+
 
 
 
 
     public PopulationFunction populationFunction;
-    private Function recombinationRate;
-    private RealParameter relativeRecombinationRate;
+    public Function recombinationRate;
+    public RealParameter relativeRecombinationRate;
     public RecombinationNetworkIntervals intervals;
     double[] recRates;
+    public double redFactor = 0.2;
         
     @Override
     public void initAndValidate(){
@@ -114,15 +120,27 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
     }
     
 	private double recombination(RecombinationNetworkEvent event, double lociMRCA) {
-        if (event.time<=lociMRCA) {
+		if (conditionOnCoalescentEventsInput.get()) {
+	        if (event.time<=(lociMRCA*maxHeightRatioInput.get())) {
+	    		int i = 0; 
+	    		while (!intervals.recBP[i].contains(event.breakPoint)) {
+	    			i++;
+	    		}        	
+	    		return Math.log(recRates[i]);
+	        }else {
+	    		int i = 0; 
+	    		while (!intervals.recBP[i].contains(event.breakPoint)) {
+	    			i++;
+	    		}        	
+	    		return Math.log(redFactor*recRates[i]);
+	        }        		
+		}else{
     		int i = 0; 
     		while (!intervals.recBP[i].contains(event.breakPoint)) {
     			i++;
     		}        	
     		return Math.log(recRates[i]);
-        }else {
-    		return Double.NEGATIVE_INFINITY;
-        }        		
+		}
 	}
 
 	private double coalesce(RecombinationNetworkEvent event) {
@@ -131,21 +149,42 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 
 	private double intervalContribution(RecombinationNetworkEvent prevEvent, RecombinationNetworkEvent event, double lociMRCA) {
         double result = 0.0;
-        if (event.time<lociMRCA) {   
+		if (conditionOnCoalescentEventsInput.get()) {
+	        if (event.time<(lociMRCA*maxHeightRatioInput.get())) {   
+	    		for (int i =0; i < intervals.recBP.length; i++) {
+	                result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
+	                        * (event.time - prevEvent.time);
+	            }       	
+	        }else {
+	        	if (prevEvent.time < (lociMRCA*maxHeightRatioInput.get())) {
+	        		for (int i =0; i < intervals.recBP.length; i++) {        			
+	                    result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
+	                            * (lociMRCA - prevEvent.time);
+	
+	                }
+	        		for (int i =0; i < intervals.recBP.length; i++) {        			
+	                    result += -redFactor*recRates[i] * prevEvent.totalRecombinationObsProb[i]
+	                            * (event.time - (lociMRCA*maxHeightRatioInput.get()));
+	
+	                }       	
+	
+	        	}else {
+	        		for (int i =0; i < intervals.recBP.length; i++) {        			
+	                    result += -redFactor*recRates[i] * prevEvent.totalRecombinationObsProb[i]
+	                            * (event.time - (lociMRCA*maxHeightRatioInput.get()));
+	
+	                }       	
+	
+	        	}
+	        }
+
+		}else {
     		for (int i =0; i < intervals.recBP.length; i++) {
                 result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
                         * (event.time - prevEvent.time);
             }       	
-        }else {
-        	if (prevEvent.time < lociMRCA) {
-        		for (int i =0; i < intervals.recBP.length; i++) {        			
-                    result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
-                            * (lociMRCA - prevEvent.time);
-
-                }       	
-        	}
-        }
-
+		}
+		
         result += -0.5*prevEvent.lineages*(prevEvent.lineages-1)
                 * populationFunction.getIntegral(prevEvent.time, event.time);
 		

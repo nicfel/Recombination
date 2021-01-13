@@ -110,6 +110,18 @@ public class BreakPoints {
 	
 	/**
 	 * gets the difference between the first and last event
+	 * @return
+	 */
+	public int getLengthInt() {
+		if (!isEmpty())
+			return breakPoints.get(breakPoints.size()-1).to-breakPoints.get(0).from+1;
+		
+		return -1;
+	}
+
+	
+	/**
+	 * gets the difference between the first and last event
 	 * returns 0 instead of -1 when null
 	 * @param recBP 
 	 * @return
@@ -302,26 +314,26 @@ public class BreakPoints {
 	 * compute the intersection between this breakPoint and a passing range
 	 * @param breakPoints
 	 */
-	public void andPR(BreakPoints passingRange) {
-		if (passingRange.getRange(0).from==0) {
-			for (int i=size()-1; i >=0;i--) {
-				if (breakPoints.get(i).from > passingRange.getRange(0).to) {
-					breakPoints.remove(i);
-				}else {
-					breakPoints.set(i, new Range(breakPoints.get(i).from, FastMath.min(breakPoints.get(i).to, passingRange.getRange(0).to)));
-					break;
-				}
-			}
-		}else {
-			for (int i=size()-1; i >=0;i--) {
-				if (breakPoints.get(i).to < passingRange.getRange(0).from) {
-					breakPoints.remove(i);
-				}else {
-					breakPoints.set(i, new Range(FastMath.max(breakPoints.get(i).from, passingRange.getRange(0).from), breakPoints.get(i).to));
-				}
-			}	
-		}
-	}
+//	public void andPR(BreakPoints passingRange) {
+//		if (passingRange.getRange(0).from==0) {
+//			for (int i=size()-1; i >=0;i--) {
+//				if (breakPoints.get(i).from > passingRange.getRange(0).to) {
+//					breakPoints.remove(i);
+//				}else {
+//					breakPoints.set(i, new Range(breakPoints.get(i).from, FastMath.min(breakPoints.get(i).to, passingRange.getRange(0).to)));
+//					break;
+//				}
+//			}
+//		}else {
+//			for (int i=size()-1; i >=0;i--) {
+//				if (breakPoints.get(i).to < passingRange.getRange(0).from) {
+//					breakPoints.remove(i);
+//				}else {
+//					breakPoints.set(i, new Range(FastMath.max(breakPoints.get(i).from, passingRange.getRange(0).from), breakPoints.get(i).to));
+//				}
+//			}	
+//		}
+//	}
 
 
 

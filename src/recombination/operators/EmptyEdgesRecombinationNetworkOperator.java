@@ -22,7 +22,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     
     public Input<Double> lambdaInput = new Input<>("lambda",
             "lambda of the poisson distribution for how many empty edges to add.",
-            0.01);
+            0.1);
     
     public Input<Boolean> addRemoveEmptyEdgesInput = new Input<>("addRemoveEmptyEdges",
             "adds empty edges before calling the networkproposal and then removes all empty edges at the end again",
@@ -211,6 +211,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 		
 		RecombinationNetworkNode sourceNode = new RecombinationNetworkNode(network.nodeEdgeIDs);
 		sourceNode.setHeight(sourceTime);
+		sourceNode.setFilty();
 		
 		RecombinationNetworkNode oldSourceEdgeParent = sourceEdge.parentNode;
 		oldSourceEdgeParent.removeChildEdge(sourceEdge);
@@ -342,7 +343,6 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
     double removeEmptyRecombinationEdge(RecombinationNetworkEdge edgeToRemove) {
         double logHR = 0.0;
         
-
         double sourceTime = edgeToRemove.childNode.getHeight();
         RecombinationNetworkEdge sourceEdge = edgeToRemove.childNode.getChildEdges().get(0);
         RecombinationNetworkEdge destEdge = getSisterEdge(edgeToRemove);
@@ -400,6 +400,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         RecombinationNetworkEdge edgeToRemoveSpouse = getSpouseEdge(edgeToRemove);
         RecombinationNetworkNode edgeToRemoveSpouseParent = edgeToRemoveSpouse.parentNode;
         
+        nodeToRemove.setFilty();
+        
 //        System.out.println(edgeToRemove.passingRange + " " + edgeToRemoveSpouse.passingRange);
         logHR += getPassingRangeProb(edgeToRemoveSpouse, edgeToRemove);
 
@@ -413,6 +415,8 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 
         RecombinationNetworkNode secondNodeToRemove = edgeToRemove.parentNode;
         RecombinationNetworkEdge secondEdgeToExtend = getSisterEdge(edgeToRemove);
+        
+        secondNodeToRemove.setFilty();
 
         secondNodeToRemove.removeChildEdge(secondEdgeToExtend);
         secondNodeToRemove.removeChildEdge(edgeToRemove);

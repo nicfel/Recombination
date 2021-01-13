@@ -16,7 +16,7 @@ public class RecombinationNetworkScaleOperator extends RecombinationNetworkOpera
     public Input<Double> scaleFactorInput = new Input<>(
             "scaleFactor",
             "Scale factor tuning parameter.",
-            0.8);
+            0.9);
 
     public Input<Boolean> scaleRootOnlyInput = new Input<>(
             "scaleRootOnly",
@@ -96,10 +96,11 @@ public class RecombinationNetworkScaleOperator extends RecombinationNetworkOpera
                 node.setHeightFilty(node.getHeight() * f);
                 count += 1;
             }
-
-            for (RecombinationNetworkNode leaf : network.getLeafNodes()) {
-                if (leaf.getParentEdges().get(0).parentNode.getHeight() < leaf.getHeight())
-                    return Double.NEGATIVE_INFINITY;
+            if (f<1.0) {
+	            for (RecombinationNetworkNode leaf : network.getLeafNodes()) {
+	                if (leaf.getParentEdges().get(0).parentNode.getHeight() < leaf.getHeight())
+	                    return Double.NEGATIVE_INFINITY;
+	            }
             }
             
 

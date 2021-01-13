@@ -1,11 +1,13 @@
 package recombination.operators;
 
+import beast.core.Function;
 import beast.core.Input;
 import beast.core.Input.Validate;
 import beast.core.parameter.RealParameter;
 import beast.evolution.tree.coalescent.PopulationFunction;
 import beast.util.Package;
 import beast.util.Randomizer;
+import recombination.distribution.CoalescentWithRecombination;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
@@ -19,25 +21,16 @@ import java.util.stream.Collectors;
 
 public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
-    public Input<RealParameter> recombinationRateInput = new Input<>("recombinationRate",
-            "Rate of recombination (per lineage per unit time)", Validate.REQUIRED);
-
-    public Input<PopulationFunction> populationFunctionInput = new Input<>("populationModel",
-            "Population model to use.", Validate.REQUIRED);
+    public Input<CoalescentWithRecombination> coalescentDistrInput = new Input<>("coalescentWithRecombination",
+            "Mean of exponential used for choosing root attachment times.",
+            Input.Validate.REQUIRED);
     
-    public Input<Double> maxHeightRatioInput = new Input<>("maxHeightRatio",
-            "set's a maximum ratio of the 'invisible height' to the rest.", 1.0);
     
-
-    
-    private PopulationFunction populationFunction;
-    private RealParameter recombinationRate;
+    private CoalescentWithRecombination coalDistr;
 
     @Override
     public void initAndValidate() {    	
-        populationFunction = populationFunctionInput.get();
-        recombinationRate = recombinationRateInput.get();
-    	
+    	coalDistr = coalescentDistrInput.get();
         super.initAndValidate();
     }
 
@@ -78,31 +71,57 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
         	throw new IllegalArgumentException("should not arrive here");
         }
         
-        int recombEvents = 0;
                 
-       // simulate the rest of the network starting from mxHeight
-        double currentTime = maxHeight;
-        double maxRecombHeight = maxHeight * maxHeightRatioInput.get();
+        // simulate the rest of the network starting from mxHeight
+        double currentTime = maxHeight;        
+        
+        double[] recRates = new double[coalDistr.intervals.recBP.length];
+        
+    	if (recRates.length>1)
+    		for (int i = 0; i < recRates.length; i++)
+    			recRates[i] = Math.exp(coalDistr.relativeRecombinationRate.getArrayValue(i)) * coalDistr.recombinationRate.getArrayValue()*(coalDistr.intervals.recBP[i].getLength()-1);
+		else
+			recRates[0] = coalDistr.recombinationRate.getArrayValue()*(networkInput.get().totalLength-1);
+
+        double sumRates = 0;
+        
+        for (int i = 0; i < recRates.length;i++)
+        	sumRates+=recRates[i];
+        
+        double recChangeTime = maxHeight*coalDistr.maxHeightRatioInput.get(); 
+
+        
         do {
 
             // get the current propensities
             int k = startingEdges.size();
             
-            double currentTransformedTime = populationFunction.getIntensity(currentTime);
+            double currentTransformedTime = coalDistr.populationFunction.getIntensity(currentTime);
             double transformedTimeToNextCoal = k>=2 ? Randomizer.nextExponential(0.5*k*(k-1)) : Double.POSITIVE_INFINITY;
-            double timeToNextCoal = populationFunction.getInverseIntensity(
+            double timeToNextCoal = coalDistr.populationFunction.getInverseIntensity(
                     transformedTimeToNextCoal + currentTransformedTime) - currentTime;
-
-            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*(networkInput.get().totalLength-1)) : Double.POSITIVE_INFINITY;
+            
+            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k * sumRates) : Double.POSITIVE_INFINITY;
 
             // next event time
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
-            currentTime += timeUntilNextEvent;
-            if (timeUntilNextEvent == timeToNextCoal) {
-                coalesce(currentTime, startingEdges);
+            if (timeUntilNextEvent>recChangeTime) {
+	            currentTime = recChangeTime;
+	            sumRates *= coalDistr.redFactor;
+
+	            for (int i = 0; i < recRates.length;i++)
+	            	recRates[i] *= coalDistr.redFactor;
+	            
+	            recChangeTime = Double.POSITIVE_INFINITY;
+
             }else {
-            	if (currentTime<maxRecombHeight)
-            		recombine(currentTime, startingEdges);
+	            currentTime += timeUntilNextEvent;
+	            if (timeUntilNextEvent == timeToNextCoal) {
+	                coalesce(currentTime, startingEdges);
+	            }else {
+	            	if (!coalDistr.conditionOnCoalescentEventsInput.get())
+	            		recombine(currentTime, startingEdges, recRates, sumRates);
+	            }
             }
 
         }
@@ -147,10 +166,21 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
     }
 
-    private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages) {
+    private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages, double[] recRates, double sumRates) {
     	RecombinationNetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
     	
-    	int breakpoint = Randomizer.nextInt(network.totalLength-1);
+    	// sample on which section the breakpoint will have occured.
+    	double cumsum = recRates[0]/sumRates; 
+		double rand = Randomizer.nextDouble();
+		int section = 0;
+		while (section < recRates.length-1) {
+			if (rand<=cumsum)
+				break;
+			section++;
+			cumsum += recRates[section]/sumRates;
+		}    	
+    	
+    	int breakpoint = Randomizer.nextInt(coalDistr.intervals.recBP[section].getLengthInt()-1) + coalDistr.intervals.recBP[section].getMin();
     	
     	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
     	if (!lineage.breakPoints.withinLimits(breakpoint)) {
