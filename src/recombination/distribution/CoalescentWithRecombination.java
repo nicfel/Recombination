@@ -1,12 +1,10 @@
 package recombination.distribution;
 
-import beast.core.CalculationNode;
 import beast.core.Description;
 import beast.core.Function;
 import beast.core.Input;
 import beast.core.parameter.RealParameter;
 import beast.evolution.tree.coalescent.PopulationFunction;
-import beast.evolution.tree.coalescent.TreeIntervals;
 import recombination.statistics.RecombinationNetworkStatsLogger;
 
 import java.util.List;
@@ -44,6 +42,9 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
 	        "maxHeightRatio",
             "if specified, above the ratio, only coalescent events are allowed.", Double.POSITIVE_INFINITY);	
 
+	public Input<Double> redFactorInput = new Input<>(
+	        "redFactor",
+            "by how much the recombination rate should be reduced after reaching the maxHeightRatio.", 0.2);	
 
 
 
@@ -53,13 +54,14 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
     public RealParameter relativeRecombinationRate;
     public RecombinationNetworkIntervals intervals;
     double[] recRates;
-    public double redFactor = 0.2;
+    public double redFactor;
         
     @Override
     public void initAndValidate(){
         populationFunction = populationFunctionInput.get();
         recombinationRate = recombinationRateInput.get();
         intervals = networkIntervalsInput.get();
+        redFactor = redFactorInput.get();
                 
         
         if (intervals.hasBreakPoints) {
@@ -91,7 +93,7 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
     	double lociMRCA = conditionOnCoalescentEventsInput.get() ? RecombinationNetworkStatsLogger.getMaxLociMRCA(intervals.recombinationNetworkInput.get()) : Double.POSITIVE_INFINITY;
 
     	RecombinationNetworkEvent prevEvent = null;
-
+    	
     	for (RecombinationNetworkEvent event : networkEventList) {
         	if (prevEvent != null)
         		logP += intervalContribution(prevEvent, event, lociMRCA);
@@ -151,34 +153,29 @@ public class CoalescentWithRecombination extends RecombinationNetworkDistributio
         double result = 0.0;
 		if (conditionOnCoalescentEventsInput.get()) {
 	        if (event.time<(lociMRCA*maxHeightRatioInput.get())) {   
-	    		for (int i =0; i < intervals.recBP.length; i++) {
+	    		for (int i = 0; i < intervals.recBP.length; i++) {
 	                result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
 	                        * (event.time - prevEvent.time);
-	            }       	
-	        }else {
-	        	if (prevEvent.time < (lociMRCA*maxHeightRatioInput.get())) {
-	        		for (int i =0; i < intervals.recBP.length; i++) {        			
-	                    result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
-	                            * (lociMRCA - prevEvent.time);
-	
-	                }
-	        		for (int i =0; i < intervals.recBP.length; i++) {        			
-	                    result += -redFactor*recRates[i] * prevEvent.totalRecombinationObsProb[i]
-	                            * (event.time - (lociMRCA*maxHeightRatioInput.get()));
-	
-	                }       	
-	
-	        	}else {
-	        		for (int i =0; i < intervals.recBP.length; i++) {        			
-	                    result += -redFactor*recRates[i] * prevEvent.totalRecombinationObsProb[i]
-	                            * (event.time - (lociMRCA*maxHeightRatioInput.get()));
-	
-	                }       	
-	
-	        	}
-	        }
+	            }  
+	        }else if (prevEvent.time<(lociMRCA*maxHeightRatioInput.get())) {
+	        	
+	    		for (int i = 0; i < intervals.recBP.length; i++) {
+	                result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
+	                        * (lociMRCA*maxHeightRatioInput.get() - prevEvent.time);
+	            }  
+        		for (int i = 0; i < intervals.recBP.length; i++) {        			
+                    result += -redFactor*recRates[i] * prevEvent.totalRecombinationObsProb[i]
+                            * (event.time - lociMRCA*maxHeightRatioInput.get());
 
-		}else {
+                }	        
+	        }else {
+        		for (int i = 0; i < intervals.recBP.length; i++) {        			
+                    result += -redFactor*recRates[i] * prevEvent.totalRecombinationObsProb[i]
+                            * (event.time - prevEvent.time);
+
+                }        		
+	        }
+	   }else {
     		for (int i =0; i < intervals.recBP.length; i++) {
                 result += -recRates[i] * prevEvent.totalRecombinationObsProb[i]
                         * (event.time - prevEvent.time);

@@ -396,7 +396,6 @@ public class RecombinationNetwork extends StateNode {
 
     @Override
     protected void store() {
-//    	System.out.println("store");
         storedRootEdge = rootEdge.getCopy();
         
         List<Integer> nodeIDs = new ArrayList<>();
@@ -414,8 +413,6 @@ public class RecombinationNetwork extends StateNode {
    
     @Override
     public void restore() {
-//    	System.out.println("restore");
-
         RecombinationNetworkEdge tmp = storedRootEdge;
         storedRootEdge = rootEdge;
         rootEdge = tmp;

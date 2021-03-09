@@ -1,0 +1,5 @@
+<addon name="Recombination" version="0.0.1">
+  <depends on="beast2" atleast="2.6.2"/>
+
+  <!-- Add other dependencies as necessary. -->
+</addon>

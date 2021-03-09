@@ -153,6 +153,15 @@ public class RecombinationNetworkNode {
         childEdge.makeDirty(Tree.IS_DIRTY);
         return this;
     }
+    
+    public RecombinationNetworkEdge otherParentEdge(RecombinationNetworkEdge edge) {
+    	return parents.get(0).ID==edge.ID ? parents.get(1):parents.get(0);
+    }
+    
+    public RecombinationNetworkEdge otherChildEdge(RecombinationNetworkEdge edge) {
+    	return children.get(0).ID==edge.ID ? children.get(1):children.get(0);
+    }
+
       
 
     /**

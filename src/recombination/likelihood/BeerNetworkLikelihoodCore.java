@@ -447,9 +447,8 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		for (BreakPoints bp : breaks) {
 			if (!bp.isEmpty()) {
 				if (!computeFor.equals(bp)) {
-					if (computeFor.overlap(bp)) {
-						BreakPoints cp2 = bp.copy();
-						cp2.andNot(computeFor);
+					if (computeFor.overlapFast(bp)) {
+						BreakPoints cp2 = bp.andNotCopy(computeFor);
 						partials.replaceBreaks(ID, bp, cp2);
 					}				
 				}

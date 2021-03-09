@@ -19,6 +19,8 @@ package recombination.annotator;
 
 import beast.core.parameter.RealParameter;
 import beast.core.util.Log;
+import beast.evolution.alignment.Alignment;
+import beast.evolution.alignment.Sequence;
 import beast.evolution.alignment.Taxon;
 import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.TraitSet;
@@ -50,10 +52,12 @@ public class ResimulatedNetworks extends RecombinationAnnotator {
 
     BufferedReader reader;
 
+    
 
     private static class NetworkAnnotatorOptions {
         File inFile;
         File outFile = new File("summary.tree");
+        File xmlFile;
         File logFile;
         double burninPercentage = 10.0;
         BreakPoints breakPoints = new BreakPoints();
@@ -75,12 +79,15 @@ public class ResimulatedNetworks extends RecombinationAnnotator {
         // Display options:
         System.out.println(options + "\n");
         
+        
         // Initialise reader
         RecombinationLogReader logReader = new RecombinationLogReader(options.inFile,
                 options.burninPercentage);
         
-        List<Double> popSize = getDoubleValue(options.logFile, "popSize");
-        List<Double> recomb = getDoubleValue(options.logFile, "recombinationRate");
+        List<Double> popSize = new ArrayList<>();
+        List<Double> recomb = new ArrayList<>();
+        List<Double>[] relRecomb = new List[1];
+        String recBP = "";
         
         int i=0;
         
@@ -90,14 +97,30 @@ public class ResimulatedNetworks extends RecombinationAnnotator {
 
         
 	        for (RecombinationNetwork network : logReader ) {
+	        	if (i==0) {
+		            recBP = getBreakPoints(options.xmlFile);
+		            popSize = getDoubleValue(options.logFile, "popSize");
+		            recomb = getDoubleValue(options.logFile, "recombinationRate");
+		            String[] tmp = recBP.trim().split("\\s+");
+		            relRecomb = new List[tmp.length+1];
+		            for (int j = 0; j < tmp.length+1; j++) {
+		            	relRecomb[j] = getDoubleValue(options.logFile, "relativeRecombinationRate"+(j+1));
+		            }
+		            
+	        	}	        	
+	        	
+	        	
 	        	SimulatedCoalescentRecombinationNetwork sims = new SimulatedCoalescentRecombinationNetwork();
 	        	
 	            ConstantPopulation populationFunction = new ConstantPopulation();
 	            populationFunction.initByName("popSize", new RealParameter("" + popSize.get(i)));
 	            
+
+	            
 	            
 	            List<Taxon> taxa = new ArrayList<>();
 	            List<String> dates = new ArrayList<>();
+	            List<BreakPoints> breakPoints = new ArrayList<>();
 	
 	            for (RecombinationNetworkNode node : network.getLeafNodes()) {
 	                taxa.add(new Taxon(node.getTaxonLabel()));
@@ -112,14 +135,21 @@ public class ResimulatedNetworks extends RecombinationAnnotator {
 	                    "value", dates.stream()
 	                            .collect(Collectors.joining(",")));
 	
-	
+	            String str ="";
+	            for (int j = 0; j < relRecomb.length; j++) {
+	            	str = str + " " + relRecomb[j].get(i);
+	            }
+	            		
+	            RealParameter relParam = new RealParameter(str);
 	
 	            sims.initByName(
 	                    "recombinationRate", new RealParameter(""+recomb.get(i)),
+	                    "relativeRecombinationRate", relParam,
 	                    "populationModel", populationFunction,
 	                    "traitSet", traitSet,
 	                    "conditionCoalescence", true,
-	                    "totalLength", network.totalLength);
+	                    "totalLength", network.totalLength,
+	                    "recombinationRatesChangePoints", recBP);
 	
 	        	i++;
 	        	
@@ -144,9 +174,10 @@ public class ResimulatedNetworks extends RecombinationAnnotator {
         reader = new BufferedReader(new FileReader(logFile));
         String[] nextLine = reader.readLine().split("\\s+");
         int index = -1;
-        for (int i = 0; i < nextLine.length; i++)
+        for (int i = 0; i < nextLine.length; i++) {
         	if (nextLine[i].equals(paramName))
         		index = i;
+        }
         
         System.out.println(Arrays.toString(nextLine));
         
@@ -166,6 +197,27 @@ public class ResimulatedNetworks extends RecombinationAnnotator {
      
     	return param;
     }
+    
+    private String getBreakPoints(File xmlFile) throws IOException {
+    	BufferedReader reader = new BufferedReader(new FileReader(xmlFile));
+    	
+    	List<Sequence> sequences = new ArrayList<>();
+        String nextLine = reader.readLine();
+        
+        
+        while (true) {
+            if (nextLine.contains("recombinationRatesChangePoints")) {
+            	
+            	String vals = nextLine.split("recombinationRatesChangePoints")[1].split("\"")[1].trim();
+
+            	return vals;
+            }
+            
+            nextLine = reader.readLine();
+
+        }
+	}
+
 
     public static String helpMessage =
             "ACGAnnotator - produces summaries of Bacter ACG log files.\n"
@@ -257,6 +309,21 @@ public class ResimulatedNetworks extends RecombinationAnnotator {
 
                     i += 1;
                     break;
+                case "-xmlFile":
+                    if (args.length<=i+1) {
+                        printUsageAndError("-xmlFile must be followed by a file name.");
+                    }
+                    
+                    try {
+                        options.xmlFile =  new File(args[i+1]);
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("Error parsing xmls file.");
+                    }
+
+
+                    i += 1;
+                    break;
+
                     
                 case "-log":
                     if (args.length<=i+1) {

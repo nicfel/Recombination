@@ -45,7 +45,6 @@ public class BreakPoints {
 	public BreakPoints(List<Range> breakPoints) { 
 		if (breakPoints!=null) {
 			this.breakPoints = new ArrayList<>(breakPoints);
-				
 		}
 	}
 	
@@ -244,14 +243,30 @@ public class BreakPoints {
 	    }
 	}
 	
-	public boolean overlap(BreakPoints dirtyBreakPoints) {
+	public boolean overlap(BreakPoints breakPoints) {
 		for (int i=0; i < size();i++) {
-			for (int k=0;k<dirtyBreakPoints.size();k++) {
-				if(FastMath.min(getRange(i).to, dirtyBreakPoints.getRange(k).to) >=
-					FastMath.max(getRange(i).from, dirtyBreakPoints.getRange(k).from)) {
+			for (int k=0;k<breakPoints.size();k++) {
+				if(FastMath.min(getRange(i).to, breakPoints.getRange(k).to) >=
+					FastMath.max(getRange(i).from, breakPoints.getRange(k).from)) {
 					return true;
 				}
 			}
+		}
+		return false;
+	}
+	
+	// like overlap(), but assumes sorted breakpoints
+	public boolean overlapFast(BreakPoints breakPoints) {
+		int i=0,j=0;
+		while (i<size() && j<breakPoints.size()) {
+			if (getRange(i).to < breakPoints.getRange(j).from)
+				i++;
+			else if (breakPoints.getRange(j).to < getRange(i).from)
+				j++;
+			else
+				return true;
+				
+			
 		}
 		return false;
 	}
@@ -310,30 +325,81 @@ public class BreakPoints {
 		setBreakPointsAnd(newBreaks);
 	}
 	
+	
+	/**
+	 * compute the intersection between this.breakpoonts and breakpoints
+	 * @param breakPoints
+	 */
+	public BreakPoints andCopy(BreakPoints breakPoints) {
+		if (breakPoints==null) {
+			return new BreakPoints();
+		}
+		if (breakPoints.isEmpty() || isEmpty()) {
+			return new BreakPoints();
+		}
+		if (breakPoints.getMin() > getMax() || breakPoints.getMax() < getMin()) {
+			return new BreakPoints();
+		}
+		
+		if (this.equals(breakPoints))
+			return this.copy();
+		
+		List<Range> newBreaks = new ArrayList<>();
+
+		int j = 0;
+		
+		for (int i = 0; i < this.breakPoints.size(); i++) {
+			while (breakPoints.breakPoints.get(j).to < this.breakPoints.get(i).from) {
+				j++;
+				if (j==breakPoints.breakPoints.size()) {
+					return setBreakPointsAndCopy(newBreaks);					
+				}
+
+			}
+
+			while (breakPoints.breakPoints.get(j).from <= this.breakPoints.get(i).to) {
+				Range newR = this.breakPoints.get(i).getOverlap(breakPoints.breakPoints.get(j));
+				if (newR!=null)
+					newBreaks.add(newR);
+				 
+				if (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).to)
+					j++;
+				else
+					break;
+				
+				if (j==breakPoints.breakPoints.size()) {
+//					setBreakPointsAnd(newBreaks);
+					return setBreakPointsAndCopy(newBreaks);					
+				}				
+			}	
+		}
+		return setBreakPointsAndCopy(newBreaks);					
+	}
+
 	/**
 	 * compute the intersection between this breakPoint and a passing range
 	 * @param breakPoints
 	 */
-//	public void andPR(BreakPoints passingRange) {
-//		if (passingRange.getRange(0).from==0) {
-//			for (int i=size()-1; i >=0;i--) {
-//				if (breakPoints.get(i).from > passingRange.getRange(0).to) {
-//					breakPoints.remove(i);
-//				}else {
-//					breakPoints.set(i, new Range(breakPoints.get(i).from, FastMath.min(breakPoints.get(i).to, passingRange.getRange(0).to)));
-//					break;
-//				}
-//			}
-//		}else {
-//			for (int i=size()-1; i >=0;i--) {
-//				if (breakPoints.get(i).to < passingRange.getRange(0).from) {
-//					breakPoints.remove(i);
-//				}else {
-//					breakPoints.set(i, new Range(FastMath.max(breakPoints.get(i).from, passingRange.getRange(0).from), breakPoints.get(i).to));
-//				}
-//			}	
-//		}
-//	}
+	public void andPR(BreakPoints passingRange) {
+		if (passingRange.getRange(0).from==0) {
+			for (int i=size()-1; i >=0;i--) {
+				if (breakPoints.get(i).from > passingRange.getRange(0).to) {
+					breakPoints.remove(i);
+				}else {
+					breakPoints.set(i, new Range(breakPoints.get(i).from, FastMath.min(breakPoints.get(i).to, passingRange.getRange(0).to)));
+					break;
+				}
+			}
+		}else {
+			for (int i=size()-1; i >=0;i--) {
+				if (breakPoints.get(i).to < passingRange.getRange(0).from) {
+					breakPoints.remove(i);
+				}else {
+					breakPoints.set(i, new Range(FastMath.max(breakPoints.get(i).from, passingRange.getRange(0).from), breakPoints.get(i).to));
+				}
+			}	
+		}
+	}
 
 
 
@@ -403,6 +469,72 @@ public class BreakPoints {
 	}
 	
 	/**
+	 * remove breakpoints from this.breakpoints
+	 * @param breakPoints
+	 */
+	public BreakPoints andNotCopy(BreakPoints breakPoints) {		
+		if (isEmpty())
+			return new BreakPoints();
+		
+		if (breakPoints==null || breakPoints.isEmpty())
+			return copy();
+
+		
+		List<Range> newBreaks = new ArrayList<>();
+		int j = 0;
+		
+
+		
+		for (int i = 0; i < this.breakPoints.size(); i++) {
+			boolean rangeAdded = false;
+			while (breakPoints.breakPoints.get(j).to < this.breakPoints.get(i).from) {
+				j++;
+				if (j==breakPoints.breakPoints.size()) {
+					if (!rangeAdded)
+						newBreaks.add(this.breakPoints.get(i));
+					i++;
+					while (i < this.breakPoints.size()) {
+						newBreaks.add(this.breakPoints.get(i));
+						i++;
+					}
+					return setBreakPointsCopy(newBreaks);
+				}
+
+			}
+
+			while (breakPoints.breakPoints.get(j).from <= this.breakPoints.get(i).to) {
+				List<Range> newR = this.breakPoints.get(i).getRemoved(breakPoints.breakPoints.get(j));
+				if (newR!=null) {
+					newBreaks.addAll(newR);
+					rangeAdded = true;
+				}
+				 
+				if (breakPoints.breakPoints.get(j).to <= this.breakPoints.get(i).to)
+					j++;
+				else
+					break;
+				
+				if (j==breakPoints.breakPoints.size()) {
+					if (!rangeAdded)
+						newBreaks.add(this.breakPoints.get(i));
+					i++;
+					while (i < this.breakPoints.size()) {
+						newBreaks.add(this.breakPoints.get(i));
+						i++;
+					}
+					return setBreakPointsCopy(newBreaks);
+				}	
+			}	
+			
+			if (!rangeAdded)
+				newBreaks.add(this.breakPoints.get(i));
+				
+		}
+		return setBreakPointsCopy(newBreaks);
+	}
+
+	
+	/**
 	 * newly sets the BreakPoints after checking that the overlaps are correct
 	 * @param newBreaks
 	 */
@@ -417,6 +549,21 @@ public class BreakPoints {
 	}
 	
 	/**
+	 * newly sets the BreakPoints after checking that the overlaps are correct
+	 * @param newBreaks
+	 */
+	public BreakPoints setBreakPointsCopy(List<Range> newBreaks) {
+		for (int i = newBreaks.size()-1; i > 0 ; i--) {
+			if (newBreaks.get(i-1).from > newBreaks.get(i).from) {
+				newBreaks.get(i-1).to = newBreaks.get(i).to;
+				newBreaks.remove(i);
+			}
+		}
+		return new BreakPoints(newBreaks);
+	}
+
+	
+	/**
 	 * newly sets the BreakPoints after and operation checking that the overlaps are correct
 	 * @param newBreaks
 	 */
@@ -429,6 +576,17 @@ public class BreakPoints {
 		}
 		this.breakPoints = new ArrayList<>(newBreaks);
 	}
+	
+	public BreakPoints setBreakPointsAndCopy(List<Range> newBreaks) {
+		for (int i = newBreaks.size()-1; i > 0 ; i--) {
+			if (newBreaks.get(i-1).to > newBreaks.get(i).from) {
+				newBreaks.get(i-1).to = newBreaks.get(i).to;
+				newBreaks.remove(i);
+			}
+		}
+		return new BreakPoints(newBreaks);
+	}
+
 
 	@Override
 	public boolean equals(Object obj) {

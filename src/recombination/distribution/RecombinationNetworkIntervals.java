@@ -60,13 +60,13 @@ public class RecombinationNetworkIntervals extends CalculationNode {
             		throw new IllegalArgumentException("recombination rate break point value is larger than the network size");
         		}
         	}   
-        	bpList.add(recombinationNetworkInput.get().totalLength);
+        	bpList.add(recombinationNetworkInput.get().totalLength-1);
         	
         	for (int i = 0; i < recBP.length; i++) 
         		recBP[i] = new BreakPoints(bpList.get(2*i), bpList.get(2*i+1));
         }else {
         	recBP = new BreakPoints[1];
-    		recBP[0] = new BreakPoints(0, recombinationNetworkInput.get().totalLength);
+    		recBP[0] = new BreakPoints(0, recombinationNetworkInput.get().totalLength-1);
         }
     }
 
@@ -110,9 +110,13 @@ public class RecombinationNetworkIntervals extends CalculationNode {
             switch(event.type) {
                 case SAMPLE:
                     lineages += 1;
+//                    System.out.println(Arrays.toString(recBP));
+
                     for (int i = 0; i < recBP.length;i++) {
                     	totalReassortmentObsProb[i] += event.node.getParentEdges().get(0).breakPoints.getNullLength(recBP[i]);
                     }
+//                    System.out.println(Arrays.toString(totalReassortmentObsProb));
+//                    System.exit(0);
                     break;
 
                 case RECOMBINATION:

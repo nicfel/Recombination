@@ -1,6 +1,5 @@
 package recombination.simulator;
 
-import beast.core.Function;
 import beast.core.Input;
 import beast.core.Input.Validate;
 import beast.core.parameter.RealParameter;
@@ -10,7 +9,6 @@ import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.evolution.tree.coalescent.PopulationFunction;
 import beast.util.Randomizer;
-import cern.colt.Arrays;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
@@ -20,7 +18,6 @@ import recombination.util.NodeEdgeID;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 
@@ -28,9 +25,6 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
     public Input<RealParameter> recombinationRateInput = new Input<>("recombinationRate",
             "Rate of recombination (per lineage per unit time)", Validate.REQUIRED);
-
-    public Input<Function> binomialProbInput = new Input<>("binomialProb",
-            "Probability parameter in binomial reassortment distribution.");
 
     public Input<PopulationFunction> populationFunctionInput = new Input<>("populationModel",
             "Population model to use.", Validate.REQUIRED);
@@ -60,19 +54,25 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
     public Input<Boolean> conditionCoalescenceInput = new Input<>("conditionCoalescence",
             "if true, only coalescent events can happen after all loci have reached their mrca", false);
 
-
-
+	public Input<String> recombinationRatesChangePointsInput = new Input<>(
+	        "recombinationRatesChangePoints",
+            "if true, only coalescent events are allowed after the .",
+            Input.Validate.OPTIONAL);
+	
+	public Input<RealParameter> relativeRecombinationRateInput = new Input<>(
+	        "relativeRecombinationRate",
+            "relative recombination rate (per lineage per unit time) for a specific part of the genome",
+            Input.Validate.OPTIONAL);
 
     private PopulationFunction populationFunction;
     private RealParameter recombinationRate;
-    private Function binomialProb;
+    public BreakPoints[] recBP;
+
 
     public void initAndValidate() {
-    	
     	nodeEdgeIDs = new NodeEdgeID();
 
         populationFunction = populationFunctionInput.get();
-        binomialProb = binomialProbInput.get();
         if (dataInput.get()!=null)
         	totalLength = dataInput.get().getSiteCount();
         else
@@ -124,6 +124,29 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 
             sampleNodes.add(sampleNode);
         }
+        
+        if (recombinationRatesChangePointsInput.get()!=null) {
+        	
+        	String[] tmp = recombinationRatesChangePointsInput.get().trim().split("\\s+");
+        	recBP = new BreakPoints[tmp.length+1];
+        	List<Integer> bpList = new ArrayList<>();
+        	bpList.add(0);
+        	for (int i = 0; i < tmp.length; i++) {            	
+            	bpList.add(Integer.parseInt(tmp[i]));
+            	bpList.add(Integer.parseInt(tmp[i]));
+        		if (Integer.parseInt(tmp[i])>totalLength) {
+            		throw new IllegalArgumentException("recombination rate break point value is larger than the network size");
+        		}
+        	}   
+        	bpList.add(totalLength-1);
+        	
+        	for (int i = 0; i < recBP.length; i++) 
+        		recBP[i] = new BreakPoints(bpList.get(2*i), bpList.get(2*i+1));
+        }else {
+        	recBP = new BreakPoints[1];
+    		recBP[0] = new BreakPoints(0, totalLength-1);
+        }
+
 
         // Perform network simulation:
         simulateRecombinationNetwork(sampleNodes);
@@ -153,6 +176,23 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         List<RecombinationNetworkEdge> extantLineages = new ArrayList<>();
 
         remainingSampleNodes.sort(Comparator.comparingDouble(RecombinationNetworkNode::getHeight));
+        
+        
+        double[] recRates = new double[recBP.length];
+        
+    	if (recRates.length>1)
+    		for (int i = 0; i < recRates.length; i++)
+    			recRates[i] = Math.exp(relativeRecombinationRateInput.get().getArrayValue(i)) * recombinationRate.getArrayValue()*(recBP[i].getLength()-1);
+		else
+			recRates[0] = recombinationRate.getArrayValue()*(recBP[0].getLength()-1);
+
+        double sumRates = 0;
+        
+        for (int i = 0; i < recRates.length;i++)
+        	sumRates+=recRates[i];
+        
+//        double recChangeTime = maxHeight*coalDistr.maxHeightRatioInput.get(); 
+
 
         double currentTime = 0;
         double timeUntilNextSample;
@@ -176,7 +216,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
 //    		for (int i = 0; i < extantLineages.size(); i++)
 //    			totObsProb += extantLineages.get(i).breakPoints.getLength()-1;
     			
-            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*recombinationRate.getValue()*(totalLength-1)) : Double.POSITIVE_INFINITY;
+            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*sumRates) : Double.POSITIVE_INFINITY;
             
             boolean allowRecomb = true;
             if (timeUntilNextSample == Double.POSITIVE_INFINITY && conditionCoalescenceInput.get()) {
@@ -190,7 +230,7 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
                 if (timeUntilNextEvent == timeToNextCoal) {
                     coalesce(currentTime, extantLineages);
                 }else if (allowRecomb){
-                    recombine(currentTime, extantLineages);
+                    recombine(currentTime, extantLineages, recRates, sumRates);
                 }
             } else {
                 currentTime += timeUntilNextSample;
@@ -297,6 +337,51 @@ public class SimulatedCoalescentRecombinationNetwork extends RecombinationNetwor
         extantLineages.add(leftLineage);
         extantLineages.add(rightLineage);        
     }
+    
+    private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages, double[] recRates, double sumRates) {
+    	RecombinationNetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
+    	
+    	// sample on which section the breakpoint will have occured.
+    	double cumsum = recRates[0]/sumRates; 
+		double rand = Randomizer.nextDouble();
+		int section = 0;
+		while (section < recRates.length-1) {
+			if (rand<=cumsum)
+				break;
+			section++;
+			cumsum += recRates[section]/sumRates;
+		}    	
+    	
+    	int breakpoint = Randomizer.nextInt(recBP[section].getLengthInt()-1) + recBP[section].getMin();
+    	
+    	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
+    	if (!lineage.breakPoints.withinLimits(breakpoint)) {
+    		return;
+    	}    	
+    	
+    	lineage.breakPoints.computeLeftAndRight(breakpoint);
+    	
+        // Create reassortment node
+        RecombinationNetworkNode node = new RecombinationNetworkNode(nodeEdgeIDs);
+        node.setHeight(reassortmentTime).addChildEdge(lineage);
+
+        // Create reassortment lineages
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), new BreakPoints(0,breakpoint), nodeEdgeIDs);
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), new BreakPoints(breakpoint+1, totalLength-1), nodeEdgeIDs);
+            
+        // add the breakPoints to the edges
+        leftLineage.setPassingRange(0, breakpoint);
+        rightLineage.setPassingRange(breakpoint+1, totalLength-1);
+        
+        node.addParentEdge(leftLineage);
+        node.addParentEdge(rightLineage);
+
+        extantLineages.remove(lineage);
+        extantLineages.add(leftLineage);
+        extantLineages.add(rightLineage);        
+    }
+    
+
 
     private BreakPoints getGappedBreakPoints(Alignment data, RecombinationNetworkNode n) {
         int taxonIndex = data.getTaxonIndex(n.getTaxonLabel());

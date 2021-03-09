@@ -45,8 +45,6 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
     	// get the place where to cut
     	double maxHeight = RecombinationNetworkStatsLogger.getMaxLociMRCA(network);
     	
-  	
-    	
     	if (maxHeight == network.getRootEdge().childNode.getHeight())
     		return Double.NEGATIVE_INFINITY;
 
@@ -71,6 +69,8 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
         	throw new IllegalArgumentException("should not arrive here");
         }
         
+        
+        
                 
         // simulate the rest of the network starting from mxHeight
         double currentTime = maxHeight;        
@@ -89,6 +89,7 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
         	sumRates+=recRates[i];
         
         double recChangeTime = maxHeight*coalDistr.maxHeightRatioInput.get(); 
+        
 
         
         do {
@@ -105,9 +106,10 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 
             // next event time
             double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
-            if (timeUntilNextEvent>recChangeTime) {
+            if ((timeUntilNextEvent+currentTime)>recChangeTime) {
+            	            	
 	            currentTime = recChangeTime;
-	            sumRates *= coalDistr.redFactor;
+	            sumRates *= coalDistr.redFactor;   
 
 	            for (int i = 0; i < recRates.length;i++)
 	            	recRates[i] *= coalDistr.redFactor;
@@ -119,8 +121,7 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 	            if (timeUntilNextEvent == timeToNextCoal) {
 	                coalesce(currentTime, startingEdges);
 	            }else {
-	            	if (!coalDistr.conditionOnCoalescentEventsInput.get())
-	            		recombine(currentTime, startingEdges, recRates, sumRates);
+            		recombine(currentTime, startingEdges, recRates, sumRates);
 	            }
             }
 
@@ -179,7 +180,6 @@ public class GibbsOperatorAboveLociRoots extends RecombinationNetworkOperator {
 			section++;
 			cumsum += recRates[section]/sumRates;
 		}    	
-    	
     	int breakpoint = Randomizer.nextInt(coalDistr.intervals.recBP[section].getLengthInt()-1) + coalDistr.intervals.recBP[section].getMin();
     	
     	// check if this breakpoint on this lineage would lead to a recombination event that can be observed

@@ -354,6 +354,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
         	initCore();
         	network.resume=false;
         }
+        
 
         List<RecombinationNetworkNode> nodes = network.getNodes().stream().filter(e -> !e.isLeaf()).collect(Collectors.toList());
         Set<RecombinationNetworkEdge> edges = network.getEdges();
@@ -550,9 +551,8 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
         if (node.isRecombination()) {
         	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
         		BreakPoints bp = computeFor_BP.copy();      		
-        		bp.and(edge.passingRange); 
+        		bp.andPR(edge.passingRange); 
         		if (!bp.isEmpty()) {        		
-//	            	updateEdgeInfo(edge, bp, prev_edge_ID, prev_Pointer);        		
 	        		getCoalChildren(edge.parentNode, bp, prev_edge_ID, prev_Pointer);
         		}
         	}       	
@@ -563,19 +563,14 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
       	
         	// compute with breakpoints are "visibly" coalescing at this node
         	if (node.overlap==null) {
-        		node.overlap = node.getChildEdges().get(0).breakPoints.copy();
-      			node.overlap.and(node.getChildEdges().get(1).breakPoints);
+        		node.overlap = node.getChildEdges().get(0).breakPoints.andCopy(node.getChildEdges().get(1).breakPoints);
         	}
         	
         	// test if compute for is visibly coalescing here
-    		BreakPoints cf_only = computeFor.copy();
-    		cf_only.andNot(node.overlap);
-    		
+    		BreakPoints cf_only = computeFor.andNotCopy(node.overlap);
+
     		if (!cf_only.isEmpty()) {    
-//            	updateEdgeInfo(edge, cf_only, prev_edge_ID, prev_Pointer);
-//                if (!edge.isRootEdge()) { 
                 getCoalChildren(edge.parentNode, cf_only, prev_edge_ID, prev_Pointer);
-//            	}
                 // see "how" much is left of the compute for BP
     			computeFor.andNot(cf_only);
     		}
@@ -604,13 +599,12 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
     		for (int i = 0; i < node.dummy.size();i++) {
     			if (node.prevPointer.get(i)!=prev_edge_ID) {    			
 	        		// get the overlap
-	        		BreakPoints bp_here = node.dummy.get(i).copy();
-	        		bp_here.and(computeFor);       		
-	        		if (!bp_here.isEmpty()) {   		        		
+	        		if (node.dummy.get(i).overlapFast(computeFor)) {        			
+		        		BreakPoints bp_here = node.dummy.get(i).andCopy(computeFor);
 		        		computeFor.andNot(bp_here);
 	                	// only pass on loci for which the root has not been reached yet.		                	
                 		node.dummy3.or(bp_here);                
-	        		}  
+	        		} 
 	        	}
     		}
     		
@@ -620,10 +614,9 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
         		for (int i = 0; i < node.dummy.size(); i++) {
         			for (int j = i + 1; j < node.dummy.size(); j++) {
 	        			if (node.prevPointer.get(i)!=node.prevPointer.get(j)) {
-	        				BreakPoints bp1 = node.dummy.get(i).copy();
-	        				bp1.and(node.dummy.get(j));	   
-	        				if (!bp1.isEmpty()) {
-	        		        	if (bp1.overlap(node.dirtyBreakPoints) || 
+	        				if (node.dummy.get(i).overlapFast(node.dummy.get(j))) {
+		        				BreakPoints bp1 = node.dummy.get(i).andCopy(node.dummy.get(j));
+	        		        	if (bp1.overlapFast(node.dirtyBreakPoints) || 
 	        		        			node.getChildEdges().get(0).isDirty()==Tree.IS_FILTHY ||
 	        		        			node.getChildEdges().get(1).isDirty()==Tree.IS_FILTHY ) {	  
 	        		        		
@@ -659,7 +652,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
 	                        	if (!edge.isRootEdge()) {
 	                        		BreakPoints rootBp = rootBreaks.get(edge.ID);
 	                        		if (rootBp!=null) {
-	                        			if (!bp1.overlap(rootBp)) {
+	                        			if (!bp1.overlapFast(rootBp)) {
 		                        			getCoalChildren(edge.parentNode, bp1, edge.ID, bp1);	                        				
 	                        			}
 	                        		}else {

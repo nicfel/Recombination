@@ -331,6 +331,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
         logHR += Math.log(Math.pow(lambda, nrRemoved)) -lambda -  Math.log(factorial(nrRemoved));
         
         if (!allEdgesAncestral()){
+        	System.out.println(network);
         	throw new IllegalArgumentException("still has empty segments, should not happen ever!");        	
         }
         
@@ -613,7 +614,7 @@ public abstract class EmptyEdgesRecombinationNetworkOperator extends Recombinati
 
 
 
-    private int factorial(int k){
+    public int factorial(int k){
     	int f = 1;
     	for (int i = 2; i <= k; i++)
     		f*=k;
