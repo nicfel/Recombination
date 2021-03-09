@@ -165,7 +165,8 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
         if (stateCount == 4) {
             likelihoodCore = new BeerNetworkLikelihood4();
         } else {
-            likelihoodCore = new BeerNetworkLikelihoodCore(stateCount);
+        	throw new IllegalArgumentException("likelihood calculation currently only implemented for 4 states");
+//            likelihoodCore = new BeerNetworkLikelihoodCore(stateCount);
         }
 
         String className = getClass().getSimpleName();

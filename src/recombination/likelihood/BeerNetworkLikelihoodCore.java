@@ -78,40 +78,7 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
     }
 
     
-    /**
-     * Integrates partials across categories.
-     *
-     * @param inPartials  the array of partials to be integrated
-     * @param proportions the proportions of sites in each category
-     * @param outPartials an array into which the partials will go
-     */
-    @Override
-	protected double calculateIntegratePartials(double[] proportions, double[] frequencies, Alignment data, HashMap<Integer, BreakPoints> rootBreaks) {
-    }
-
     
-   
-    /**
-     * Calculates pattern log likelihoods at a node.
-     *
-     * @param partials          the partials used to calculate the likelihoods
-     * @param frequencies       an array of state frequencies
-     * @param outLogLikelihoods an array into which the likelihoods will go
-     */
-    @Override
-	public void calculateLogLikelihoods(double[] partials, double[] frequencies, double[] outLogLikelihoods) {
-        int v = 0;
-        for (int k = 0; k < outLogLikelihoods.length; k++) {
-            double sum = 0.0;
-            for (int i = 0; i < nrOfStates; i++) {
-
-                sum += frequencies[i] * partials[v];
-                v++;
-            }
-            outLogLikelihoods[k] = Math.log(sum) + getLogScalingFactor(k);
-        }
-    }
-
 
     /**
      * initializes partial likelihood arrays.
@@ -257,58 +224,6 @@ public class BeerNetworkLikelihoodCore extends NetworkLikelihoodCore {
 		}
 	}
 
-    /**
-     * Scale the partials at a given node. This uses a scaling suggested by Ziheng Yang in
-     * Yang (2000) J. Mol. Evol. 51: 423-432
-     * <p/>
-     * This function looks over the partial likelihoods for each state at each pattern
-     * and finds the largest. If this is less than the scalingThreshold (currently set
-     * to 1E-40) then it rescales the partials for that pattern by dividing by this number
-     * (i.e., normalizing to between 0, 1). It then stores the log of this scaling.
-     * This is called for every internal node after the partials are calculated so provides
-     * most of the performance hit. Ziheng suggests only doing this on a proportion of nodes
-     * but this sounded like a headache to organize (and he doesn't use the threshold idea
-     * which improves the performance quite a bit).
-     *
-     * @param nodeIndex
-     */
-    protected void scalePartials(int nodeIndex) {
-        int u = 0;
-
-        for (int i = 0; i < nrOfPatterns; i++) {
-
-            double scaleFactor = 0.0;
-            int v = u;
-            for (int k = 0; k < nrOfMatrices; k++) {
-                for (int j = 0; j < nrOfStates; j++) {
-                    if (partials[currentPartialsIndex[nodeIndex]][nodeIndex][v] > scaleFactor) {
-                        scaleFactor = partials[currentPartialsIndex[nodeIndex]][nodeIndex][v];
-                    }
-                    v++;
-                }
-                v += (nrOfPatterns - 1) * nrOfStates;
-            }
-
-            if (scaleFactor < scalingThreshold) {
-
-                v = u;
-                for (int k = 0; k < nrOfMatrices; k++) {
-                    for (int j = 0; j < nrOfStates; j++) {
-                        partials[currentPartialsIndex[nodeIndex]][nodeIndex][v] /= scaleFactor;
-                        v++;
-                    }
-                    v += (nrOfPatterns - 1) * nrOfStates;
-                }
-                scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][i] = Math.log(scaleFactor);
-
-            } else {
-                scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][i] = 0.0;
-            }
-            u += nrOfStates;
-
-
-        }
-    }
 
     /**
      * This function returns the scaling factor for that pattern by summing over
