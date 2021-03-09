@@ -1,22 +1,13 @@
 package recombination.util;
 
 import beast.app.beauti.BeautiDoc;
-import beast.core.BEASTInterface;
-import beast.core.BEASTObject;
 import beast.core.Distribution;
-import beast.core.Input;
 import beast.core.Logger;
 import beast.core.MCMC;
 import beast.core.Operator;
-import beast.core.parameter.RealParameter;
 import beast.core.util.CompoundDistribution;
 import beast.evolution.likelihood.GenericTreeLikelihood;
 import beast.evolution.operators.UpDownOperator;
-import beast.evolution.tree.TraitSet;
-import beast.evolution.tree.Tree;
-import coalre.distribution.CoalescentWithReassortment;
-import coalre.operators.NetworkScaleOperator;
-import coalre.simulator.SimulatedCoalescentNetwork;
 import recombination.likelihood.NetworkLikelihood;
 import recombination.simulator.SimulatedCoalescentRecombinationNetwork;
 

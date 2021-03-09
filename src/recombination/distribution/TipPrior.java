@@ -18,8 +18,6 @@ import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.math.distributions.ParametricDistribution;
-import coalre.network.Network;
-import coalre.network.NetworkNode;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkNode;
 

@@ -3,19 +3,11 @@ package recombination.statistics;
 import beast.core.BEASTObject;
 import beast.core.Input;
 import beast.core.Loggable;
-import beast.evolution.tree.Tree;
-import coalre.network.Network;
-import coalre.network.NetworkEdge;
-import coalre.network.NetworkNode;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class LocusStatsLogger extends BEASTObject implements Loggable {
 

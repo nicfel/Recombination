@@ -1,18 +1,12 @@
 package recombination.operators;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 
 import beast.core.Input;
 import beast.util.Randomizer;
-import coalre.network.Network;
-import coalre.network.NetworkEdge;
-import coalre.network.NetworkNode;
-import coalre.operators.DivertSegmentOperator;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;

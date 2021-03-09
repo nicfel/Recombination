@@ -1,7 +1,6 @@
 package recombination.annotator;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
@@ -9,15 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import javax.swing.plaf.synth.SynthSeparatorUI;
-
-import beast.evolution.tree.Tree;
-import beast.math.statistic.DiscreteStatistics;
-import coalre.networkannotator.NetworkCladeSystem.BitSetArray;
-import coalre.networkannotator.NetworkCladeSystem.DummyClade;
-import coalre.networkannotator.NetworkCladeSystem.ReassortmentClade;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;

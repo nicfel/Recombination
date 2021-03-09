@@ -5,7 +5,7 @@ import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.evolution.tree.coalescent.ConstantPopulation;
 import beast.util.Randomizer;
-import coalre.CoalReTestClass;
+import recombination.CoalReTestClass;
 import recombination.statistics.RecombinationNetworkStatsLogger;
 
 import org.junit.Assert;

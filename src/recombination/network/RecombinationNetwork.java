@@ -6,12 +6,10 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
-import coalre.network.NetworkEdge;
-import coalre.network.NetworkNode;
-import coalre.network.parser.NetworkBaseVisitor;
-import coalre.network.parser.NetworkLexer;
-import coalre.network.parser.NetworkParser;
 import recombination.alignment.RecombinationAlignment;
+import recombination.network.parser.NetworkBaseVisitor;
+import recombination.network.parser.NetworkLexer;
+import recombination.network.parser.NetworkParser;
 import recombination.util.NodeEdgeID;
 
 import org.antlr.v4.runtime.CharStream;

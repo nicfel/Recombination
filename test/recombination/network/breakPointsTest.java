@@ -196,7 +196,7 @@ public class breakPointsTest {
     	bp2 = new BreakPoints();
     	bp2.init(bp2_list);
     	
-    	bp.andFast(bp2);
+    	bp.and(bp2);
     	
     	Assert.assertEquals(bp.toString(), "10741-12828,26830-28767");   
 

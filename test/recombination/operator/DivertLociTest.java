@@ -1,10 +1,7 @@
 package recombination.operator;
 
 import beast.util.Randomizer;
-import coalre.CoalReTestClass;
-import coalre.network.Network;
-import coalre.network.NetworkEdge;
-import coalre.network.NetworkNode;
+import recombination.CoalReTestClass;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
@@ -15,8 +12,6 @@ import recombination.operators.DivertLociOperator;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.*;
 
 public class DivertLociTest extends CoalReTestClass {

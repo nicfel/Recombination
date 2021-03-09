@@ -3,11 +3,8 @@ package recombination.distribution;
 import beast.core.parameter.RealParameter;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.coalescent.ConstantPopulation;
-import coalre.CoalReTestClass;
-import coalre.distribution.CoalescentWithReassortment;
-import coalre.distribution.NetworkIntervals;
-import coalre.network.Network;
 import junit.framework.Assert;
+import recombination.CoalReTestClass;
 import recombination.network.RecombinationNetwork;
 
 import org.junit.Test;

@@ -9,8 +9,6 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.math.distributions.ParametricDistribution;
 import beast.util.Randomizer;
-import coalre.network.NetworkNode;
-import coalre.operators.NetworkOperator;
 import recombination.network.RecombinationNetworkNode;
 
 import java.text.DecimalFormat;

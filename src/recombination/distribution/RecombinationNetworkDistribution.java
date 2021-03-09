@@ -3,7 +3,6 @@ package recombination.distribution;
 import beast.core.Distribution;
 import beast.core.Input;
 import beast.core.Input.Validate;
-import coalre.distribution.NetworkIntervals;
 import beast.core.State;
 
 import java.util.List;
