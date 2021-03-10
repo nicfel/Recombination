@@ -40,11 +40,11 @@ import java.util.List;
  */
 public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
-    private enum SummaryStrategy { MEAN, MEDIAN, NONE }
+    private enum SummaryStrategy { MEAN, MEDIAN, MCC_node_height }
 
     private static class NetworkAnnotatorOptions {
         File inFile;
-        File outFile = new File("summary.tree");
+        File outFile = new File("summary.network.tree");
         File targetFile;
         double burninPercentage = 10.0;
         SummaryStrategy summaryStrategy = SummaryStrategy.MEAN;
@@ -231,10 +231,10 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
         JLabel logFileLabel = new JLabel("Reassortment Network log file:");
         JLabel outFileLabel = new JLabel("Output file:");
-        JLabel targetFileLabel = new JLabel("Target file:");
+//        JLabel targetFileLabel = new JLabel("Target file:");
         JLabel burninLabel = new JLabel("Burn-in percentage:");
         JLabel summaryMethodLabel = new JLabel("Position summary method:");
-        JLabel removeSegmentLabel = new JLabel("Removes segments from the summary:");
+//        JLabel removeSegmentLabel = new JLabel("Removes segments from the summary:");
 
         JTextField inFilename = new JTextField(20);
         inFilename.setEditable(false);
@@ -245,9 +245,9 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
         outFilename.setEditable(false);
         JButton outFileButton = new JButton("Choose File");
         
-        JTextField targetFilename = new JTextField(20);
-        targetFilename.setEditable(false);
-        JButton targetFileButton = new JButton("Choose File");
+//        JTextField targetFilename = new JTextField(20);
+//        targetFilename.setEditable(false);
+//        JButton targetFileButton = new JButton("Choose File");
 
         JSlider burninSlider = new JSlider(JSlider.HORIZONTAL,
                 0, 100, (int)(options.burninPercentage));
@@ -279,22 +279,24 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                 .addGroup(layout.createParallelGroup()
                         .addComponent(logFileLabel)
                         .addComponent(outFileLabel)
-                        .addComponent(targetFileLabel)
+//                        .addComponent(targetFileLabel)
                         .addComponent(burninLabel)
                         .addComponent(summaryMethodLabel)
-                        .addComponent(removeSegmentLabel))
+//                        .addComponent(removeSegmentLabel)
+                        )
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING, false)
                         .addComponent(inFilename)
                         .addComponent(outFilename)
-                        .addComponent(targetFilename)
+//                        .addComponent(targetFilename)
                         .addComponent(burninSlider)
                         .addComponent(heightMethodCombo)
-                        .addComponent(removeSegments))
+//                        .addComponent(removeSegments)
+                        )
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING, false)
                         .addComponent(inFileButton)
                         .addComponent(outFileButton)
-                        .addComponent(targetFileButton)));
-
+//                        .addComponent(targetFileButton)
+                        ));
         layout.setVerticalGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup()
                         .addComponent(logFileLabel)
@@ -310,13 +312,13 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                                 GroupLayout.DEFAULT_SIZE,
                                 GroupLayout.PREFERRED_SIZE)
                         .addComponent(outFileButton))
-                .addGroup(layout.createParallelGroup()
-                        .addComponent(targetFileLabel)
-                        .addComponent(targetFilename,
-                                GroupLayout.PREFERRED_SIZE,
-                                GroupLayout.DEFAULT_SIZE,
-                                GroupLayout.PREFERRED_SIZE)
-                        .addComponent(targetFileButton))
+//                .addGroup(layout.createParallelGroup()
+//                        .addComponent(targetFileLabel)
+//                        .addComponent(targetFilename,
+//                                GroupLayout.PREFERRED_SIZE,
+//                                GroupLayout.DEFAULT_SIZE,
+//                                GroupLayout.PREFERRED_SIZE)
+//                        .addComponent(targetFileButton))
                 .addGroup(layout.createParallelGroup()
                         .addComponent(burninLabel)
                         .addComponent(burninSlider,
@@ -329,12 +331,13 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                                 GroupLayout.PREFERRED_SIZE,
                                 GroupLayout.DEFAULT_SIZE,
                                 GroupLayout.PREFERRED_SIZE))
-                .addGroup(layout.createParallelGroup()
-                        .addComponent(removeSegmentLabel)
-                        .addComponent(removeSegments,
-                                GroupLayout.PREFERRED_SIZE,
-                                GroupLayout.DEFAULT_SIZE,
-                                GroupLayout.PREFERRED_SIZE)));
+//                .addGroup(layout.createParallelGroup()
+//                        .addComponent(removeSegmentLabel)
+//                        .addComponent(removeSegments,
+//                                GroupLayout.PREFERRED_SIZE,
+//                                GroupLayout.DEFAULT_SIZE,
+//                                GroupLayout.PREFERRED_SIZE))
+                );
 
         mainPanel.setBorder(new EtchedBorder());
         cp.add(mainPanel);
@@ -365,7 +368,7 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
 
         JFileChooser inFileChooser = new JFileChooser();
         inFileButton.addActionListener(e -> {
-            inFileChooser.setDialogTitle("Select ACG log file to summarize");
+            inFileChooser.setDialogTitle("Select recombination network log file to summarize");
             if (options.inFile == null)
                 inFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
             int returnVal = inFileChooser.showOpenDialog(dialog);
@@ -394,22 +397,22 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
             }
         });
         
-        JFileChooser targetFileChooser = new JFileChooser();
-        targetFileButton.addActionListener(e -> {
-            targetFileChooser.setDialogTitle("Select output file name.");
-            if (options.inFile != null)
-            	targetFileChooser.setCurrentDirectory(options.inFile);
-            else
-            	targetFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
-
-            targetFileChooser.setSelectedFile(options.outFile);
-            int returnVal = targetFileChooser.showOpenDialog(dialog);
-
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                options.targetFile = targetFileChooser.getSelectedFile();
-                outFilename.setText(targetFileChooser.getSelectedFile().getName());
-            }
-        });
+//        JFileChooser targetFileChooser = new JFileChooser();
+//        targetFileButton.addActionListener(e -> {
+//            targetFileChooser.setDialogTitle("Select output file name.");
+//            if (options.inFile != null)
+//            	targetFileChooser.setCurrentDirectory(options.inFile);
+//            else
+//            	targetFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+//
+//            targetFileChooser.setSelectedFile(options.outFile);
+//            int returnVal = targetFileChooser.showOpenDialog(dialog);
+//
+//            if (returnVal == JFileChooser.APPROVE_OPTION) {
+//                options.targetFile = targetFileChooser.getSelectedFile();
+//                outFilename.setText(targetFileChooser.getSelectedFile().getName());
+//            }
+//        });
              			
         cp.add(buttonPanel);
 
@@ -553,11 +556,19 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
                     }
                     
                     if (args[i+1].toLowerCase().equals("none")) {
-                        options.summaryStrategy = SummaryStrategy.NONE;
+                        options.summaryStrategy = SummaryStrategy.MCC_node_height;
 
                         i += 1;
                         break;
                     }
+                    
+                    if (args[i+1].toLowerCase().equals("mcc")) {
+                        options.summaryStrategy = SummaryStrategy.MCC_node_height;
+
+                        i += 1;
+                        break;
+                    }
+
 
 
                     printUsageAndError("-positions must be followed by either 'MEAN' or 'MEDIAN'.");

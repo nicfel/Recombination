@@ -23,7 +23,8 @@
                      inlineInputs="recombination.distribution.CoalescentWithRecombination.networkIntervals"
                      suppressInputs="recombination.distribution.NetworkIntervals.network">
             <![CDATA[
-            <stateNode id="recombinationRate" spec="beast.core.parameter.RealParameter" value="0.1" estimate="true"/>
+                
+            <stateNode id="recombinationRate" spec="beast.core.parameter.RealParameter" value="0.0001" estimate="true"/>
             <stateNode id="popSize" spec="beast.core.parameter.RealParameter" value="1.0" estimate="true"/>
 
             <stateNode id="network" spec="recombination.simulator.SimulatedCoalescentRecombinationNetwork" data="@$(n)"
@@ -36,7 +37,7 @@
 
             <prior spec="recombination.util.DummyTreeDistribution" id="CoalescentWithRecombinationDummy.t:$(n)" tree="@Tree.t:$(n)"/>
 
-            <prior spec="recombination.distribution.CoalescentWithRecombination" id="CoalescentWithRecombinationPrior">
+            <prior spec="recombination.distribution.CoalescentWithRecombination" id="CoalescentWithRecombinationPrior" maxHeightRatio="5">
                 <recombinationRate idref="recombinationRate"/>
                 <populationModel id="constantPopSize" spec="beast.evolution.tree.coalescent.ConstantPopulation">
                     <popSize idref="popSize"/>
@@ -61,31 +62,32 @@
             <operator id="popSizeCwRScale.alltrees" spec="ScaleOperator"
                 parameter="@popSize" scaleFactor="0.5" weight="1.0"/>
 
-
-            <operator id="addRemoveRecombination" spec="recombination.operators.LocalAddRemoveRecombinationCoalescent"
+            <operator id="addRemoveRecombinationCoalescent" spec="recombination.operators.LocalAddRemoveRecombinationCoalescent"
                       network="@network" weight="30.0">
                       <coalescentWithRecombination idref="CoalescentWithRecombinationPrior"/>
             </operator>
+            
+            <operator id="addRemoveRecombination" spec="recombination.operators.AddRemoveRecombination"
+                      network="@network" weight="10.0" alpha="0.5"/>
 
-            <operator id="divertSegment" spec="recombination.operators.DivertLociOperator"
-                      network="@network" weight="5.0"/>
+            <operator id="divertLoci" spec="recombination.operators.DivertLociOperator"
+                      network="@network" weight="10.0"/>
 
             <operator id="uniformNetwork" spec="recombination.operators.UniformRecombinationNetworkNodeHeightOperator"
                       network="@network" weight="5.0"/>
 
             <operator id="networkWideExchange" spec="recombination.operators.RecombinationNetworkExchange"
-                      network="@network" isNarrow="false" weight="5.0"/>
+                      network="@network" isNarrow="false" weight="30.0"/>
 
             <operator id="networkNarrowExchange" spec="recombination.operators.RecombinationNetworkExchange"
-                      network="@network" isNarrow="true" weight="15.0"/>
+                      network="@network" isNarrow="true" weight="30.0"/>
 
             <operator id="subNetworkSlide" spec="recombination.operators.SubRecombinationNetworkSlide"
                       network="@network" weight="30.0"/>
 
             <operator id="networkGibbs" spec="recombination.operators.GibbsOperatorAboveLociRoots"
                       network="@network" weight="5.0">
-              <populationModel idref="constantPopSize"/>
-              <recombinationRate idref="recombinationRate"/>
+                      <coalescentWithRecombination idref="CoalescentWithRecombinationPrior"/>
             </operator>
 
 
@@ -96,7 +98,7 @@
                       network="@network" scaleRootOnly="true" weight="3.0"/>
 
             <operator id="networkUpDown" spec="recombination.operators.RecombinationNetworkScaleOperator"
-                      network="@network" weight="3.0"/>
+                      network="@network" weight="5.0"/>
 
 
             <log id="networkCwRStatsLogger.alltrees" spec="recombination.statistics.RecombinationNetworkStatsLogger" recombinationNetwork="@network"/>
@@ -135,9 +137,11 @@
             <connect srcID="popSize" targetID="networkUpDown" inputName="upParameter"
                      if="inposterior(CoalescentWithRecombinationPrior) and popSize/estimate=true"/>
 
+         <connect srcID="addRemoveRecombinationCoalescent" targetID="mcmc" inputName="operator"
+                  if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
             <connect srcID="addRemoveRecombination" targetID="mcmc" inputName="operator"
                      if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
-            <connect srcID="divertSegment" targetID="mcmc" inputName="operator"
+            <connect srcID="divertLoci" targetID="mcmc" inputName="operator"
                      if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
             <connect srcID="uniformNetwork" targetID="mcmc" inputName="operator"
                      if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
@@ -149,6 +153,8 @@
                      if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
             <connect srcID="networkGibbs" targetID="mcmc" inputName="operator"
                      if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+                     
+                     
             <connect srcID="networkScale" targetID="mcmc" inputName="operator"
                      if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
             <connect srcID="networkScaleRoot" targetID="mcmc" inputName="operator"
