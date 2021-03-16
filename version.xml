@@ -1,4 +1,4 @@
-<addon name="Recombination" version="0.0.1">
+<addon name="Recombination" version="0.0.2">
   <depends on="beast2" atleast="2.6.2"/>
   <addonapp class="recombination.annotator.RecombinationNetworkSummarizer"
                       description="Recombination network annotator"/>
