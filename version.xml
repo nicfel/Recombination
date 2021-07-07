@@ -1,7 +1,9 @@
-<addon name="Recombination" version="0.0.2">
+<addon name="Recombination" version="0.1.0">
   <depends on="beast2" atleast="2.6.2"/>
   <addonapp class="recombination.annotator.RecombinationNetworkSummarizer"
                       description="Recombination network annotator"/>
+  <addonapp class="recombination.annotator.CommonAncestorHeights"
+                      description="Common ancestor heights"/>
 
   <!-- Add other dependencies as necessary. -->
 </addon>

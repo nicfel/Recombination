@@ -227,9 +227,9 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
         JDialog dialog = new JDialog((JDialog)null, true);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setLocationRelativeTo(null);
-        dialog.setTitle("Reassortment Network Summarizer");
+        dialog.setTitle("Recombination Network Summarizer");
 
-        JLabel logFileLabel = new JLabel("Reassortment Network log file:");
+        JLabel logFileLabel = new JLabel("Recombination Network log file:");
         JLabel outFileLabel = new JLabel("Output file:");
 //        JLabel targetFileLabel = new JLabel("Target file:");
         JLabel burninLabel = new JLabel("Burn-in percentage:");
@@ -430,7 +430,7 @@ public class RecombinationNetworkSummarizer extends RecombinationAnnotator {
     private static void setupGUIOutput() {
 
         JFrame frame = new JFrame();
-        frame.setTitle("Reassortment Network Annotator");
+        frame.setTitle("Recombination Network Annotator");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         JTextArea textArea = new JTextArea(25, 80);

@@ -59,6 +59,7 @@ public class RateAfterRecombination extends RecombinationAnnotator {
         File outFile = new File("rate_after_recombination.tsv");
         double burninPercentage = 10.0;
         BreakPoints breakPoints = new BreakPoints();
+        double maxDist = Double.POSITIVE_INFINITY;
 
         @Override
         public String toString() {
@@ -66,7 +67,8 @@ public class RateAfterRecombination extends RecombinationAnnotator {
                     "Input file: " + inFile + "\n" +
                     "Output file: " + outFile + "\n" +
                     "Burn-in percentage: " + burninPercentage + "%\n" +
-            		"Remove Loci for summary: " + breakPoints + "\n";
+            		"Remove Loci for summary: " + breakPoints + "\n" +
+    				"maximal dist: " + maxDist + "\n";
         }
     }
 
@@ -92,8 +94,9 @@ public class RateAfterRecombination extends RecombinationAnnotator {
 	    int i = 0;
         try (PrintStream ps = new PrintStream(options.outFile)) {
 	        for (RecombinationNetwork network : logReader){
+	        	pruneNetwork(network, options.breakPoints);
 	        	pruneLociFromNetwork(network, options.breakPoints);
-	        	getRateAfterRecombination(network, ps, i);
+	        	getRateAfterRecombination(network, ps, i, options.maxDist);
 	        	i++;
 	        }
 	        ps.close();
@@ -101,24 +104,32 @@ public class RateAfterRecombination extends RecombinationAnnotator {
         System.out.println("\nDone!");
     }
     
-    private void getRateAfterRecombination(RecombinationNetwork network, PrintStream ps, int samplenr){    	
+    private void getRateAfterRecombination(RecombinationNetwork network, PrintStream ps, int samplenr, double maxdist){    	
     	// get all reassortment nodes    	
         List<RecombinationNetworkNode> recombinationNodes = network.getNodes().stream()
                 .collect(Collectors.toList());    	
-        
         double length_tot=0,length_rec=0;        
         double rec_tot=0,rec_rec=0;        
         for (RecombinationNetworkNode node : recombinationNodes){
         	if (node.isRecombination()) {			
-				length_rec += node.getParentEdges().get(0).getLength() * (node.getParentEdges().get(0).breakPoints.getLength()-1);
-				length_rec += node.getParentEdges().get(1).getLength() * (node.getParentEdges().get(1).breakPoints.getLength()-1);
 				
-				if (node.getParentEdges().get(0).parentNode.isRecombination()) {
-					rec_rec++;
-				}
-				if (node.getParentEdges().get(1).parentNode.isRecombination()) {
-					rec_rec++;
-				}			
+        		if (node.getParentEdges().get(0).getLength() < maxdist) {
+        			length_rec += node.getParentEdges().get(0).getLength() * (node.getParentEdges().get(0).breakPoints.getLength()-1);
+    				if (node.getParentEdges().get(0).parentNode.isRecombination()) {
+    					rec_rec++;
+    				}
+        		}else {
+        			length_rec += maxdist * (node.getParentEdges().get(0).breakPoints.getLength()-1);
+        		}
+        		
+        		if (node.getParentEdges().get(1).getLength() < maxdist) {
+        			length_rec += node.getParentEdges().get(1).getLength() * (node.getParentEdges().get(1).breakPoints.getLength()-1);
+    				if (node.getParentEdges().get(1).parentNode.isRecombination()) {
+    					rec_rec++;
+    				}
+        		}else {
+        			length_rec += maxdist * (node.getParentEdges().get(1).breakPoints.getLength()-1);
+        		}
         	}else if (node.isCoalescence()){
         		if (!node.getParentEdges().get(0).isRootEdge()) {
             		length_tot += node.getParentEdges().get(0).getLength() * (node.getParentEdges().get(0).breakPoints.getLength()-1);
@@ -428,6 +439,19 @@ public class RateAfterRecombination extends RecombinationAnnotator {
 
                     i += 1;
                     break;
+                case "-maxDist":
+                    if (args.length<=i+1)
+                        printUsageAndError("-maxDist must be followed by a number");
+
+                    try {
+                        options.maxDist = Double.parseDouble(args[i+1]);
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("Error parsing burnin percentage.");
+                    }
+
+                    i += 1;
+                    break;
+
 
                 case "-subsetRange":
                     if (args.length<=i+1) {

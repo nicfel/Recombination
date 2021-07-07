@@ -18,6 +18,7 @@
 package recombination.annotator;
 
 import beast.core.util.Log;
+import beast.evolution.tree.Tree;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
@@ -32,7 +33,9 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -89,7 +92,7 @@ public class TrunkRecombination extends RecombinationAnnotator {
         // compute the pairwise reassortment distances 
         try (PrintStream ps = new PrintStream(options.outFile)) {
 	        for (RecombinationNetwork network : logReader){	        	
-	        	pruneNetwork(network, options.breakPoints);
+//	        	pruneNetwork(network, options.breakPoints);
 	        	if (options.trunkDefinition == TrunkDefinition.MostRecentSample)
 	        		computeTrunkReassortment(network, ps);
 	        	else
@@ -109,59 +112,42 @@ public class TrunkRecombination extends RecombinationAnnotator {
      * @param ps
      */
     private void computeTrunkReassortment(RecombinationNetwork network, PrintStream ps){    	
-        
-        // get the length of the network        
-        List<RecombinationNetworkEdge> allEdges = network.getEdges().stream()
-                .filter(e -> !e.isRootEdge())
-                .collect(Collectors.toList());
-        
-        double fullLength = 0.0;
-		for (RecombinationNetworkEdge edge:allEdges)
-			fullLength += edge.getLength();
-		
-		
-        // compute which nodes are on the trunk of the network defined as any connection between
-        // the root and the most recent sampled individual. To do so, get all zero height edges
-        List<RecombinationNetworkEdge> zeroHeightEdges = network.getEdges().stream()
-                .filter(e -> e.isLeafEdge())
-                .filter(e -> e.childNode.getHeight()<0.0000001)
-                .collect(Collectors.toList());
-        
-		List<RecombinationNetworkNode> allTrunkNodes = new ArrayList<>();
-		
-		if(zeroHeightEdges.size()==0)
-			throw new IllegalArgumentException("no leaf node with 0 height found");
-        
-    	for (RecombinationNetworkEdge zeroEdge : zeroHeightEdges){
-    		this.allTrunkNodes = new ArrayList<>();
-			getAllAncestralEdges(zeroEdge.childNode);
-			this.allTrunkNodes.removeAll(allTrunkNodes);
-			allTrunkNodes.addAll(this.allTrunkNodes);
-    	}
+//        throw new IllegalArgumentException("not implemented");
     	
-    	// calculate how many reassortment events are on the trunk and how many aren't       
-        int onTrunk = allTrunkNodes.stream()
-                .filter(e -> e.isRecombination())
-                .collect(Collectors.toList()).size();
-        
-        int offTrunk = allEdges.stream()
-                .filter(e -> !e.isRootEdge())
-                .filter(e -> e.parentNode.isRecombination())
-                .collect(Collectors.toList()).size() - onTrunk;
-        
-       	// calculate the length of the trunk
-        double trunkLength = 0.0;
-        for (RecombinationNetworkNode node : allTrunkNodes){
-        	for (RecombinationNetworkEdge edge:node.getParentEdges())
-        		if (!edge.isRootEdge())
-        			trunkLength += edge.getLength();
-        }
-        
-
-		ps.print(onTrunk + "\t" + offTrunk + "\t" + trunkLength + "\t" + (fullLength-trunkLength));
-
-
+    	
+    	
+    	
        
+//        int leaf = 0;
+//        int coal = 0;
+//        
+//        double leaf_length = 0;
+//        double coal_length = 0;        
+//        
+//        for (RecombinationNetworkNode n :  network.getNodes().stream()
+//                .filter(e -> e.isLeaf())
+//                .collect(Collectors.toList())) {
+//        	if (n.getParentEdges().get(0).getLength()<1) {
+//	        	if (n.getParentEdges().get(0).parentNode.isRecombination()) {
+//	        		leaf++;
+//	        	}  
+//	        	leaf_length += n.getParentEdges().get(0).getLength()* n.getParentEdges().get(0).breakPoints.getLength();
+//        	}
+//        }
+//        
+//        for (RecombinationNetworkNode n :  network.getNodes().stream()
+//        		.filter(e -> !e.getParentEdges().get(0).isRootEdge())
+//                .filter(e -> e.isCoalescence())
+//                .collect(Collectors.toList())) {
+//        	if (n.getParentEdges().get(0).parentNode.isRecombination()) {
+//        		coal++;
+//        	}  
+//        	coal_length += n.getParentEdges().get(0).getLength()* n.getParentEdges().get(0).breakPoints.getLength();
+//        }
+//
+//        
+//        ps.print(coal + "\t" + (leaf) + "\t" + coal_length + "\t" + leaf_length);
+
 
     }
     
@@ -181,7 +167,13 @@ public class TrunkRecombination extends RecombinationAnnotator {
 			
 		}
     }
-        
+    
+   
+    int onTrunkCount;
+    double trunkLength;
+    Map<Integer, BreakPoints> rootBreaks;
+    Map<Integer, Double> restLength;
+
     /**
      * gets how many reticulation events happen on the trunk vs. not on the trunk
      * The trunk is define as any edge on the network that has descendents that are more than minTipDistance 
@@ -192,73 +184,278 @@ public class TrunkRecombination extends RecombinationAnnotator {
      */
     private void computeTrunkReassortmentLeaveDist(RecombinationNetwork network, PrintStream ps, double minTipDistance){    	
         
+    	rootBreaks = new HashMap<Integer, BreakPoints>();
+    	traversalRoots(network.getRootEdge(), new BreakPoints(network.totalLength));
+    	
+    	BreakPoints bp = new BreakPoints();
+    	for (Integer i : rootBreaks.keySet()) {
+    		bp.or(rootBreaks.get(i));
+    	}
+    	
+        // get the length of the network        
+        List<RecombinationNetworkNode> allLeafs = network.getNodes().stream()
+                .filter(e -> e.isLeaf())
+                .collect(Collectors.toList());
+        
+          
+        
+        restLength = new HashMap<>();
+		for (RecombinationNetworkNode l : allLeafs) {
+			labelDistances(l.getParentEdges().get(0),
+					0.0, minTipDistance, 
+					l.getParentEdges().get(0).breakPoints.copy());
+		}
+		
+		
+		
+        // get the length of the network        
+        List<RecombinationNetworkEdge> allNetworkEdges = network.getEdges().stream()
+        		.filter(e -> !e.isRootEdge())
+                .collect(Collectors.toList());
+		
+
+        // get the length of the network        
+        List<RecombinationNetworkEdge> allTrunkEdges = network.getEdges().stream()
+        		.filter(e -> !e.isRootEdge())
+                .filter(e -> e.childNode.visited)
+                .collect(Collectors.toList());
+		
+		double trunkWeightedLength = 0;
+        
+		for (RecombinationNetworkEdge e : allTrunkEdges) {
+			BreakPoints bpEdge = e.childNode.dirtyBreakPoints.andCopy(e.breakPoints);
+			trunkWeightedLength += e.getLength() * bpEdge.getLength();
+		}
+		
+		for (Integer e : restLength.keySet()) {
+			for (RecombinationNetworkEdge edge : allNetworkEdges) {
+				if (edge.ID==e && !edge.childNode.visited) {
+					BreakPoints bpEdge = edge.childNode.dirtyBreakPoints.andCopy(edge.breakPoints);
+//					BreakPoints bpEdge = edge.breakPoints.copy();
+					trunkWeightedLength += restLength.get(edge.ID)*bpEdge.getLength();
+//					trunkWeightedLength += restLength.get(edge.ID);
+				}
+			}
+		}
+
+				
+//		System.out.println(network);
+//		System.exit(0);
+        
+		List<RecombinationNetworkNode> trunkRecombinationNodes = network.getNodes().stream()
+                .filter(e -> e.isRecombination())
+                .filter(e -> e.visited)
+                .collect(Collectors.toList());
+		
+		int onTrunk = 0;
+        
+		for (RecombinationNetworkNode n : trunkRecombinationNodes) {
+			BreakPoints bp1 = n.dirtyBreakPoints.andCopy(n.getParentEdges().get(0).breakPoints);
+			BreakPoints bp2 = n.dirtyBreakPoints.andCopy(n.getParentEdges().get(1).breakPoints);
+//			BreakPoints bp1 = n.getParentEdges().get(0).breakPoints.copy();
+//			BreakPoints bp2 = n.getParentEdges().get(1).breakPoints.copy();
+
+			if (!bp1.isEmpty() && !bp2.isEmpty())
+					onTrunk++;
+
+		}
+		
+		
+		
+		restLength = new HashMap<>();
+		for (RecombinationNetworkNode l : allLeafs) {
+			l.visited=true;
+			labelDistances(l.getParentEdges().get(0),
+					0.0, 0.0, 
+					l.getParentEdges().get(0).breakPoints.copy());
+		}
+
+		
         // get the length of the network        
         List<RecombinationNetworkEdge> allEdges = network.getEdges().stream()
-                .filter(e -> !e.isRootEdge())
+        		.filter(e -> !e.isRootEdge())
+                .filter(e -> e.childNode.visited)
                 .collect(Collectors.toList());
+		
+		double totalWeightedLength = 0;
         
-        double fullLength = 0.0;
-		for (RecombinationNetworkEdge edge:allEdges)
-			fullLength += edge.getLength();
-		
-		
-        // compute which nodes are on the trunk of the network defined as any connection between
-        // the root and the most recent sampled individual. To do so, get all zero height edges
-        List<RecombinationNetworkEdge> zeroHeightEdges = network.getEdges().stream()
-                .filter(e -> e.isLeafEdge())
-                .collect(Collectors.toList());
-        
-		allTrunkNodes = new ArrayList<>();
-		leaveDistance = new ArrayList<>();
-		
-		if(zeroHeightEdges.size()==0)
-			throw new IllegalArgumentException("no leaf node with 0 height found");		
-
-		for (RecombinationNetworkEdge zeroEdge : zeroHeightEdges){
-    		double dist = 0.0;
-			getAllAncestralEdgesLeaveDist(zeroEdge.childNode, dist, minTipDistance);
-    	}
-		
-		// drop every node in allTrunkNodes that is less far away from a leave than some threshold
-		for (int i = allTrunkNodes.size()-1; i>=0; i--){
-			if (leaveDistance.get(i)<minTipDistance){
-				allTrunkNodes.remove(i);
-			} 
+		for (RecombinationNetworkEdge e : allEdges) {
+			BreakPoints bpEdge = e.childNode.dirtyBreakPoints.andCopy(e.breakPoints);
+//			BreakPoints bpEdge = e.breakPoints.copy();
+			totalWeightedLength += e.getLength()*bpEdge.getLength();
 		}
-    	
-    	// calculate how many reassortment events are on the trunk and how many aren't       
-//        int onTrunk = allTrunkNodes.stream()
-//                .filter(e -> e.isRecombination())
-//                .collect(Collectors.toList()).size();
         
-//        int offTrunk = allEdges.stream()
-//                .filter(e -> !e.isRootEdge())
-//                .filter(e -> e.parentNode.isRecombination())
-//                .collect(Collectors.toList()).size() - onTrunk;
+		List<RecombinationNetworkNode> recombinationNodes = network.getNodes().stream()
+                .filter(e -> e.isRecombination())
+                .filter(e -> e.visited)
+                .collect(Collectors.toList());
+		
+		int totalRecombination = 0;
         
-       	// calculate the length of the trunk
-        double trunkLength = 0.0;
-        for (RecombinationNetworkNode node : allTrunkNodes){
-        	for (RecombinationNetworkEdge edge : node.getParentEdges())
-        		if (!edge.isRootEdge())
-        			trunkLength += edge.getLength();
-        }
-        
-        double onTrunk = 0.0;
-        for (RecombinationNetworkNode node : allTrunkNodes.stream().filter(e -> e.isRecombination()).collect(Collectors.toList())) {
-        	onTrunk += (node.getChildEdges().get(0).breakPoints.getGeneticLength()-1)/network.totalLength;
-        }
-        
-        double offTrunk = 0.0;
-        for (RecombinationNetworkEdge edge : allEdges.stream().filter(e -> !e.isRootEdge()).filter(e -> e.parentNode.isRecombination()).collect(Collectors.toList())) {
-        	offTrunk += (edge.breakPoints.getGeneticLength()-1)/network.totalLength;
-        }
-        
-        offTrunk -= onTrunk;        
+		for (RecombinationNetworkNode n : recombinationNodes) {
+			BreakPoints bp1 = n.dirtyBreakPoints.andCopy(n.getParentEdges().get(0).breakPoints);
+			BreakPoints bp2 = n.dirtyBreakPoints.andCopy(n.getParentEdges().get(1).breakPoints);
+			
+//			BreakPoints bp1 = n.getParentEdges().get(0).breakPoints.copy();
+//			BreakPoints bp2 = n.getParentEdges().get(1).breakPoints.copy();
 
-        ps.print(onTrunk + "\t" + offTrunk + "\t" + trunkLength + "\t" + (fullLength-trunkLength));
+
+			if (!bp1.isEmpty() && !bp2.isEmpty())
+				totalRecombination++;
+
+		}
+
+        
+        ps.print(onTrunk + "\t" + (totalRecombination-onTrunk) + "\t" + trunkWeightedLength + "\t" + (totalWeightedLength-trunkWeightedLength));
 
     }
+    
+    private void labelDistances(RecombinationNetworkEdge edge, double leafDist, double minLeaveDist, BreakPoints bp) {
+    	    	
+   	
+    	edge.childNode.dirtyBreakPoints.or(bp);
+    	
+    	if (leafDist<=minLeaveDist && (leafDist+edge.getLength())>minLeaveDist) {
+    		if (restLength.containsKey(edge.ID)) {
+    			restLength.replace(edge.ID, Math.max(restLength.get(edge.ID), leafDist+edge.getLength()-minLeaveDist));
+    		}else {
+    			restLength.put(edge.ID, leafDist+edge.getLength()-minLeaveDist);
+    		}
+    	}
+    	
+    	leafDist += edge.getLength();
+    	   		
+    	
+    	if (edge.parentNode.isRecombination()) {
+    		
+    		
+    		if (leafDist > minLeaveDist)
+    			edge.parentNode.visited=true;
+
+    		BreakPoints bp1 = edge.parentNode.getParentEdges().get(0).breakPoints.andCopy(bp);
+    		BreakPoints bp2 = edge.parentNode.getParentEdges().get(1).breakPoints.andCopy(bp);
+    		
+    		
+    		if (!bp1.isEmpty())
+    			labelDistances(edge.parentNode.getParentEdges().get(0), leafDist, minLeaveDist, bp1);
+    		
+    		if (!bp2.isEmpty()) 
+    			labelDistances(edge.parentNode.getParentEdges().get(1), leafDist, minLeaveDist, bp2);
+    		
+    	}else {
+    		// check overlap
+    		BreakPoints overlap = bp.copy();
+    		if (overlap.isEmpty())
+    			return;
+
+    		if (leafDist > minLeaveDist)
+    			edge.parentNode.visited = true;
+    		
+    		//check if it is a local root
+    		if (rootBreaks.containsKey(edge.parentNode.getParentEdges().get(0).ID)) {
+    			overlap.andNot(rootBreaks.get(edge.parentNode.getParentEdges().get(0).ID));
+    		}
+    		if (overlap.isEmpty())
+    			return;    		
+    		
+    		labelDistances(edge.parentNode.getParentEdges().get(0), leafDist, minLeaveDist, overlap);
+    	}
+    }    
+
+    
+    private void getTrunkRateUpwards(RecombinationNetworkEdge edge, double leafDist, double minLeaveDist, BreakPoints bp) {
+    	// check if the parent Edge is trunk, if yes, go onwards
+    	if (!edge.parentNode.dirtyBreakPoints.isEmpty()) {
+        	if (leafDist < minLeaveDist) {
+    	    	if ((leafDist+edge.getLength()) > minLeaveDist) {
+    	    		trunkLength += (leafDist+edge.getLength() - minLeaveDist)*bp.getLength();
+    	    	}    		 
+        	}else {
+        		trunkLength += edge.getLength()*bp.getLength();
+        	}
+    	}    	
+    	
+		// check overlap
+		BreakPoints overlap = bp.andNotCopy(edge.parentNode.dirtyBreakPoints);
+		if (overlap.isEmpty())
+			return;
+
+    	
+    	
+    	leafDist += edge.getLength();
+    		
+    	
+    	if (edge.parentNode.isRecombination()) {
+    		BreakPoints bp1 = edge.parentNode.getParentEdges().get(0).breakPoints.andCopy(bp);
+    		BreakPoints bp2 = edge.parentNode.getParentEdges().get(1).breakPoints.andCopy(bp);
+    		
+    		if (!bp1.isEmpty() && !bp2.isEmpty())    		
+	    		if (leafDist > minLeaveDist)
+	    			onTrunkCount++;
+    		
+    		if (!bp1.isEmpty())
+    			getTrunkRateUpwards(edge.parentNode.getParentEdges().get(0), 0.0, minLeaveDist, bp1);
+    		
+    		if (!bp2.isEmpty()) 
+    			getTrunkRateUpwards(edge.parentNode.getParentEdges().get(1), 0.0, minLeaveDist, bp2);
+    		
+    	}else {
+    		
+    		edge.parentNode.dirtyBreakPoints.or(overlap);
+    		
+    		//check if it is a local root
+    		if (rootBreaks.containsKey(edge.parentNode.getParentEdges().get(0).ID)) {
+//    			System.out.println(rootBreaks.get(edge.parentNode.getParentEdges().get(0).ID));
+    			overlap.andNot(rootBreaks.get(edge.parentNode.getParentEdges().get(0).ID));
+    		}
+    		if (overlap.isEmpty())
+    			return;
+
+    		
+			getTrunkRateUpwards(edge.parentNode.getParentEdges().get(0), leafDist, minLeaveDist, overlap);
+    	}
+    }
+    
+
+    
+    private void getTotalRateUpwards(RecombinationNetworkEdge edge, BreakPoints bp) {
+		trunkLength += edge.getLength()*bp.getLength();
+    		
+    	
+    	if (edge.parentNode.isRecombination()) {
+    		BreakPoints bp1 = edge.parentNode.getParentEdges().get(0).breakPoints.andCopy(bp);
+    		BreakPoints bp2 = edge.parentNode.getParentEdges().get(1).breakPoints.andCopy(bp);
+    		
+    		if (!bp1.isEmpty() && !bp2.isEmpty())    		
+    			onTrunkCount++;
+    		
+    		if (!bp1.isEmpty())
+    			getTotalRateUpwards(edge.parentNode.getParentEdges().get(0), bp1);
+    		
+    		if (!bp2.isEmpty()) 
+    			getTotalRateUpwards(edge.parentNode.getParentEdges().get(1), bp2);
+    		
+    	}else {
+    		// check overlap
+    		BreakPoints overlap = bp.andNotCopy(edge.parentNode.dirtyBreakPoints);
+    		if (overlap.isEmpty())
+    			return;
+    		
+    		edge.parentNode.dirtyBreakPoints.or(overlap);
+    		
+    		//check if it is a local root
+    		if (rootBreaks.containsKey(edge.parentNode.getParentEdges().get(0).ID)) {
+//    			System.out.println(rootBreaks.get(edge.parentNode.getParentEdges().get(0).ID));
+    			overlap.andNot(rootBreaks.get(edge.parentNode.getParentEdges().get(0).ID));
+    		}
+    		if (overlap.isEmpty())
+    			return;
+
+    		
+    		getTotalRateUpwards(edge.parentNode.getParentEdges().get(0), overlap);
+    	}
+    }
+
     
     private void getAllAncestralEdgesLeaveDist(RecombinationNetworkNode node, double dist, double threshold){
     	int index = allTrunkNodes.indexOf(node);
@@ -283,6 +480,151 @@ public class TrunkRecombination extends RecombinationAnnotator {
 		}
     }
         
+    private void traversalRoots(RecombinationNetworkEdge edge, BreakPoints breakPoints) {
+    	BreakPoints bp = breakPoints.copy();
+    	bp.and(edge.breakPoints);
+    	
+    	if (bp.isEmpty())
+    		return;
+
+    	RecombinationNetworkNode node = edge.childNode;
+    	if (node.isCoalescence()) {
+    		//get which loci coalesced here
+    		BreakPoints bp1 = node.getChildEdges().get(0).breakPoints.copy();
+    		bp1.and(node.getChildEdges().get(1).breakPoints); 
+    		bp1.and(bp);
+    		
+
+    		if (!bp1.isEmpty()) {
+     			if (rootBreaks.containsKey(node.getParentEdges().get(0).ID)) {
+    				rootBreaks.get(node.getParentEdges().get(0).ID).or(bp1);
+    			}else {
+    				rootBreaks.put(node.getParentEdges().get(0).ID, bp1);
+    			}
+    		}
+    		
+    		
+    		// get which loci did not coalesce
+    		BreakPoints bp2 = bp.copy();
+    		bp2.andNot(bp1);
+    		
+    		traversalRoots(node.getChildEdges().get(0), bp2);
+    		traversalRoots(node.getChildEdges().get(1), bp2);    				
+    	}else if (node.isRecombination()) {
+    		traversalRoots(node.getChildEdges().get(0), bp);
+    	}else {
+    		return;
+    	}	
+
+	}
+    
+	void getTrunkRate(RecombinationNetworkNode node, BreakPoints computeFor_BP, 
+			int prev_edge_ID, BreakPoints prev_Pointer, double leafDist, double minLeafDist) {   
+		
+
+    	if (computeFor_BP.isEmpty())
+    		return;   
+    	      
+        if (node.isRecombination()) {
+        	for (RecombinationNetworkEdge edge : node.getParentEdges()) {
+        		BreakPoints bp = computeFor_BP.copy();      		
+        		bp.andPR(edge.passingRange); 
+        		if (!bp.isEmpty()) {   			
+        			
+        			getTrunkRate(edge.parentNode, bp, prev_edge_ID, prev_Pointer, leafDist + edge.getLength(), minLeafDist);
+        		}
+        	}       	
+        }else { 	
+        	// make a copy of the BP's
+        	BreakPoints computeFor = computeFor_BP.copy();
+        	RecombinationNetworkEdge edge = node.getParentEdges().get(0);    
+      	
+        	// compute with breakpoints are "visibly" coalescing at this node
+        	if (node.overlap==null) {
+        		node.overlap = node.getChildEdges().get(0).breakPoints.andCopy(node.getChildEdges().get(1).breakPoints);
+        	}
+        	
+        	// test if compute for is visibly coalescing here
+    		BreakPoints cf_only = computeFor.andNotCopy(node.overlap);
+
+    		if (!cf_only.isEmpty()) {    
+    			getTrunkRate(edge.parentNode, cf_only, prev_edge_ID, prev_Pointer, leafDist, minLeafDist);
+                // see "how" much is left of the compute for BP
+    			computeFor.andNot(cf_only);
+    		}
+    		
+    		if (computeFor.isEmpty())
+    			return;
+    		
+    		
+    		boolean exists = false;
+    		
+    		for (int i = 0; i < node.prevPointer.size(); i++) {
+	    		if (node.prevPointer.get(i)==prev_edge_ID &&
+	    				node.dummy2.get(i).equals(prev_Pointer)) {	
+		    		node.dummy.get(i).or(computeFor);		    		
+		    		exists = true;
+	    		}
+    		}
+    		
+    		if (!exists) {
+	    		node.dummy.add(computeFor.copy());		    		
+	    		node.prevPointer.add(prev_edge_ID);
+	    		node.dummy2.add(prev_Pointer.copy());
+    		}
+    		   		
+
+    		for (int i = 0; i < node.dummy.size();i++) {
+    			if (node.prevPointer.get(i)!=prev_edge_ID) {    			
+	        		// get the overlap
+	        		if (node.dummy.get(i).overlapFast(computeFor)) {        			
+		        		BreakPoints bp_here = node.dummy.get(i).andCopy(computeFor);
+		        		computeFor.andNot(bp_here);
+	                	// only pass on loci for which the root has not been reached yet.		                	
+                		node.dummy3.or(bp_here);                
+	        		} 
+	        	}
+    		}
+    		
+    		
+    		
+    		if (node.dummy3.equals(node.overlap)) {
+        		for (int i = 0; i < node.dummy.size(); i++) {
+        			for (int j = i + 1; j < node.dummy.size(); j++) {
+	        			if (node.prevPointer.get(i)!=node.prevPointer.get(j)) {
+	        				if (node.dummy.get(i).overlapFast(node.dummy.get(j))) {
+		        				BreakPoints bp1 = node.dummy.get(i).andCopy(node.dummy.get(j));
+	        		        	if (bp1.overlapFast(node.dirtyBreakPoints) || 
+	        		        			node.getChildEdges().get(0).isDirty()==Tree.IS_FILTHY ||
+	        		        			node.getChildEdges().get(1).isDirty()==Tree.IS_FILTHY ) {	  
+	        		        		
+	        	        		}else {    
+	        	        		}	        		        		        		        	
+	                        	if (!edge.isRootEdge()) {
+	                        		BreakPoints rootBp = rootBreaks.get(edge.ID);
+	                        		if (rootBp!=null) {
+	                        			if (!bp1.overlapFast(rootBp)) {
+	                        				getTrunkRate(edge.parentNode, bp1, edge.ID, bp1, leafDist, minLeafDist);	                        				
+	                        			}
+	                        		}else {
+	                        			getTrunkRate(edge.parentNode, bp1, edge.ID, bp1, leafDist, minLeafDist);
+	                        		}
+	                        	}
+	        				}
+	        			}
+        			}
+        		}
+    		}
+
+    		
+		}        
+    }
+
+    
+    
+    
+   
+
     /**
      * Use a GUI to retrieve ACGAnnotator options.
      *

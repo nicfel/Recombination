@@ -50,7 +50,6 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
         File outFile = new File("commonAncestorHeights.tsv");
         String sequence;
         double burninPercentage = 10.0;
-        SummaryStrategy summaryStrategy = SummaryStrategy.MEAN;
         boolean rootOnly = false;
         BreakPoints breakPoints = new BreakPoints();
 
@@ -61,7 +60,6 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
                     "Output file: " + outFile + "\n" +
                     "Sequence: " + sequence + "\n" +
                     "Burn-in percentage: " + burninPercentage + "\n" +
-                    "Node height and conv. site summary: " + summaryStrategy + "\n" +
             		"Remove Loci for summary: " + breakPoints + "\n" +
             		"root only: " + rootOnly + "\n";
        }
@@ -133,6 +131,7 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
 	        double[][][] nodeHeights = new double[0][0][0];          
 	        // build the clades
 	        boolean first = true;
+	        boolean seqFound = false;
 	        int i = 0;
 	        for (RecombinationNetwork network : logReader){
 	        	if (first) {
@@ -140,8 +139,22 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
 	            		if (networkNode.isLeaf()){
 	            			if (!networkNode.getTaxonLabel().contentEquals(options.sequence))
 	            				leafNodes.add(networkNode.getTaxonLabel());
+	            			else
+	            				seqFound = true;	            				
 	            		}
 	        		}
+	            	if (!seqFound && !options.rootOnly) {
+	            		System.err.println("couldn't find sequence \"" + options.sequence + "\" among the tips");
+	            		System.err.print("try one of those sequences:");
+		            	for (String l : leafNodes){
+		            		System.err.print(", "+l);		            		
+		            	}
+	            		System.err.print("\n");
+	        	        System.err.println("\nDone!");
+
+	            		return;
+	            	}
+	            	
 	        		nodeHeights = new double[logReader.getCorrectedNetworkCount()][network.totalLength][leafNodes.size()];
 	                first = false;
 	        	}
@@ -159,8 +172,34 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
 	        	+ "...");
 	        try (PrintStream ps = new PrintStream(options.outFile)) {
 	        	ps.print("position\tmean\tmedian\tlower\tupper\tname\n");
+	        	// compute the most recent most recent common ancestor
+	        	for (int a = 0; a < leafNodes.size(); a++) {
+            		double[] heightarray = new double[logReader.getCorrectedNetworkCount()];
+            		for (int c = 0; c < logReader.getCorrectedNetworkCount(); c++) {
+	            		double minHeight = Double.POSITIVE_INFINITY;
+            			for (int b = 0; b < nodeHeights[0].length; b++) {
+            				if (nodeHeights[c][b][a]>0)
+            					minHeight = Math.min(minHeight, nodeHeights[c][b][a]);
+	            		}
+            			heightarray[c] = minHeight;
+
+	        		}	
+            		
+                    Arrays.sort(heightarray);
+                    double minHPD = heightarray[(int)(0.025 * heightarray.length)];
+                    double maxHPD = heightarray[(int)(0.975 * heightarray.length)];
+
+                    ps.print(-1 + "\t");
+                    ps.print(DiscreteStatistics.mean(heightarray) + "\t");
+                    ps.print(DiscreteStatistics.median(heightarray) + "\t");
+
+                    ps.print(minHPD + "\t");
+                    ps.print(maxHPD + "\t");
+                    ps.print(leafNodes.get(a) + "\n");
+
+	        	}
 	        	
-	        	for (int a = 0; a < leafNodes.size() - 1; a++) {
+	        	for (int a = 0; a < leafNodes.size(); a++) {
 	        		for (int b = 0; b < nodeHeights[0].length; b++) {
 	            		double[] heightarray = new double[logReader.getCorrectedNetworkCount()];
 	            		for (int c = 0; c < logReader.getCorrectedNetworkCount(); c++) {
@@ -331,6 +370,296 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
         System.err.println(helpMessage);
         System.exit(1);
     }
+    
+    /**
+     * Use a GUI to retrieve ACGAnnotator options.
+     *
+     * @param options options object to populate using GUI
+     * @return true if options successfully collected, false otherwise
+     */
+    private static boolean getOptionsGUI(NetworkAnnotatorOptions options) {
+
+        boolean[] canceled = {false};
+
+        JDialog dialog = new JDialog((JDialog)null, true);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setLocationRelativeTo(null);
+        dialog.setTitle("Common Ancestor Heights");
+
+        JLabel logFileLabel = new JLabel("Recombination Network log file:");
+        JLabel outFileLabel = new JLabel("Output file:");
+//        JLabel targetFileLabel = new JLabel("Target file:");
+        JLabel burninLabel = new JLabel("Burn-in percentage:");
+//        JLabel summaryMethodLabel = new JLabel("Position summary method:");
+        JLabel lociLabel = new JLabel("Loci to use:");
+        
+        JCheckBox geneFlowCheckBox = new JCheckBox("If true, compute root heights instead of common ancestor heights");        
+        JLabel sequenceLabel = new JLabel("Sequence to compute common ancestor heights to:");
+
+        JTextField inFilename = new JTextField(20);
+        inFilename.setEditable(false);
+        JButton inFileButton = new JButton("Choose File");
+
+        JTextField outFilename = new JTextField(20);
+        outFilename.setText(options.outFile.getName());
+        outFilename.setEditable(false);
+        JButton outFileButton = new JButton("Choose File");
+        
+//        JTextField targetFilename = new JTextField(20);
+//        targetFilename.setEditable(false);
+//        JButton targetFileButton = new JButton("Choose File");
+
+        JSlider burninSlider = new JSlider(JSlider.HORIZONTAL,
+                0, 100, (int)(options.burninPercentage));
+        burninSlider.setMajorTickSpacing(50);
+        burninSlider.setMinorTickSpacing(10);
+        burninSlider.setPaintTicks(true);
+        burninSlider.setPaintLabels(true);
+        burninSlider.setSnapToTicks(true);
+        
+        JTextField loci = new JTextField(20);
+        loci.setText("everything");
+        loci.setEditable(true);
+        
+        JTextField seq = new JTextField(20);
+        seq.setText("not set");
+        seq.setEditable(true);
+
+
+
+        JComboBox<SummaryStrategy> heightMethodCombo = new JComboBox<>(SummaryStrategy.values());
+
+        Container cp = dialog.getContentPane();
+        BoxLayout boxLayout = new BoxLayout(cp, BoxLayout.PAGE_AXIS);
+        cp.setLayout(boxLayout);
+
+        JPanel mainPanel = new JPanel();
+
+        GroupLayout layout = new GroupLayout(mainPanel);
+        mainPanel.setLayout(layout);
+        layout.setAutoCreateGaps(true);
+        layout.setAutoCreateContainerGaps(true);
+
+        layout.setHorizontalGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup()
+                        .addComponent(logFileLabel)
+                        .addComponent(outFileLabel)
+//                        .addComponent(targetFileLabel)
+                        .addComponent(burninLabel)
+//                        .addComponent(summaryMethodLabel)
+                        .addComponent(lociLabel)
+                        .addComponent(geneFlowCheckBox)
+                        .addComponent(sequenceLabel)
+                        )
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING, false)
+                        .addComponent(inFilename)
+                        .addComponent(outFilename)
+//                        .addComponent(targetFilename)
+                        .addComponent(burninSlider)
+//                        .addComponent(heightMethodCombo)
+                        .addComponent(loci)
+                        .addComponent(seq)
+                        )
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING, false)
+                        .addComponent(inFileButton)
+                        .addComponent(outFileButton)
+//                        .addComponent(targetFileButton)
+                        ));
+        layout.setVerticalGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup()
+                        .addComponent(logFileLabel)
+                        .addComponent(inFilename,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.PREFERRED_SIZE)
+                        .addComponent(inFileButton))
+                .addGroup(layout.createParallelGroup()
+                        .addComponent(outFileLabel)
+                        .addComponent(outFilename,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.PREFERRED_SIZE)
+                        .addComponent(outFileButton))
+//                .addGroup(layout.createParallelGroup()
+//                        .addComponent(targetFileLabel)
+//                        .addComponent(targetFilename,
+//                                GroupLayout.PREFERRED_SIZE,
+//                                GroupLayout.DEFAULT_SIZE,
+//                                GroupLayout.PREFERRED_SIZE)
+//                        .addComponent(targetFileButton))
+                .addGroup(layout.createParallelGroup()
+                        .addComponent(burninLabel)
+                        .addComponent(burninSlider,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.PREFERRED_SIZE))
+//                .addGroup(layout.createParallelGroup()
+//                        .addComponent(summaryMethodLabel)
+//                        .addComponent(heightMethodCombo,
+//                                GroupLayout.PREFERRED_SIZE,
+//                                GroupLayout.DEFAULT_SIZE,
+//                                GroupLayout.PREFERRED_SIZE))
+                .addGroup(layout.createParallelGroup()
+                        .addComponent(lociLabel)
+                        .addComponent(loci,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.PREFERRED_SIZE))
+                .addGroup(layout.createParallelGroup()
+                        .addComponent(geneFlowCheckBox))
+                .addGroup(layout.createParallelGroup()
+                        .addComponent(sequenceLabel)
+                        .addComponent(seq,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.PREFERRED_SIZE))
+
+
+                );
+
+        mainPanel.setBorder(new EtchedBorder());
+        cp.add(mainPanel);
+
+        JPanel buttonPanel = new JPanel();
+        
+        geneFlowCheckBox.addActionListener(e -> {
+            boolean newValue = !geneFlowCheckBox.isSelected();
+            seq.setEnabled(newValue);
+            seq.setEnabled(newValue);
+        });
+
+
+        JButton runButton = new JButton("Analyze");
+        runButton.addActionListener((e) -> {
+            options.burninPercentage = burninSlider.getValue();
+//            options.summaryStrategy = (SummaryStrategy)heightMethodCombo.getSelectedItem();
+            if (!loci.getText().contains("everything")){
+                	String[] argarray = loci.getText().split(",");
+                	List<Integer> bp_list = new ArrayList<>();
+                	for (int j = 0; j < argarray.length; j++) {
+                		String[] tmp = argarray[j].split("-");
+                		bp_list.add(Integer.parseInt(tmp[0]));
+                		bp_list.add(Integer.parseInt(tmp[1]));
+                	}
+            		options.breakPoints.init(bp_list);
+            }
+            options.rootOnly = geneFlowCheckBox.isSelected();            
+            if (!options.rootOnly){
+            	options.sequence = seq.getText();
+            }
+            dialog.setVisible(false);
+        });
+        runButton.setEnabled(false);
+        buttonPanel.add(runButton);
+
+        JButton cancelButton = new JButton("Quit");
+        cancelButton.addActionListener((e) -> {
+            dialog.setVisible(false);
+            canceled[0] = true;
+        });
+        buttonPanel.add(cancelButton);
+
+        JFileChooser inFileChooser = new JFileChooser();
+        inFileButton.addActionListener(e -> {
+            inFileChooser.setDialogTitle("Select recombination network log file to summarize");
+            if (options.inFile == null)
+                inFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+            int returnVal = inFileChooser.showOpenDialog(dialog);
+
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                options.inFile = inFileChooser.getSelectedFile();
+                inFilename.setText(inFileChooser.getSelectedFile().getName());
+                runButton.setEnabled(true);
+            }
+        });
+
+        JFileChooser outFileChooser = new JFileChooser();
+        outFileButton.addActionListener(e -> {
+            outFileChooser.setDialogTitle("Select output file name.");
+            if (options.inFile != null)
+                outFileChooser.setCurrentDirectory(options.inFile);
+            else
+                outFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+
+            outFileChooser.setSelectedFile(options.outFile);
+            int returnVal = outFileChooser.showOpenDialog(dialog);
+
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                options.outFile = outFileChooser.getSelectedFile();
+                outFilename.setText(outFileChooser.getSelectedFile().getName());
+            }
+        });
+        
+//        JFileChooser targetFileChooser = new JFileChooser();
+//        targetFileButton.addActionListener(e -> {
+//            targetFileChooser.setDialogTitle("Select output file name.");
+//            if (options.inFile != null)
+//            	targetFileChooser.setCurrentDirectory(options.inFile);
+//            else
+//            	targetFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+//
+//            targetFileChooser.setSelectedFile(options.outFile);
+//            int returnVal = targetFileChooser.showOpenDialog(dialog);
+//
+//            if (returnVal == JFileChooser.APPROVE_OPTION) {
+//                options.targetFile = targetFileChooser.getSelectedFile();
+//                outFilename.setText(targetFileChooser.getSelectedFile().getName());
+//            }
+//        });
+             			
+        cp.add(buttonPanel);
+
+        dialog.pack();
+        dialog.setResizable(false);
+        dialog.setVisible(true);
+
+        return !canceled[0];
+    }
+
+    /**
+     * Prepare JFrame to which ACGAnnotator output streams will be
+     * directed.
+     */
+    private static void setupGUIOutput() {
+
+        JFrame frame = new JFrame();
+        frame.setTitle("Recombination Network Annotator");
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        JTextArea textArea = new JTextArea(25, 80);
+        textArea.setFont(new Font("monospaced", Font.PLAIN, 12));
+        textArea.setEditable(false);
+        frame.getContentPane().add(new JScrollPane(textArea), BorderLayout.CENTER);
+
+        JButton closeButton = new JButton("Close");
+        closeButton.addActionListener(e -> System.exit(0));
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(closeButton);
+        frame.getContentPane().add(buttonPanel, BorderLayout.PAGE_END);
+
+        // Redirect streams to output window:
+        OutputStream out = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                SwingUtilities.invokeLater(() -> {
+                    if ((char)b == '\r') {
+                        int from = textArea.getText().lastIndexOf("\n") + 1;
+                        int to = textArea.getText().length();
+                        textArea.replaceRange(null, from, to);
+                    } else
+                        textArea.append(String.valueOf((char) b));
+                });
+            }
+        };
+
+        System.setOut(new PrintStream(out, true));
+        System.setErr(new PrintStream(out, true));
+
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+
 
     /**
      * Main method for ACGAnnotator.  Sets up GUI if needed then
@@ -341,7 +670,28 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
     public static void main(String[] args) {
     	NetworkAnnotatorOptions options = new NetworkAnnotatorOptions();
     	
-        getCLIOptions(args, options);
+        if (args.length == 0) {
+            // Retrieve options from GUI:
+
+            try {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            } catch (ClassNotFoundException | InstantiationException | UnsupportedLookAndFeelException | IllegalAccessException e) {
+                Log.warning.println("Error setting cross-platform look and feel.");
+            }
+
+            try {
+                SwingUtilities.invokeAndWait(() -> {
+                    if (!getOptionsGUI(options))
+                        System.exit(0);
+
+                    setupGUIOutput();
+                });
+            } catch (InterruptedException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        } else {
+            getCLIOptions(args, options);
+        }
 
         // Run ACGAnnotator
         try {
@@ -394,27 +744,6 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
                     i += 1;
                     break;
 
-                case "-positions":
-                    if (args.length<=i+1) {
-                        printUsageAndError("-positions must be followed by either 'MEAN' or 'MEDIAN'.");
-                    }
-
-                    if (args[i+1].toLowerCase().equals("mean")) {
-                        options.summaryStrategy = SummaryStrategy.MEAN;
-
-                        i += 1;
-                        break;
-                    }
-
-                    if (args[i+1].toLowerCase().equals("median")) {
-                        options.summaryStrategy = SummaryStrategy.MEDIAN;
-
-                        i += 1;
-                        break;
-                    }
-
-                    printUsageAndError("-positions must be followed by either 'MEAN' or 'MEDIAN'.");
-
                 case "-subsetRange":
                     if (args.length<=i+1) {
                         printUsageAndError("-subsetRange must be a range in the format of 0-100.");
@@ -431,7 +760,7 @@ public class CommonAncestorHeights extends RecombinationAnnotator {
                 		options.breakPoints.init(bp_list);
                     } catch (NumberFormatException e) {
                         printUsageAndError("removeSegments must be an array of integers separated by commas if more than one");
-                     }
+                    }
 
                     i += 1;
                     break;

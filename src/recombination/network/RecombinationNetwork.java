@@ -224,9 +224,14 @@ public class RecombinationNetwork extends StateNode {
         }
 
         result.append("[&");
-        
+
         result.append("loci={").append(currentEdge.breakPoints);
         result.append("}");
+        
+//        result.append(",trunk=").append(currentEdge.childNode.visited);
+//        result.append("");
+
+        
         if (currentEdge.passingRange!=null && !currentEdge.passingRange.isEmpty()) {
 	        result.append(",pr={").append(currentEdge.passingRange);
 	        result.append("}");
