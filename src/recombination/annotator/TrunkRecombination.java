@@ -17,8 +17,8 @@
 
 package recombination.annotator;
 
-import beast.core.util.Log;
-import beast.evolution.tree.Tree;
+import beast.base.core.Log;
+import beast.base.evolution.tree.Tree;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;

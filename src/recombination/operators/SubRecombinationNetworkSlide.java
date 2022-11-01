@@ -1,8 +1,8 @@
 package recombination.operators;
 
-import beast.core.Description;
-import beast.core.Input;
-import beast.util.Randomizer;
+import beast.base.core.Description;
+import beast.base.core.Input;
+import beast.base.util.Randomizer;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;

@@ -1,6 +1,6 @@
 package recombination.operator;
 
-import beast.util.Randomizer;
+import beast.base.util.Randomizer;
 import recombination.CoalReTestClass;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;

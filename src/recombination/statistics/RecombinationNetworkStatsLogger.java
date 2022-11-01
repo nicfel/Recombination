@@ -1,9 +1,9 @@
 package recombination.statistics;
 
-import beast.core.BEASTObject;
-import beast.core.Input;
-import beast.core.Loggable;
-import beast.evolution.tree.Tree;
+import beast.base.core.BEASTObject;
+import beast.base.core.Input;
+import beast.base.core.Loggable;
+import beast.base.evolution.tree.Tree;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;

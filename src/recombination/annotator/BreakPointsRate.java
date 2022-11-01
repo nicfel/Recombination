@@ -17,7 +17,7 @@
 
 package recombination.annotator;
 
-import beast.core.util.Log;
+import beast.base.core.Log;
 import cern.colt.Arrays;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;

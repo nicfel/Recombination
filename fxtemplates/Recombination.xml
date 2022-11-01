@@ -1,0 +1,164 @@
+<beast version="2.0"
+       namespace="beast.app.beauti:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.branchratemodel:beast.base.evolution.speciation:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood:beast.evolution:beast.base.inference.distribution">
+
+    <mergewith point="treePriorTemplates">
+
+        <!-- Coalescent with Recombination -->
+        <subtemplate id="CoalescentWithRecombinationConstantPopulation"
+                     class="recombination.util.DummyTreeDistribution"
+                     mainid="CoalescentWithRecombinationDummy.t:$(n)"
+                     inlineInputs="recombination.distribution.CoalescentWithRecombination.networkIntervals"
+                     suppressInputs="recombination.distribution.NetworkIntervals.network">
+            <![CDATA[
+                
+            <stateNode id="recombinationRate" spec="beast.base.inference.parameter.RealParameter" value="0.0001" estimate="true"/>
+            <stateNode id="popSize" spec="beast.base.inference.parameter.RealParameter" value="1.0" estimate="true"/>
+
+            <stateNode id="network" spec="recombination.simulator.SimulatedCoalescentRecombinationNetwork" data="@$(n)"
+                        estimate="true" tree="@Tree.t:$(n)">
+                <recombinationRate spec="beast.base.inference.parameter.RealParameter" value="0.0"/>
+                <populationModel spec="beast.base.evolution.tree.coalescent.ConstantPopulation">
+                    <popSize spec="beast.base.inference.parameter.RealParameter" value="1.0"/>
+                </populationModel>
+            </stateNode>
+
+            <prior spec="recombination.util.DummyTreeDistribution" id="CoalescentWithRecombinationDummy.t:$(n)" tree="@Tree.t:$(n)"/>
+
+            <prior spec="recombination.distribution.CoalescentWithRecombination" id="CoalescentWithRecombinationPrior" maxHeightRatio="5">
+                <recombinationRate idref="recombinationRate"/>
+                <populationModel id="constantPopSize" spec="beast.base.evolution.tree.coalescent.ConstantPopulation">
+                    <popSize idref="popSize"/>
+                </populationModel>
+                <networkIntervals id="networkIntervals" spec="recombination.distribution.RecombinationNetworkIntervals">
+                    <recombinationNetwork idref="network"/>
+                </networkIntervals>
+            </prior>
+
+
+            <prior id="popSizeCwRPrior.alltrees" x="@popSize">
+                <distr spec="OneOnX"/>
+            </prior>
+
+            <prior id="recombinationRateCwRPrior.alltrees" x="@recombinationRate">
+                <distr spec="OneOnX"/>
+            </prior>
+
+            <operator id="recombinationRateCwRScale.alltrees" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator"
+                parameter="@recombinationRate" scaleFactor="0.5" weight="1.0"/>
+
+            <operator id="popSizeCwRScale.alltrees" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator"
+                parameter="@popSize" scaleFactor="0.5" weight="1.0"/>
+
+            <operator id="addRemoveRecombinationCoalescent" spec="recombination.operators.LocalAddRemoveRecombinationCoalescent"
+                      network="@network" weight="30.0">
+                      <coalescentWithRecombination idref="CoalescentWithRecombinationPrior"/>
+            </operator>
+            
+            <operator id="addRemoveRecombination" spec="recombination.operators.AddRemoveRecombination"
+                      network="@network" weight="10.0" alpha="0.5"/>
+
+            <operator id="divertLoci" spec="recombination.operators.DivertLociOperator"
+                      network="@network" weight="10.0"/>
+
+            <operator id="uniformNetwork" spec="recombination.operators.UniformRecombinationNetworkNodeHeightOperator"
+                      network="@network" weight="5.0"/>
+
+            <operator id="networkWideExchange" spec="recombination.operators.RecombinationNetworkExchange"
+                      network="@network" isNarrow="false" weight="30.0"/>
+
+            <operator id="networkNarrowExchange" spec="recombination.operators.RecombinationNetworkExchange"
+                      network="@network" isNarrow="true" weight="30.0"/>
+
+            <operator id="subNetworkSlide" spec="recombination.operators.SubRecombinationNetworkSlide"
+                      network="@network" weight="30.0"/>
+
+            <operator id="networkGibbs" spec="recombination.operators.GibbsOperatorAboveLociRoots"
+                      network="@network" weight="5.0">
+                      <coalescentWithRecombination idref="CoalescentWithRecombinationPrior"/>
+            </operator>
+
+
+            <operator id="networkScale" spec="recombination.operators.RecombinationNetworkScaleOperator"
+                      network="@network" weight="3.0"/>
+
+            <operator id="networkScaleRoot" spec="recombination.operators.RecombinationNetworkScaleOperator"
+                      network="@network" scaleRootOnly="true" weight="3.0"/>
+
+            <operator id="networkUpDown" spec="recombination.operators.RecombinationNetworkScaleOperator"
+                      network="@network" weight="5.0"/>
+
+
+            <log id="networkCwRStatsLogger.alltrees" spec="recombination.statistics.RecombinationNetworkStatsLogger" recombinationNetwork="@network"/>
+
+            <logger id="networkCwRLogger" spec="Logger" logEvery="10000" mode="tree" fileName="$(filebase).network.trees">
+                <log idref="network"/>
+            </logger>
+
+            ]]>
+
+            <connect method="recombination.util.BEAUtiConnector.customConnector"/>
+
+            <connect srcID="CoalescentWithRecombinationDummy.t:$(n)" targetID="prior" inputName="distribution"
+                     if="inposterior(CoalescentWithRecombinationDummy.t:$(n)) and Tree.t:$(n)/estimate=true"/>
+            <connect srcID="CoalescentWithRecombinationPrior" targetID="prior" inputName="distribution"
+                     if="inposterior(CoalescentWithRecombinationDummy.t:$(n)) and Tree.t:$(n)/estimate=true"/>
+
+            <connect srcID="recombinationRateCwRPrior.alltrees" targetID="prior" inputName="distribution"
+                     if="inposterior(CoalescentWithRecombinationPrior) and recombinationRate/estimate=true"/>
+            <connect srcID="popSizeCwRPrior.alltrees" targetID="prior" inputName="distribution"
+                     if="inposterior(CoalescentWithRecombinationPrior) and popSize/estimate=true"/>
+
+            <connect srcID="recombinationRate" targetID="state" inputName="stateNode"
+                     if="inposterior(CoalescentWithRecombinationPrior) and recombinationRate/estimate=true"/>
+            <connect srcID="popSize" targetID="state" inputName="stateNode"
+                     if="inposterior(CoalescentWithRecombinationPrior) and popSize/estimate=true"/>
+            <connect srcID="network" targetID="state" inputName="stateNode"
+                     if="inposterior(CoalescentWithRecombinationPrior)"/>
+
+            <connect srcID="recombinationRateCwRScale.alltrees" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and recombinationRate/estimate=true"/>
+            <connect srcID="popSizeCwRScale.alltrees" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and popSize/estimate=true"/>
+            <connect srcID="recombinationRate" targetID="networkUpDown" inputName="downParameter"
+                     if="inposterior(CoalescentWithRecombinationPrior) and recombinationRate/estimate=true"/>
+            <connect srcID="popSize" targetID="networkUpDown" inputName="upParameter"
+                     if="inposterior(CoalescentWithRecombinationPrior) and popSize/estimate=true"/>
+
+         <connect srcID="addRemoveRecombinationCoalescent" targetID="mcmc" inputName="operator"
+                  if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="addRemoveRecombination" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="divertLoci" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="uniformNetwork" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="networkWideExchange" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="networkNarrowExchange" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="subNetworkSlide" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="networkGibbs" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+                     
+                     
+            <connect srcID="networkScale" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="networkScaleRoot" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+            <connect srcID="networkUpDown" targetID="mcmc" inputName="operator"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+
+            <connect srcID="recombinationRate" targetID="tracelog" inputName="log"
+                     if="inposterior(CoalescentWithRecombinationPrior) and recombinationRate/estimate=true"/>
+            <connect srcID="popSize" targetID="tracelog" inputName="log"
+                     if="inposterior(CoalescentWithRecombinationPrior) and popSize/estimate=true"/>
+            <connect srcID="networkCwRStatsLogger.alltrees" targetID="tracelog" inputName="log"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+
+            <connect srcID="networkCwRLogger" targetID="mcmc" inputName="logger"
+                     if="inposterior(CoalescentWithRecombinationPrior) and network/estimate=true"/>
+        </subtemplate>
+
+    </mergewith>
+</beast>

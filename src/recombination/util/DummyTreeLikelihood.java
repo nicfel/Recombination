@@ -1,6 +1,6 @@
 package recombination.util;
 
-import beast.evolution.likelihood.ThreadedTreeLikelihood;
+import beast.base.evolution.likelihood.ThreadedTreeLikelihood;
 
 public class DummyTreeLikelihood extends ThreadedTreeLikelihood {
 	

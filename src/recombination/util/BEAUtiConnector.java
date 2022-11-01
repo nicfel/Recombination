@@ -1,13 +1,13 @@
 package recombination.util;
 
-import beast.app.beauti.BeautiDoc;
-import beast.core.Distribution;
-import beast.core.Logger;
-import beast.core.MCMC;
-import beast.core.Operator;
-import beast.core.util.CompoundDistribution;
-import beast.evolution.likelihood.GenericTreeLikelihood;
-import beast.evolution.operators.UpDownOperator;
+import beastfx.app.inputeditor.BeautiDoc;
+import beast.base.inference.Distribution;
+import beast.base.inference.Logger;
+import beast.base.inference.MCMC;
+import beast.base.inference.Operator;
+import beast.base.inference.CompoundDistribution;
+import beast.base.evolution.likelihood.GenericTreeLikelihood;
+import beast.base.inference.operator.UpDownOperator;
 import recombination.likelihood.NetworkLikelihood;
 import recombination.simulator.SimulatedCoalescentRecombinationNetwork;
 

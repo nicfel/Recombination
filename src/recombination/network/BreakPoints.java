@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.apache.commons.math3.util.FastMath;
 
-import beast.evolution.tree.Node;
+import beast.base.evolution.tree.Node;
 
 /**
  * Keep track of recombination break points in the network

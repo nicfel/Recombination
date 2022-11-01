@@ -1,11 +1,11 @@
 package recombination.operators;
 
-import beast.core.Input;
-import beast.core.Operator;
-import beast.core.util.Log;
-import beast.evolution.tree.Tree;
-import beast.math.Binomial;
-import beast.util.Randomizer;
+import beast.base.core.Input;
+import beast.base.inference.Operator;
+import beast.base.core.Log;
+import beast.base.evolution.tree.Tree;
+import beast.base.util.Binomial;
+import beast.base.util.Randomizer;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;

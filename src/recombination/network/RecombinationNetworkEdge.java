@@ -2,7 +2,7 @@ package recombination.network;
 
 import java.util.*;
 
-import beast.evolution.tree.Tree;
+import beast.base.evolution.tree.Tree;
 import recombination.util.NodeEdgeID;
 
 public class RecombinationNetworkEdge {
