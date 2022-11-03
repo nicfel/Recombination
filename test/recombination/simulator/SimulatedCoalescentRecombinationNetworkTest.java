@@ -1,10 +1,9 @@
 package recombination.simulator;
 
-import beast.core.parameter.RealParameter;
-import beast.evolution.tree.TraitSet;
-import beast.evolution.tree.Tree;
-import beast.evolution.tree.coalescent.ConstantPopulation;
-import beast.util.Randomizer;
+import beast.base.inference.parameter.RealParameter;
+import beast.base.evolution.tree.TraitSet;
+import beast.base.evolution.tree.coalescent.ConstantPopulation;
+import beast.base.util.Randomizer;
 import recombination.CoalReTestClass;
 import recombination.statistics.RecombinationNetworkStatsLogger;
 
@@ -12,7 +11,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import test.beast.beast2vs1.trace.DiscreteStatistics;
 
-import java.util.List;
 
 public class SimulatedCoalescentRecombinationNetworkTest extends CoalReTestClass {
 

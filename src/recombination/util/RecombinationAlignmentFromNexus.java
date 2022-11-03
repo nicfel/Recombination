@@ -17,10 +17,10 @@
 
 package recombination.util;
 
-import beast.core.Input;
-import beast.evolution.alignment.Alignment;
-import beast.evolution.alignment.Sequence;
-import beast.util.NexusParser;
+import beast.base.core.Input;
+import beast.base.evolution.alignment.Alignment;
+import beast.base.evolution.alignment.Sequence;
+import beast.base.parser.NexusParser;
 import recombination.alignment.RecombinationAlignment;
 
 import java.io.File;
@@ -67,7 +67,7 @@ public class RecombinationAlignmentFromNexus extends RecombinationAlignment {
             } catch (FileNotFoundException e) {
                 throw new RuntimeException("Error writing to NEXUS file '" + outFileNameInput.get() + "'.");
             }
-            pstream.println("<alignment spec='beast.evolution.alignment.Alignment'>");
+            pstream.println("<alignment spec='beast.base.evolution.alignment.Alignment'>");
             for (Sequence seq : sequenceInput.get())
                 pstream.format("\t<sequence taxon='%s' value='%s'/>\n",
                         seq.taxonInput.get(), seq.dataInput.get());

@@ -2,12 +2,11 @@ package recombination.distribution;
 
 
 
-import beast.core.CalculationNode;
-import beast.core.Function;
-import beast.core.Input;
-import beast.core.Input.Validate;
-import beast.core.parameter.RealParameter;
-import cern.colt.Arrays;
+import beast.base.inference.CalculationNode;
+import beast.base.core.Function;
+import beast.base.core.Input;
+import beast.base.core.Input.Validate;
+import beast.base.inference.parameter.RealParameter;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 

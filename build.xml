@@ -8,14 +8,14 @@
     <!-- Location to check for local copy of beast2 repository -->
     <property name="beastDir" location="../beast2"/>
 
-    <!-- BEAST 2 currently uses Java 1.8 -->
-    <property name="sourceVersion" value="1.8"/>
-    <property name="targetVersion" value="1.8"/>
+    <!-- BEAST 2 currently uses Java 17 -->
+    <property name="sourceVersion" value="17"/>
+    <property name="targetVersion" value="17"/>
 
     <!-- Directories necessary for all BEAST 2 packages -->
     <property name="doc" location="doc"/>
     <property name="examples" location="examples"/>
-    <property name="templates" location="templates"/>
+    <property name="templates" location="fxtemplates"/>
 
     <!-- BEAST branch and version to build against
          (only different for version tags because of
@@ -44,8 +44,8 @@
 
         <!-- Read package name and version from xml file -->
         <xmlproperty file="version.xml" prefix="fromVersionFile" />
-        <property name="projName" value="${fromVersionFile.addon(name)}" />
-        <property name="projVersion" value="${fromVersionFile.addon(version)}" />
+        <property name="projName" value="${fromVersionFile.package(name)}" />
+        <property name="projVersion" value="${fromVersionFile.package(version)}" />
 
         <mkdir dir="${build}"/>
         <mkdir dir="${build-lib}"/>
@@ -118,6 +118,8 @@
             <classpath>
                 <pathelement path="${classpath}"/>
                 <fileset dir="${build-lib}" includes="*.jar"/>
+                <pathelement path="../BeastFX/build"/>
+                <fileset dir="${beastDir}/lib/junit/" includes="*.jar"/>
             </classpath>
         </javac>
     </target>
@@ -143,6 +145,9 @@
                 <pathelement path="${classpath}"/>
                 <pathelement path="${build}" />
                 <fileset dir="${build-lib}" includes="*.jar"/>
+                <fileset dir="${beastDir}/lib/junit/" includes="*.jar"/>
+                <pathelement path="../BeastFX/build"/>
+                <pathelement path="${beastDir}/build"/>
             </classpath>
         </javac>
     </target>
@@ -156,6 +161,7 @@
                 <pathelement path="${build}" />
                 <pathelement path="${build-test}" />
                 <fileset dir="${build-lib}" includes="*.jar"/>
+                <fileset dir="${beastDir}/lib/junit/" includes="*.jar"/>
             </classpath>
             <batchtest fork="yes" todir="${test-reports}">
                 <fileset dir="${test}">
@@ -176,7 +182,7 @@
 
         <mkdir dir="${pack}"/>
         <mkdir dir="${pack}/examples"/>
-        <mkdir dir="${pack}/templates"/>
+        <mkdir dir="${pack}/fxtemplates"/>
         <mkdir dir="${pack}/lib"/>
         <mkdir dir="${pack}/doc"/>
 
@@ -202,7 +208,7 @@
         </copy>
 
         <mkdir dir="${templates}" />
-        <copy todir="${pack}/templates">
+        <copy todir="${pack}/fxtemplates">
             <fileset dir="${templates}" includes="*.xml" />
         </copy>
 

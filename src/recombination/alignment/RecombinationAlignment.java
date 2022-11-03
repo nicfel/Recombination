@@ -24,17 +24,17 @@
 */
 package recombination.alignment;
 
-import beast.core.Description;
-import beast.core.Input;
-import beast.core.Input.Validate;
-import beast.core.parameter.Map;
-import beast.core.util.Log;
-import beast.evolution.alignment.Sequence;
-import beast.evolution.alignment.TaxonSet;
-import beast.evolution.datatype.DataType;
-import beast.evolution.datatype.StandardData;
-import beast.util.BEASTClassLoader;
-import beast.util.PackageManager;
+import beast.base.core.Description;
+import beast.base.core.Input;
+import beast.base.core.Input.Validate;
+import beast.base.inference.parameter.Map;
+import beast.base.core.Log;
+import beast.base.evolution.alignment.Sequence;
+import beast.base.evolution.alignment.TaxonSet;
+import beast.base.evolution.datatype.DataType;
+import beast.base.evolution.datatype.StandardData;
+import beast.pkgmgmt.BEASTClassLoader;
+import beast.pkgmgmt.PackageManager;
 
 import java.util.*;
 
@@ -67,7 +67,7 @@ public class RecombinationAlignment extends Map<String> {
 
     static public void findDataTypes() {
         // build up list of data types
-        List<String> m_sDataTypes = PackageManager.find(beast.evolution.datatype.DataType.class, IMPLEMENTATION_DIR);
+        List<String> m_sDataTypes = PackageManager.find(beast.base.evolution.datatype.DataType.class, IMPLEMENTATION_DIR);
         for (String dataTypeName : m_sDataTypes) {
             try {
                 DataType dataType = (DataType) BEASTClassLoader.forName(dataTypeName).newInstance();

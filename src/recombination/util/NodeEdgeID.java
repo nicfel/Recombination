@@ -3,7 +3,7 @@ package recombination.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import beast.util.Randomizer;
+import beast.base.util.Randomizer;
 
 public class NodeEdgeID {
 	private List<Integer> edgeids = new ArrayList<>();

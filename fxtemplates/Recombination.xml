@@ -1,18 +1,5 @@
 <beast version="2.0"
-       namespace="beast.app.beauti
-                 :beast.core
-                 :beast.evolution.branchratemodel
-                 :beast.evolution.speciation
-                 :beast.evolution.tree.coalescent
-                 :beast.core.util
-                 :beast.core.parameter
-                 :beast.evolution.nuc
-                 :beast.evolution.operators
-                 :beast.evolution.sitemodel
-                 :beast.evolution.substitutionmodel
-                 :beast.evolution.likelihood
-                 :beast.evolution
-                 :beast.math.distributions">
+       namespace="beast.app.beauti:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.branchratemodel:beast.base.evolution.speciation:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood:beast.evolution:beast.base.inference.distribution">
 
     <mergewith point="treePriorTemplates">
 
@@ -24,14 +11,14 @@
                      suppressInputs="recombination.distribution.NetworkIntervals.network">
             <![CDATA[
                 
-            <stateNode id="recombinationRate" spec="beast.core.parameter.RealParameter" value="0.0001" estimate="true"/>
-            <stateNode id="popSize" spec="beast.core.parameter.RealParameter" value="1.0" estimate="true"/>
+            <stateNode id="recombinationRate" spec="beast.base.inference.parameter.RealParameter" value="0.0001" estimate="true"/>
+            <stateNode id="popSize" spec="beast.base.inference.parameter.RealParameter" value="1.0" estimate="true"/>
 
             <stateNode id="network" spec="recombination.simulator.SimulatedCoalescentRecombinationNetwork" data="@$(n)"
                         estimate="true" tree="@Tree.t:$(n)">
-                <recombinationRate spec="beast.core.parameter.RealParameter" value="0.0"/>
-                <populationModel spec="beast.evolution.tree.coalescent.ConstantPopulation">
-                    <popSize spec="beast.core.parameter.RealParameter" value="1.0"/>
+                <recombinationRate spec="beast.base.inference.parameter.RealParameter" value="0.0"/>
+                <populationModel spec="beast.base.evolution.tree.coalescent.ConstantPopulation">
+                    <popSize spec="beast.base.inference.parameter.RealParameter" value="1.0"/>
                 </populationModel>
             </stateNode>
 
@@ -39,7 +26,7 @@
 
             <prior spec="recombination.distribution.CoalescentWithRecombination" id="CoalescentWithRecombinationPrior" maxHeightRatio="5">
                 <recombinationRate idref="recombinationRate"/>
-                <populationModel id="constantPopSize" spec="beast.evolution.tree.coalescent.ConstantPopulation">
+                <populationModel id="constantPopSize" spec="beast.base.evolution.tree.coalescent.ConstantPopulation">
                     <popSize idref="popSize"/>
                 </populationModel>
                 <networkIntervals id="networkIntervals" spec="recombination.distribution.RecombinationNetworkIntervals">
@@ -56,10 +43,10 @@
                 <distr spec="OneOnX"/>
             </prior>
 
-            <operator id="recombinationRateCwRScale.alltrees" spec="ScaleOperator"
+            <operator id="recombinationRateCwRScale.alltrees" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator"
                 parameter="@recombinationRate" scaleFactor="0.5" weight="1.0"/>
 
-            <operator id="popSizeCwRScale.alltrees" spec="ScaleOperator"
+            <operator id="popSizeCwRScale.alltrees" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator"
                 parameter="@popSize" scaleFactor="0.5" weight="1.0"/>
 
             <operator id="addRemoveRecombinationCoalescent" spec="recombination.operators.LocalAddRemoveRecombinationCoalescent"

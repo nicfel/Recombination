@@ -17,7 +17,7 @@
 
 package recombination.annotator;
 
-import beast.util.Randomizer;
+import beast.base.util.Randomizer;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;

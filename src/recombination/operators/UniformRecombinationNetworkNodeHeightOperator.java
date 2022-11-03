@@ -1,6 +1,6 @@
 package recombination.operators;
 
-import beast.util.Randomizer;
+import beast.base.util.Randomizer;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
 

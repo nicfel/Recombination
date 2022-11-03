@@ -1,9 +1,45 @@
-<addon name="Recombination" version="0.1.0">
-  <depends on="beast2" atleast="2.6.2"/>
-  <addonapp class="recombination.annotator.RecombinationNetworkSummarizer"
+<package name='Recombination' version='1.0.0'>
+  <depends on='BEAST.base' atleast='2.7.2'/>
+  <depends on='BEAST.app' atleast='2.7.2'/>
+
+
+  <packageapp class="recombination.annotator.RecombinationNetworkSummarizer"
                       description="Recombination network annotator"/>
-  <addonapp class="recombination.annotator.CommonAncestorHeights"
+  <packageapp class="recombination.annotator.CommonAncestorHeights"
                       description="Common ancestor heights"/>
 
+
+      <service type="beast.base.core.BEASTInterface">
+        <provider classname="recombination.alignment.RecombinationAlignment"/>
+        <provider classname="recombination.distribution.CoalescentWithRecombination"/>
+        <provider classname="recombination.distribution.RecombinationNetworkDistribution"/>
+        <provider classname="recombination.distribution.RecombinationNetworkIntervals"/>
+        <provider classname="recombination.distribution.TipPrior"/>
+        <provider classname="recombination.likelihood.NetworkLikelihood"/>
+        <provider classname="recombination.network.RecombinationNetwork"/>
+        <provider classname="recombination.operators.AddRemoveRecombination"/>
+        <provider classname="recombination.operators.BubbelOperator"/>
+        <provider classname="recombination.operators.DivertLociOperator"/>
+        <provider classname="recombination.operators.GaussianRecombinationNetworkScaler"/>
+        <provider classname="recombination.operators.GibbsOperatorAboveLociRoots"/>
+        <provider classname="recombination.operators.LocalAddRemoveRecombination"/>
+        <provider classname="recombination.operators.LocalAddRemoveRecombinationCoalescent"/>
+        <provider classname="recombination.operators.RecombinationNetworkExchange"/>
+        <provider classname="recombination.operators.RecombinationNetworkScaleOperator"/>
+        <provider classname="recombination.operators.SubRecombinationNetworkSlide"/>
+        <provider classname="recombination.operators.TipReheight"/>
+        <provider classname="recombination.operators.UniformRecombinationNetworkNodeHeightOperator"/>
+        <provider classname="recombination.simulator.SimulatedCoalescentRecombinationNetwork"/>
+        <provider classname="recombination.simulator.SimulatedCoalescentRecombinationNetworkMultipleBreakPoints"/>
+        <provider classname="recombination.statistics.LocusStatsLogger"/>
+        <provider classname="recombination.statistics.RandomStats"/>
+        <provider classname="recombination.statistics.RecombinationNetworkStatsLogger"/>
+        <provider classname="recombination.util.DummyTreeDistribution"/>
+        <provider classname="recombination.util.DummyTreeLikelihood"/>
+        <provider classname="recombination.util.RecombinationAlignmentFromNexus"/>
+        <provider classname="recombination.util.ReducedNetworkLogger"/>
+        <provider classname="recombination.util.SimulatedNetworkAlignment"/>
+    </service>
+
   <!-- Add other dependencies as necessary. -->
-</addon>
+</package>

@@ -2,17 +2,17 @@ package recombination.likelihood;
 
 import org.junit.Test;
 
-import beast.evolution.alignment.Alignment;
-import beast.evolution.alignment.Sequence;
-import beast.evolution.likelihood.TreeLikelihood;
-import beast.evolution.sitemodel.SiteModel;
-import beast.evolution.substitutionmodel.Frequencies;
-import beast.evolution.substitutionmodel.HKY;
-import beast.evolution.substitutionmodel.JukesCantor;
-import beast.evolution.tree.Node;
-import beast.evolution.tree.Tree;
-import beast.util.Randomizer;
-import beast.util.TreeParser;
+import beast.base.evolution.alignment.Alignment;
+import beast.base.evolution.alignment.Sequence;
+import beast.base.evolution.likelihood.TreeLikelihood;
+import beast.base.evolution.sitemodel.SiteModel;
+import beast.base.evolution.substitutionmodel.Frequencies;
+import beast.base.evolution.substitutionmodel.HKY;
+import beast.base.evolution.substitutionmodel.JukesCantor;
+import beast.base.evolution.tree.Node;
+import beast.base.evolution.tree.Tree;
+import beast.base.util.Randomizer;
+import beast.base.evolution.tree.TreeParser;
 import junit.framework.TestCase;
 import recombination.alignment.RecombinationAlignment;
 import recombination.network.RecombinationNetwork;

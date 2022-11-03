@@ -26,19 +26,19 @@
 
 package recombination.likelihood;
 
-import beast.core.Description;
-import beast.core.Input;
-import beast.core.State;
-import beast.core.Input.Validate;
-import beast.core.util.Log;
-import beast.evolution.alignment.Alignment;
-import beast.evolution.branchratemodel.BranchRateModel;
-import beast.evolution.branchratemodel.StrictClockModel;
-import beast.evolution.likelihood.GenericTreeLikelihood;
-import beast.evolution.sitemodel.SiteModel;
-import beast.evolution.substitutionmodel.SubstitutionModel;
-import beast.evolution.tree.Node;
-import beast.evolution.tree.Tree;
+import beast.base.core.Description;
+import beast.base.core.Input;
+import beast.base.inference.State;
+import beast.base.core.Input.Validate;
+import beast.base.core.Log;
+import beast.base.evolution.alignment.Alignment;
+import beast.base.evolution.branchratemodel.BranchRateModel;
+import beast.base.evolution.branchratemodel.StrictClockModel;
+import beast.base.evolution.likelihood.GenericTreeLikelihood;
+import beast.base.evolution.sitemodel.SiteModel;
+import beast.base.evolution.substitutionmodel.SubstitutionModel;
+import beast.base.evolution.tree.Node;
+import beast.base.evolution.tree.Tree;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
@@ -59,7 +59,7 @@ public class NetworkLikelihood extends GenericTreeLikelihood {
     final public Input<Boolean> m_useTipLikelihoods = new Input<>("useTipLikelihoods", "flag to indicate that partial likelihoods are provided at the tips", false);
     final public Input<String> implementationInput = new Input<>("implementation", "name of class that implements this treelikelihood potentially more efficiently. "
     		+ "This class will be tried first, with the TreeLikelihood as fallback implementation. "
-    		+ "When multi-threading, multiple objects can be created.", "beast.evolution.likelihood.BeagleTreeLikelihood");
+    		+ "When multi-threading, multiple objects can be created.", "beast.base.evolution.likelihood.BeagleTreeLikelihood");
     
     public static enum Scaling {none, always, _default};
     final public Input<Scaling> scaling = new Input<>("scaling", "type of scaling to use, one of " + Arrays.toString(Scaling.values()) + ". If not specified, the -beagle_scaling flag is used.", Scaling._default, Scaling.values());

@@ -1,7 +1,7 @@
 package recombination.likelihood;
 
 import java.util.HashMap;
-import beast.evolution.alignment.Alignment;
+import beast.base.evolution.alignment.Alignment;
 import recombination.network.BreakPoints;
 
 /**

@@ -17,9 +17,9 @@
 
 package recombination.annotator;
 
-import beast.core.util.Log;
-import beast.evolution.alignment.Alignment;
-import beast.evolution.alignment.Sequence;
+import beast.base.core.Log;
+import beast.base.evolution.alignment.Alignment;
+import beast.base.evolution.alignment.Sequence;
 import cern.colt.Arrays;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;

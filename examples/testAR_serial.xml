@@ -1,5 +1,5 @@
 <beast version="2.0"
-       namespace="beast.core
+       namespace="beast.pkgmgmt:beast.base.core:beast.base.inference
                  :beast.core.util
                  :beast.core.parameter
                  :beast.evolution.alignment
@@ -21,19 +21,19 @@
 
         <state>
             <stateNode id="network" spec="SimulatedCoalescentRecombinationNetwork" totalLength="2">
-                <populationModel spec="ConstantPopulation">
-                    <popSize spec="RealParameter" value="1.0"/>
+                <populationModel spec="beast.base.evolution.tree.coalescent.ConstantPopulation">
+                    <popSize spec="beast.base.inference.parameter.RealParameter" value="1.0"/>
                 </populationModel>
 
-                <recombinationRate spec="RealParameter" value="1"/>
+                <recombinationRate spec="beast.base.inference.parameter.RealParameter" value="1"/>
 
-                <traitSet spec="TraitSet" traitname="date-backward" id="traitSet">
-                    <taxa spec="TaxonSet" id="taxonSet">
-                        <taxon spec="Taxon" id="t1"/>
-                        <taxon spec="Taxon" id="t2"/>
-                        <taxon spec="Taxon" id="t3"/>
-                        <taxon spec="Taxon" id="t4"/>
-                        <taxon spec="Taxon" id="t5"/>
+                <traitSet spec="beast.base.evolution.tree.TraitSet" traitname="date-backward" id="traitSet">
+                    <taxa spec="beast.base.evolution.alignment.TaxonSet" id="taxonSet">
+                        <taxon spec="beast.base.evolution.alignment.Taxon" id="t1"/>
+                        <taxon spec="beast.base.evolution.alignment.Taxon" id="t2"/>
+                        <taxon spec="beast.base.evolution.alignment.Taxon" id="t3"/>
+                        <taxon spec="beast.base.evolution.alignment.Taxon" id="t4"/>
+                        <taxon spec="beast.base.evolution.alignment.Taxon" id="t5"/>
                     </taxa>
 
                     t1=0, t2=0.1, t3=0.2, t4=0.3, t5=0.4
@@ -44,11 +44,11 @@
         <distribution id="coalDensity" spec="CoalescentWithRecombination">
             <networkIntervals spec="RecombinationNetworkIntervals" recombinationNetwork="@network"/>
 
-            <populationModel spec="ConstantPopulation">
-                <popSize spec="RealParameter" value="1.0"/>
+            <populationModel spec="beast.base.evolution.tree.coalescent.ConstantPopulation">
+                <popSize spec="beast.base.inference.parameter.RealParameter" value="1.0"/>
             </populationModel>
 
-            <recombinationRate spec="RealParameter" value="1"/>
+            <recombinationRate spec="beast.base.inference.parameter.RealParameter" value="1"/>
         </distribution>
 
         <!-- <operator spec="AddRemoveReassortment" network="@network" alpha="1.0" weight="1.0"/> -->

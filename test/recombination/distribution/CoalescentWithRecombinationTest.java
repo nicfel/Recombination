@@ -1,13 +1,15 @@
 package recombination.distribution;
 
-import beast.core.parameter.RealParameter;
-import beast.evolution.tree.TraitSet;
-import beast.evolution.tree.coalescent.ConstantPopulation;
-import junit.framework.Assert;
+import beast.base.inference.parameter.RealParameter;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import beast.base.evolution.tree.TraitSet;
+import beast.base.evolution.tree.coalescent.ConstantPopulation;
 import recombination.CoalReTestClass;
 import recombination.network.RecombinationNetwork;
 
-import org.junit.Test;
 
 public class CoalescentWithRecombinationTest extends CoalReTestClass {
 

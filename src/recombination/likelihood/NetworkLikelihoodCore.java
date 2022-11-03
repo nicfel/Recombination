@@ -27,7 +27,7 @@ package recombination.likelihood;
 import java.util.HashMap;
 import java.util.List;
 
-import beast.evolution.alignment.Alignment;
+import beast.base.evolution.alignment.Alignment;
 import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
