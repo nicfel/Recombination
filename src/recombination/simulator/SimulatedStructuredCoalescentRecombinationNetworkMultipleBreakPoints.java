@@ -13,22 +13,30 @@ import recombination.network.BreakPoints;
 import recombination.network.RecombinationNetwork;
 import recombination.network.RecombinationNetworkEdge;
 import recombination.network.RecombinationNetworkNode;
+import recombination.network.BreakPoints.Range;
 import recombination.util.NodeEdgeID;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class SimulatedStructuredCoalescentRecombinationNetwork extends RecombinationNetwork {
+public class SimulatedStructuredCoalescentRecombinationNetworkMultipleBreakPoints extends RecombinationNetwork {
 
     public Input<RealParameter> recombinationRateInput = new Input<>("recombinationRate",
             "Rate of recombination (per lineage per unit time)", Validate.REQUIRED);
 
-    public Input<PopulationFunction> populationFunctionInput = new Input<>("populationModel",
-            "Population model to use.", Validate.REQUIRED);
+    public Input<RealParameter> NeInput = new Input<>("Ne",
+            "Ne for the different locations.", Validate.REQUIRED);
+    
+    public Input<RealParameter> migrationRatesInput = new Input<>("migrationRates",
+            "migration rates input for the different locations", Validate.REQUIRED);
+    
+    public Input<TraitSet> typeTraitInput = new Input<>("typeTrait", "Type trait set. ", Validate.REQUIRED);
 
+    
     public Input<TraitSet> traitSetInput = new Input<>("traitSet",
             "Trait set used to assign leaf ages.");
 
@@ -63,16 +71,26 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
 	        "relativeRecombinationRate",
             "relative recombination rate (per lineage per unit time) for a specific part of the genome",
             Input.Validate.OPTIONAL);
+	
+    public Input<Double> lambdaInput = new Input<>("lambda",
+            "lambda for Poisson distribution of number of breakpoints", 2.0);
 
-    private PopulationFunction populationFunction;
+
+    private RealParameter Ne;
+    private RealParameter migrationRates;
     private RealParameter recombinationRate;
     public BreakPoints[] recBP;
+    private int states;
 
 
     public void initAndValidate() {
     	nodeEdgeIDs = new NodeEdgeID();
 
-        populationFunction = populationFunctionInput.get();
+    	Ne = NeInput.get();
+    	migrationRates = migrationRatesInput.get();
+    	
+    	states = Ne.getDimension();
+    	
         if (dataInput.get()!=null)
         	totalLength = dataInput.get().getSiteCount();
         else
@@ -173,7 +191,9 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
     public void simulateRecombinationNetwork(List<RecombinationNetworkNode> sampleNodes) {
 
         List<RecombinationNetworkNode> remainingSampleNodes = new ArrayList<>(sampleNodes);
-        List<RecombinationNetworkEdge> extantLineages = new ArrayList<>();
+        List<RecombinationNetworkEdge>[] extantLineages = new List[states];
+        for (int i = 0; i < states; i++)
+        	extantLineages[i] = new ArrayList<>();
 
         remainingSampleNodes.sort(Comparator.comparingDouble(RecombinationNetworkNode::getHeight));
         
@@ -196,6 +216,8 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
 
         double currentTime = 0;
         double timeUntilNextSample;
+        int sumlins = 0;
+
         do {
             // get the timing of the next sampling event
             if (!remainingSampleNodes.isEmpty()) {
@@ -205,18 +227,49 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
             }
 
             // get the current propensities
-            int k = extantLineages.size();
+            int[] k = new int[states];
 
-            double currentTransformedTime = populationFunction.getIntensity(currentTime);
-            double transformedTimeToNextCoal = k>=2 ? Randomizer.nextExponential(0.5*k*(k-1)) : Double.POSITIVE_INFINITY;
-            double timeToNextCoal = populationFunction.getInverseIntensity(
-                    transformedTimeToNextCoal + currentTransformedTime) - currentTime;
+            int locNextCoal = -1;
+            double timeToNextCoal = Double.POSITIVE_INFINITY;
+            
+            for (int i = 0; i < states; i++) {
+            	k[i] = extantLineages[i].size();
+            	double coaltime = Randomizer.nextExponential(k[i] * (k[i] - 1) / Ne.getArrayValue(i));
+            	if (coaltime < timeToNextCoal) {
+            		locNextCoal = i;
+            		timeToNextCoal = coaltime;
+            	}
+            }         
+            
+            int locNextMig = -1;
+            int fromMig=-1, toMig = -1;
+            double timeToNextMig = Double.POSITIVE_INFINITY;
+            int c = 0;
+            for (int a = 0; a < states; a++) {
+            	for (int b=0; b < states; b++) {
+            		if (a!=b) {
+		            	double migtime = Randomizer.nextExponential(k[a] * migrationRates.getArrayValue(c));
+		            	if (migtime < timeToNextMig) {
+		            		locNextMig = c;
+		            		timeToNextMig = migtime;
+		            		fromMig=a;
+		            		toMig=b;		            				
+		            	}
+		            	c++;
+            		}
+            	}
+            }        
+            
+            int locNextRecomb = -1;
+            double timeToNextRecomb = Double.POSITIVE_INFINITY;
+            for (int i = 0; i < states; i++) {
+            	double rectime = Randomizer.nextExponential(k[i] * sumRates);
+            	if (rectime < locNextRecomb) {
+            		locNextRecomb = i;
+            		timeToNextRecomb = rectime;
+            	}
+            }         
 
-//            double totObsProb = 0;
-//    		for (int i = 0; i < extantLineages.size(); i++)
-//    			totObsProb += extantLineages.get(i).breakPoints.getLength()-1;
-    			
-            double timeToNextReass = k>=1 ? Randomizer.nextExponential(k*sumRates) : Double.POSITIVE_INFINITY;
             
             boolean allowRecomb = true;
             if (timeUntilNextSample == Double.POSITIVE_INFINITY && conditionCoalescenceInput.get()) {
@@ -224,38 +277,55 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
             }
             
             // next event time
-            double timeUntilNextEvent = Math.min(timeToNextCoal, timeToNextReass);
-            if (timeUntilNextEvent < timeUntilNextSample) {
+            double timeUntilNextEvent = Math.min(timeToNextCoal, Math.min(timeToNextRecomb, timeToNextMig));
+            
+            
+            if (timeUntilNextEvent < timeUntilNextSample ) {
                 currentTime += timeUntilNextEvent;
                 if (timeUntilNextEvent == timeToNextCoal) {
-                    coalesce(currentTime, extantLineages);
+                    coalesce(currentTime, extantLineages[locNextCoal]);
+                }else if (timeUntilNextEvent == timeToNextMig) {
+                	migrate(currentTime, extantLineages, fromMig, toMig);
                 }else if (allowRecomb){
-                    recombine(currentTime, extantLineages, recRates, sumRates);
+                    recombine(currentTime, extantLineages[locNextRecomb], recRates, sumRates);
                 }
             } else {
                 currentTime += timeUntilNextSample;
                 sample(remainingSampleNodes, extantLineages);
             }
+            
+            sumlins = 0;
+            for (int i = 0; i < states; i++)
+            	sumlins+=extantLineages[i].size();
+            		
 
         }
-        while (extantLineages.size() > 1 || !remainingSampleNodes.isEmpty());
+        while (sumlins > 1 || !remainingSampleNodes.isEmpty());
 
-        setRootEdge(extantLineages.get(0));
+        for (int i = 0; i < states; i++) {
+        	if(extantLineages[i].size()>0) {
+                setRootEdge(extantLineages[i].get(0));               
+                System.out.println(this.getExtendedNewickVerbose());
+        	}
+        }
+
     }
 
-    private boolean getOverlap(BreakPoints breakPoints, List<RecombinationNetworkEdge> extantLineages) {
-		for (RecombinationNetworkEdge edge : extantLineages) {
-			BreakPoints cp = breakPoints.copy();
-			cp.and(edge.breakPoints);
-			if (!cp.isEmpty()) {
-				return true;				
+    private boolean getOverlap(BreakPoints breakPoints, List<RecombinationNetworkEdge>[] extantLineages) {
+    	for (int i = 0; i < states; i++) {
+			for (RecombinationNetworkEdge edge : extantLineages[i]) {
+				BreakPoints cp = breakPoints.copy();
+				cp.and(edge.breakPoints);
+				if (!cp.isEmpty()) {
+					return true;				
+				}
+				breakPoints.or(edge.breakPoints);
 			}
-			breakPoints.or(edge.breakPoints);
-		}
+    	}
 		return false;
 	}
 
-	private void sample(List<RecombinationNetworkNode> remainingSampleNodes, List<RecombinationNetworkEdge> extantLineages) {
+	private void sample(List<RecombinationNetworkNode> remainingSampleNodes, List<RecombinationNetworkEdge>[] extantLineages) {
         // sample the network node
     	RecombinationNetworkNode n = remainingSampleNodes.get(0);
 
@@ -269,7 +339,7 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
         
         RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, n, breakPoints, null, nodeEdgeIDs);
         
-        extantLineages.add(lineage);
+        extantLineages[n.getTypeIndex()].add(lineage);
         n.addParentEdge(lineage);
 
         remainingSampleNodes.remove(0);
@@ -288,6 +358,8 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
         coalescentNode.setHeight(coalescentTime)
                 .addChildEdge(lineage1)
                 .addChildEdge(lineage2);
+        coalescentNode.setTypeIndex(lineage1.childNode.getTypeIndex());
+        
         lineage1.parentNode = coalescentNode;
         lineage2.parentNode = coalescentNode;       
 
@@ -305,73 +377,110 @@ public class SimulatedStructuredCoalescentRecombinationNetwork extends Recombina
         extantLineages.remove(lineage2);
         extantLineages.add(lineage);       
     }
+	
+	private void migrate(double coalescentTime, List<RecombinationNetworkEdge>[] extantLineages, int fromMig, int toMig) {
+        // Sample the pair of lineages that are coalescing:
+    	RecombinationNetworkEdge lineage1 = extantLineages[fromMig].get(Randomizer.nextInt(extantLineages[fromMig].size()));
 
-    private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages) {
-    	RecombinationNetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
-    	    	
-    	int breakpoint = Randomizer.nextInt(totalLength-1);
-    	
-    	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
-    	if (!lineage.breakPoints.withinLimits(breakpoint)) {
-    		return;
-    	}    	
-    	
-    	lineage.breakPoints.computeLeftAndRight(breakpoint);
-    	
-        // Create reassortment node
-        RecombinationNetworkNode node = new RecombinationNetworkNode(nodeEdgeIDs);
-        node.setHeight(reassortmentTime).addChildEdge(lineage);
-
-        // Create reassortment lineages
-        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), new BreakPoints(0,breakpoint), nodeEdgeIDs);
-        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), new BreakPoints(breakpoint+1, totalLength-1), nodeEdgeIDs);
-            
-        // add the breakPoints to the edges
-        leftLineage.setPassingRange(0, breakpoint);
-        rightLineage.setPassingRange(breakpoint+1, totalLength-1);
+        // Create coalescent node
+        RecombinationNetworkNode migrationNode = new RecombinationNetworkNode(nodeEdgeIDs);
+        migrationNode.setHeight(coalescentTime)
+                .addChildEdge(lineage1);
         
-        node.addParentEdge(leftLineage);
-        node.addParentEdge(rightLineage);
+        migrationNode.setTypeIndex(toMig);
+        
+        lineage1.parentNode = migrationNode;
 
-        extantLineages.remove(lineage);
-        extantLineages.add(leftLineage);
-        extantLineages.add(rightLineage);        
+        
+        // Merge segment flags:
+        BreakPoints breakPoints = lineage1.breakPoints.copy();
+
+        // Create new lineage
+        RecombinationNetworkEdge lineage = new RecombinationNetworkEdge(null, migrationNode, breakPoints, null, nodeEdgeIDs);
+        migrationNode.addParentEdge(lineage);
+
+        extantLineages[fromMig].remove(lineage1);
+        extantLineages[toMig].add(lineage);       
     }
-    
+
     private void recombine(double reassortmentTime, List<RecombinationNetworkEdge> extantLineages, double[] recRates, double sumRates) {
     	RecombinationNetworkEdge lineage = extantLineages.get(Randomizer.nextInt(extantLineages.size()));
     	
-    	// sample on which section the breakpoint will have occured.
-    	double cumsum = recRates[0]/sumRates; 
-		double rand = Randomizer.nextDouble();
-		int section = 0;
-		while (section < recRates.length-1) {
-			if (rand<=cumsum)
-				break;
-			section++;
-			cumsum += recRates[section]/sumRates;
-		}    	
+    	long nrBreakpoints = Randomizer.nextPoisson(lambdaInput.get());
     	
-    	int breakpoint = Randomizer.nextInt(recBP[section].getLengthInt()-1) + recBP[section].getMin();
-    	
-    	// check if this breakpoint on this lineage would lead to a recombination event that can be observed
-    	if (!lineage.breakPoints.withinLimits(breakpoint)) {
+    	if (nrBreakpoints==0)
     		return;
-    	}    	
     	
-    	lineage.breakPoints.computeLeftAndRight(breakpoint);
+    	List<Integer> breaks = new ArrayList<>();
+    	
+    	for (int i =0; i < nrBreakpoints; i++) {
+    	
+	    	// sample on which section the breakpoint will have occured.
+	    	double cumsum = recRates[0]/sumRates; 
+			double rand = Randomizer.nextDouble();
+			int section = 0;
+			while (section < recRates.length-1) {
+				if (rand<=cumsum)
+					break;
+				section++;
+				cumsum += recRates[section]/sumRates;
+			}    	
+	    	
+			breaks.add(Randomizer.nextInt(recBP[section].getLengthInt()-1) + recBP[section].getMin());
+
+    	}
+    	
+    	Collections.sort(breaks);
+    	
+    	List<Integer> bp = new ArrayList<>();
+    	
+    	bp.add(0);
+    	int c=0;
+    	for (Integer breakpoint : breaks) {
+    		if ( c % 2==0)
+    			bp.add(breakpoint);
+			else
+    			bp.add(breakpoint+1);
+    		c++;
+    	}
+    	    	    	
+    	if (bp.size()%2!=0)
+    		bp.add(totalLength-1);
+    	
+    	// compute the passing ranges
+    	BreakPoints pr1 = new BreakPoints();
+    	pr1.init(bp);
+    	
+    	BreakPoints pr2 = new BreakPoints(0,totalLength-1);
+    	pr2.andNot(pr1);
+    	
+//    	System.out.println();
+//    	System.out.println(lineage.breakPoints);
+//    	System.out.println(pr1);
+//    	System.out.println(pr2);
+//    	System.exit(0);
+    	
+    	BreakPoints left = lineage.breakPoints.andCopy(pr1);
+		BreakPoints right = lineage.breakPoints.andCopy(pr2);
+		
+//		System.out.println(left);
+//		System.out.println(right);
+		
+		if (left.isEmpty() || right.isEmpty())
+			return;
+
     	
         // Create reassortment node
         RecombinationNetworkNode node = new RecombinationNetworkNode(nodeEdgeIDs);
         node.setHeight(reassortmentTime).addChildEdge(lineage);
 
         // Create reassortment lineages
-        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getLeft(), new BreakPoints(0,breakpoint), nodeEdgeIDs);
-        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, lineage.breakPoints.getRight(), new BreakPoints(breakpoint+1, totalLength-1), nodeEdgeIDs);
+        RecombinationNetworkEdge leftLineage = new RecombinationNetworkEdge(null, node, left, pr1, nodeEdgeIDs);
+        RecombinationNetworkEdge rightLineage = new RecombinationNetworkEdge(null, node, right, pr2, nodeEdgeIDs);
             
         // add the breakPoints to the edges
-        leftLineage.setPassingRange(0, breakpoint);
-        rightLineage.setPassingRange(breakpoint+1, totalLength-1);
+//        leftLineage.setPassingRange(0, pr1);
+//        rightLineage.setPassingRange(breakpoint+1, totalLength-1);
         
         node.addParentEdge(leftLineage);
         node.addParentEdge(rightLineage);
