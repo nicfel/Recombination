@@ -59,6 +59,7 @@ public class RecombinationDistance extends RecombinationAnnotator {
         File outFile = new File("recombination_distances.txt");
         double burninPercentage = 10.0;
         BreakPoints breakPoints = new BreakPoints();
+        String sequence = null;
 
         @Override
         public String toString() {
@@ -89,11 +90,30 @@ public class RecombinationDistance extends RecombinationAnnotator {
 	      + "...");
         
         // compute the pairwise reassortment distances 
-	    int i  =0;
+	    int i =0;
         try (PrintStream ps = new PrintStream(options.outFile)) {
 	        for (RecombinationNetwork network : logReader){
 	        	pruneLociFromNetwork(network, options.breakPoints);
-	        	computeRecombinationDistance(network, ps, i);
+	        	
+	        	if (options.sequence!=null) {
+	        		//prune all breakpoints not ancestral to options.sequence
+	                List<RecombinationNetworkNode> leafs = network.getNodes().stream()
+	                        .filter(e -> e.isLeaf())
+	                        .collect(Collectors.toList());    	
+
+	        		boolean foundLeaf = false;
+	        		for (RecombinationNetworkNode leaf : leafs) {
+	        			if (leaf.getTaxonLabel().contentEquals(options.sequence)) {
+	        				pruneUp(leaf.getParentEdges().get(0), leaf.getParentEdges().get(0).breakPoints);
+	        				foundLeaf = true;
+	        			}
+	        		}
+	        		
+	        		if (!foundLeaf)
+	        			throw new IllegalArgumentException("leaf with name " + options.sequence + " not found");
+	        		
+	        	}
+	        	computeRecombinationDistance(network, ps, i, options.sequence!=null);
 	        	i++;
 	        }
 	        ps.close();
@@ -101,7 +121,25 @@ public class RecombinationDistance extends RecombinationAnnotator {
         System.out.println("\nDone!");
     }
     
-    private void computeRecombinationDistance(RecombinationNetwork network, PrintStream ps, int samplenr){    	
+    private void pruneUp(RecombinationNetworkEdge edge, BreakPoints bp) {
+    	if (edge.isRootEdge())
+    		return;
+    	
+    	BreakPoints bp_tmp = bp.copy(); 
+    	bp_tmp.and(edge.breakPoints);
+    	
+    	if (bp_tmp.isEmpty())
+    		return;
+    	
+    	edge.carryingRange = bp_tmp.copy();
+
+    	
+    	for (RecombinationNetworkEdge e : edge.parentNode.getParentEdges())
+    		pruneUp(e, bp_tmp);    	
+		
+	}
+
+	private void computeRecombinationDistance(RecombinationNetwork network, PrintStream ps, int samplenr, boolean hasSeq){    	
     	// get all reassortment nodes    	
         List<RecombinationNetworkNode> recombinationNodes = network.getNodes().stream()
                 .filter(e -> e.isRecombination())
@@ -111,13 +149,18 @@ public class RecombinationDistance extends RecombinationAnnotator {
         
         for (RecombinationNetworkNode node : recombinationNodes){
         	
+        	if (hasSeq && node.getChildEdges().get(0).carryingRange==null)
+        		continue;
+        	
         	if (node.getParentEdges().get(0).breakPoints.isEmpty())
         		throw new IllegalArgumentException("Empty parent edge");
         	if (node.getParentEdges().get(1).breakPoints.isEmpty())
         		throw new IllegalArgumentException("Empty parent edge");
 
         	// follow the nodes uphill and always denote which
-        	Map<Integer, BreakPoints> uphill = new HashMap<>();       
+        	Map<Integer, BreakPoints> uphill = new HashMap<>();     
+        	
+        	
         	getNodesUphill(uphill, node.getParentEdges().get(0).breakPoints.copy(), node.getParentEdges().get(0));
         	List<Double> heights = new ArrayList<>();
         	List<BreakPoints> breaks = new ArrayList<>();
@@ -127,9 +170,28 @@ public class RecombinationDistance extends RecombinationAnnotator {
         	double weight = 0.0;
         	for (int i = 0; i < breaks.size(); i++) {
         		height += heights.get(i) * breaks.get(i).getGeneticLength();
-        		weight += breaks.get(i).getGeneticLength();
+        		if (hasSeq) {
+        			BreakPoints bp_tmp = breaks.get(i).andCopy(node.getChildEdges().get(0).carryingRange);
+        			weight += bp_tmp.getGeneticLength();
+        		}else {
+        			weight += breaks.get(i).getGeneticLength();
+        		}
         	}
         	height/=weight;
+        	double minedge = -1;
+        	
+        	if (hasSeq) {
+    			BreakPoints bp_tmp1 = node.getParentEdges().get(0).breakPoints.andCopy(node.getChildEdges().get(0).carryingRange);
+    			BreakPoints bp_tmp2 = node.getParentEdges().get(1).breakPoints.andCopy(node.getChildEdges().get(0).carryingRange);
+    			minedge = Math.min(bp_tmp1.getGeneticLength(), bp_tmp2.getGeneticLength());    		
+    		}else {
+    			minedge = Math.min(node.getParentEdges().get(0).breakPoints.getGeneticLength(), node.getParentEdges().get(1).breakPoints.getGeneticLength());    		
+			}
+        	
+        	if (weight==0 || minedge==0)
+        		continue;
+       
+        	       	
         	
             ps.print(Math.max(node.getParentEdges().get(0).passingRange.getMin(), node.getParentEdges().get(1).passingRange.getMin()));
             ps.print("\t");
@@ -137,6 +199,9 @@ public class RecombinationDistance extends RecombinationAnnotator {
             ps.print("\t");
             ps.print(node.getHeight());
             ps.print("\t");
+            ps.print(minedge);
+            ps.print("\t");
+
             ps.print(samplenr);
             j++;
         	ps.print("\n"); 
@@ -501,6 +566,21 @@ public class RecombinationDistance extends RecombinationAnnotator {
 
                     i += 1;
                     break;
+                    
+                case "-sequence":
+                    if (args.length<=i+1) {
+                        printUsageAndError("-sequence must be tha name of a sequence in the network file.");
+                    }
+
+                    try {
+                		options.sequence = args[i + 1];
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("sequence must be a sequence name");
+                     }
+
+                    i += 1;
+                    break;
+
                     
                 default:
                     printUsageAndError("Unrecognised command line option '" + args[i] + "'.");

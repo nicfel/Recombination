@@ -55,7 +55,7 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
         logHR -= Math.log(1.0/(double)possibleSourceEdges.size())
                 + Math.log(1.0/sourceEdge.getLength());
         
-        coalescentDistr.intervals.eventListDirty = true;
+//        coalescentDistr.intervals.eventListDirty = true;
         
     	// Calculate tree intervals
     	List<RecombinationNetworkEvent> networkEventList = coalescentDistr.intervals.getRecombinationNetworkEventList();
@@ -232,7 +232,7 @@ public class LocalAddRemoveRecombinationCoalescent extends DivertLociOperator {
         double destTime = edgeToRemove.parentNode.getHeight();
         
         
-        coalescentDistr.intervals.eventListDirty = true;
+//        coalescentDistr.intervals.eventListDirty = true;
         
     	// Calculate tree intervals
     	List<RecombinationNetworkEvent> networkEventList = coalescentDistr.intervals.getRecombinationNetworkEventList();
